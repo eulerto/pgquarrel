@@ -2,6 +2,7 @@
 #define TYPE_H
 
 #include "common.h"
+#include "privileges.h"
 
 typedef struct PQLBaseType
 {
@@ -24,6 +25,7 @@ typedef struct PQLBaseType
 	bool		byvalue;
 	char		*comment;
 	char		*owner;
+	char		*acl;
 } PQLBaseType;
 
 /* TODO column comment */
@@ -42,6 +44,7 @@ typedef struct PQLCompositeType
 	int						nattributes;
 	char					*comment;
 	char					*owner;
+	char					*acl;
 } PQLCompositeType;
 
 typedef struct PQLEnumType
@@ -51,6 +54,7 @@ typedef struct PQLEnumType
 	int			nlabels;
 	char		*comment;
 	char		*owner;
+	char		*acl;
 } PQLEnumType;
 
 typedef struct PQLRangeType
@@ -66,6 +70,7 @@ typedef struct PQLRangeType
 	char		*diff;
 	char		*comment;
 	char		*owner;
+	char		*acl;
 } PQLRangeType;
 
 PQLBaseType *getBaseTypes(PGconn *c, int *n);

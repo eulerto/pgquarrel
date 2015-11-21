@@ -41,6 +41,7 @@ typedef struct QuarrelOptions
 	bool			statistics;
 	bool			comment;
 	bool			owner;
+	bool			privileges;
 
 	/* From */
 	char			*fhost;

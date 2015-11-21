@@ -30,12 +30,12 @@ getDomains(PGconn *c, int *n)
 	{
 		/* typcollation is new in 9.1 */
 		res = PQexec(c,
-					 "SELECT t.oid, n.nspname, t.typname, format_type(t.typbasetype, t.typtypmod) as domaindef, t.typnotnull, CASE WHEN t.typcollation <> u.typcollation THEN '\"' || p.nspname || '\".\"' || l.collname || '\"' ELSE NULL END AS typcollation, pg_get_expr(t.typdefaultbin, 'pg_type'::regclass) AS typdefault, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) LEFT JOIN pg_type u ON (t.typbasetype = u.oid) LEFT JOIN pg_collation l ON (t.typcollation = l.oid) LEFT JOIN pg_namespace p ON (l.collnamespace = p.oid) WHERE t.typtype = 'd' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, t.typname");
+					 "SELECT t.oid, n.nspname, t.typname, format_type(t.typbasetype, t.typtypmod) as domaindef, t.typnotnull, CASE WHEN t.typcollation <> u.typcollation THEN '\"' || p.nspname || '\".\"' || l.collname || '\"' ELSE NULL END AS typcollation, pg_get_expr(t.typdefaultbin, 'pg_type'::regclass) AS typdefault, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, t.typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) LEFT JOIN pg_type u ON (t.typbasetype = u.oid) LEFT JOIN pg_collation l ON (t.typcollation = l.oid) LEFT JOIN pg_namespace p ON (l.collnamespace = p.oid) WHERE t.typtype = 'd' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, t.typname");
 	}
 	else
 	{
 		res = PQexec(c,
-					 "SELECT t.oid, n.nspname, t.typname, format_type(t.typbasetype, t.typtypmod) as domaindef, t.typnotnull, NULL AS typcollation, pg_get_expr(t.typdefaultbin, 'pg_type'::regclass) AS typdefault, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'd' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, t.typname");
+					 "SELECT t.oid, n.nspname, t.typname, format_type(t.typbasetype, t.typtypmod) as domaindef, t.typnotnull, NULL AS typcollation, pg_get_expr(t.typdefaultbin, 'pg_type'::regclass) AS typdefault, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, t.typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'd' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, t.typname");
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -78,6 +78,10 @@ getDomains(PGconn *c, int *n)
 			d[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
 
 		d[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "typowner")));
+		if (PQgetisnull(res, i, PQfnumber(res, "typacl")))
+			d[i].acl = NULL;
+		else
+			d[i].acl = strdup(PQgetvalue(res, i, PQfnumber(res, "typacl")));
 
 		logDebug("domain \"%s\".\"%s\"", d[i].obj.schemaname, d[i].obj.objectname);
 	}
@@ -196,6 +200,11 @@ dumpCreateDomain(FILE *output, PQLDomain d)
 				formatObjectIdentifier(d.obj.objectname),
 				d.owner);
 	}
+
+	/* privileges */
+	/* XXX second s.obj isn't used. Add an invalid PQLObject? */
+	if (options.privileges)
+		dumpGrantAndRevoke(output, PGQ_DOMAIN, d.obj, d.obj, NULL, d.acl, NULL);
 }
 
 void
@@ -272,5 +281,12 @@ dumpAlterDomain(FILE *output, PQLDomain a, PQLDomain b)
 					formatObjectIdentifier(b.obj.objectname),
 					b.owner);
 		}
+	}
+
+	/* privileges */
+	if (options.privileges)
+	{
+		if (a.acl != NULL || b.acl != NULL)
+			dumpGrantAndRevoke(output, PGQ_DOMAIN, a.obj, b.obj, a.acl, b.acl, NULL);
 	}
 }

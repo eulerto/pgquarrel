@@ -24,7 +24,7 @@ getSequences(PGconn *c, int *n)
 	logNoise("sequence: server version: %d", PQserverVersion(c));
 
 	res = PQexec(c,
-				 "SELECT c.oid, n.nspname, c.relname, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'S' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
+				 "SELECT c.oid, n.nspname, c.relname, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'S' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -58,6 +58,10 @@ getSequences(PGconn *c, int *n)
 			s[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
 
 		s[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "relowner")));
+		if (PQgetisnull(res, i, PQfnumber(res, "relacl")))
+			s[i].acl = NULL;
+		else
+			s[i].acl = strdup(PQgetvalue(res, i, PQfnumber(res, "relacl")));
 
 		logDebug("sequence %s.%s", formatObjectIdentifier(s[i].obj.schemaname),
 				 formatObjectIdentifier(s[i].obj.objectname));
@@ -181,6 +185,11 @@ dumpCreateSequence(FILE *output, PQLSequence s)
 				formatObjectIdentifier(s.obj.objectname),
 				s.owner);
 	}
+
+	/* privileges */
+	/* XXX second s.obj isn't used. Add an invalid PQLObject? */
+	if (options.privileges)
+		dumpGrantAndRevoke(output, PGQ_SEQUENCE, s.obj, s.obj, NULL, s.acl, NULL);
 }
 
 void
@@ -311,5 +320,12 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 					formatObjectIdentifier(b.obj.objectname),
 					b.owner);
 		}
+	}
+
+	/* privileges */
+	if (options.privileges)
+	{
+		if (a.acl != NULL || b.acl != NULL)
+			dumpGrantAndRevoke(output, PGQ_SEQUENCE, a.obj, b.obj, a.acl, b.acl, NULL);
 	}
 }

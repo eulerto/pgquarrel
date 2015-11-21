@@ -50,10 +50,10 @@ getTables(PGconn *c, int *n)
 	/* FIXME relpersistence (9.1)? */
 	if (PQserverVersion(c) >= 90100)
 		res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'r' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
+					 "SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'r' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
 	else
 		res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, 'p' AS relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'r' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
+					 "SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, 'p' AS relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'r' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -96,6 +96,10 @@ getTables(PGconn *c, int *n)
 			t[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
 
 		t[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "relowner")));
+		if (PQgetisnull(res, i, PQfnumber(res, "relacl")))
+			t[i].acl = NULL;
+		else
+			t[i].acl = strdup(PQgetvalue(res, i, PQfnumber(res, "relacl")));
 
 		logDebug("table %s.%s", formatObjectIdentifier(t[i].obj.schemaname),
 				 formatObjectIdentifier(t[i].obj.objectname));
@@ -611,6 +615,11 @@ dumpCreateTable(FILE *output, PQLTable t)
 				formatObjectIdentifier(t.obj.objectname),
 				t.owner);
 	}
+
+	/* privileges */
+	/* XXX second t.obj isn't used. Add an invalid PQLObject? */
+	if (options.privileges)
+		dumpGrantAndRevoke(output, PGQ_TABLE, t.obj, t.obj, NULL, t.acl, NULL);
 }
 
 static void
@@ -858,5 +867,12 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 					formatObjectIdentifier(b.obj.objectname),
 					b.owner);
 		}
+	}
+
+	/* privileges */
+	if (options.privileges)
+	{
+		if (a.acl != NULL || b.acl != NULL)
+			dumpGrantAndRevoke(output, PGQ_TABLE, a.obj, b.obj, a.acl, b.acl, NULL);
 	}
 }

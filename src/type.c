@@ -31,12 +31,12 @@ getBaseTypes(PGconn *c, int *n)
 	{
 		/* typcollation is new in 9.1 */
 		res = PQexec(c,
-					"SELECT t.oid, n.nspname, t.typname, typlen AS length, typinput AS input, typoutput AS output, typreceive AS receive, typsend AS send, typmodin AS modin, typmodout AS modout, typanalyze AS analyze, (typcollation <> 0) as collatable, typdefault, typcategory AS category, typispreferred AS preferred, typdelim AS delimiter, typalign AS align, typstorage AS storage, typbyval AS byvalue, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'b' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
+					"SELECT t.oid, n.nspname, t.typname, typlen AS length, typinput AS input, typoutput AS output, typreceive AS receive, typsend AS send, typmodin AS modin, typmodout AS modout, typanalyze AS analyze, (typcollation <> 0) as collatable, typdefault, typcategory AS category, typispreferred AS preferred, typdelim AS delimiter, typalign AS align, typstorage AS storage, typbyval AS byvalue, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'b' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
 	}
 	else
 	{
 		res = PQexec(c,
-					"SELECT t.oid, n.nspname, t.typname, typlen AS length, typinput AS input, typoutput AS output, typreceive AS receive, typsend AS send, typmodin AS modin, typmodout AS modout, typanalyze AS analyze, false AS collatable, typdefault, typcategory AS category, typispreferred AS preferred, typdelim AS delimiter, typalign AS align, typstorage AS storage, typbyval AS byvalue, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'b' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
+					"SELECT t.oid, n.nspname, t.typname, typlen AS length, typinput AS input, typoutput AS output, typreceive AS receive, typsend AS send, typmodin AS modin, typmodout AS modout, typanalyze AS analyze, false AS collatable, typdefault, typcategory AS category, typispreferred AS preferred, typdelim AS delimiter, typalign AS align, typstorage AS storage, typbyval AS byvalue, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'b' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -87,6 +87,10 @@ getBaseTypes(PGconn *c, int *n)
 			t[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
 
 		t[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "typowner")));
+		if (PQgetisnull(res, i, PQfnumber(res, "typacl")))
+			t[i].acl = NULL;
+		else
+			t[i].acl = strdup(PQgetvalue(res, i, PQfnumber(res, "typacl")));
 
 		logDebug("base type \"%s\".\"%s\"", t[i].obj.schemaname, t[i].obj.objectname);
 	}
@@ -165,7 +169,7 @@ getCompositeTypes(PGconn *c, int *n)
 	logNoise("composite type: server version: %d", PQserverVersion(c));
 
 	res = PQexec(c,
-				"SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'c' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
+				"SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'c' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -196,6 +200,10 @@ getCompositeTypes(PGconn *c, int *n)
 			t[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
 
 		t[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "typowner")));
+		if (PQgetisnull(res, i, PQfnumber(res, "typacl")))
+			t[i].acl = NULL;
+		else
+			t[i].acl = strdup(PQgetvalue(res, i, PQfnumber(res, "typacl")));
 
 		/* fill composite type attributes */
 		getCompositeTypeAttributes(c, &t[i]);
@@ -271,7 +279,7 @@ getEnumTypes(PGconn *c, int *n)
 	logNoise("enum type: server version: %d", PQserverVersion(c));
 
 	res = PQexec(c,
-				"SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'e' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
+				"SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'e' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -302,6 +310,10 @@ getEnumTypes(PGconn *c, int *n)
 			t[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
 
 		t[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "typowner")));
+		if (PQgetisnull(res, i, PQfnumber(res, "typacl")))
+			t[i].acl = NULL;
+		else
+			t[i].acl = strdup(PQgetvalue(res, i, PQfnumber(res, "typacl")));
 
 		/* fill enum type labels */
 		getEnumTypeLabels(c, &t[i]);
@@ -324,7 +336,7 @@ getRangeTypes(PGconn *c, int *n)
 	logNoise("range type: server version: %d", PQserverVersion(c));
 
 	res = PQexec(c,
-				"SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, format_type(rngsubtype, NULL) AS subtype, m.nspname AS opcnspname, o.opcname, o.opcdefault, x.nspname AS collschemaname, CASE WHEN rngcollation = t.typcollation THEN NULL ELSE rngcollation END AS collname, rngcanonical, rngsubdiff, pg_get_userbyid(t.typowner) AS typowner FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) INNER JOIN pg_range r ON (r.rngsubtype = t.oid) INNER JOIN pg_opclass o ON (r.rngsubopc = o.oid) INNER JOIN pg_namespace m ON (o.opcnamespace = m.oid) LEFT JOIN (pg_collation l INNER JOIN pg_namespace x ON (l.collnamespace = x.oid)) ON (r.rngcollation = l.oid) WHERE t.typtype = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
+				"SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, format_type(rngsubtype, NULL) AS subtype, m.nspname AS opcnspname, o.opcname, o.opcdefault, x.nspname AS collschemaname, CASE WHEN rngcollation = t.typcollation THEN NULL ELSE rngcollation END AS collname, rngcanonical, rngsubdiff, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) INNER JOIN pg_range r ON (r.rngsubtype = t.oid) INNER JOIN pg_opclass o ON (r.rngsubopc = o.oid) INNER JOIN pg_namespace m ON (o.opcnamespace = m.oid) LEFT JOIN (pg_collation l INNER JOIN pg_namespace x ON (l.collnamespace = x.oid)) ON (r.rngcollation = l.oid) WHERE t.typtype = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -371,6 +383,10 @@ getRangeTypes(PGconn *c, int *n)
 			t[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
 
 		t[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "typowner")));
+		if (PQgetisnull(res, i, PQfnumber(res, "typacl")))
+			t[i].acl = NULL;
+		else
+			t[i].acl = strdup(PQgetvalue(res, i, PQfnumber(res, "typacl")));
 
 		logDebug("range type \"%s\".\"%s\"", t[i].obj.schemaname, t[i].obj.objectname);
 	}
@@ -466,6 +482,11 @@ dumpCreateBaseType(FILE *output, PQLBaseType t)
 				formatObjectIdentifier(t.obj.objectname),
 				t.owner);
 	}
+
+	/* privileges */
+	/* XXX second t.obj isn't used. Add an invalid PQLObject? */
+	if (options.privileges)
+		dumpGrantAndRevoke(output, PGQ_TYPE, t.obj, t.obj, NULL, t.acl, NULL);
 }
 
 void
@@ -511,6 +532,11 @@ dumpCreateCompositeType(FILE *output, PQLCompositeType t)
 				formatObjectIdentifier(t.obj.objectname),
 				t.owner);
 	}
+
+	/* privileges */
+	/* XXX second t.obj isn't used. Add an invalid PQLObject? */
+	if (options.privileges)
+		dumpGrantAndRevoke(output, PGQ_TYPE, t.obj, t.obj, NULL, t.acl, NULL);
 }
 
 void
@@ -551,6 +577,11 @@ dumpCreateEnumType(FILE *output, PQLEnumType t)
 				formatObjectIdentifier(t.obj.objectname),
 				t.owner);
 	}
+
+	/* privileges */
+	/* XXX second t.obj isn't used. Add an invalid PQLObject? */
+	if (options.privileges)
+		dumpGrantAndRevoke(output, PGQ_TYPE, t.obj, t.obj, NULL, t.acl, NULL);
 }
 
 void
@@ -597,6 +628,11 @@ dumpCreateRangeType(FILE *output, PQLRangeType t)
 				formatObjectIdentifier(t.obj.objectname),
 				t.owner);
 	}
+
+	/* privileges */
+	/* XXX second t.obj isn't used. Add an invalid PQLObject? */
+	if (options.privileges)
+		dumpGrantAndRevoke(output, PGQ_TYPE, t.obj, t.obj, NULL, t.acl, NULL);
 }
 
 void
@@ -664,6 +700,13 @@ dumpAlterBaseType(FILE *output, PQLBaseType a, PQLBaseType b)
 					b.owner);
 		}
 	}
+
+	/* privileges */
+	if (options.privileges)
+	{
+		if (a.acl != NULL || b.acl != NULL)
+			dumpGrantAndRevoke(output, PGQ_TYPE, a.obj, b.obj, a.acl, b.acl, NULL);
+	}
 }
 
 void
@@ -702,6 +745,13 @@ dumpAlterCompositeType(FILE *output, PQLCompositeType a, PQLCompositeType b)
 					formatObjectIdentifier(b.obj.objectname),
 					b.owner);
 		}
+	}
+
+	/* privileges */
+	if (options.privileges)
+	{
+		if (a.acl != NULL || b.acl != NULL)
+			dumpGrantAndRevoke(output, PGQ_TYPE, a.obj, b.obj, a.acl, b.acl, NULL);
 	}
 }
 
@@ -742,6 +792,13 @@ dumpAlterEnumType(FILE *output, PQLEnumType a, PQLEnumType b)
 					b.owner);
 		}
 	}
+
+	/* privileges */
+	if (options.privileges)
+	{
+		if (a.acl != NULL || b.acl != NULL)
+			dumpGrantAndRevoke(output, PGQ_TYPE, a.obj, b.obj, a.acl, b.acl, NULL);
+	}
 }
 
 void
@@ -780,5 +837,12 @@ dumpAlterRangeType(FILE *output, PQLRangeType a, PQLRangeType b)
 					formatObjectIdentifier(b.obj.objectname),
 					b.owner);
 		}
+	}
+
+	/* privileges */
+	if (options.privileges)
+	{
+		if (a.acl != NULL || b.acl != NULL)
+			dumpGrantAndRevoke(output, PGQ_TYPE, a.obj, b.obj, a.acl, b.acl, NULL);
 	}
 }

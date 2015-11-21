@@ -2,6 +2,7 @@
 #define SEQUENCE_H
 
 #include "common.h"
+#include "privileges.h"
 
 #define MINIMUM_SEQUENCE_VALUE "-9223372036854775807"
 #define MAXIMUM_SEQUENCE_VALUE "9223372036854775807"
@@ -19,6 +20,7 @@ typedef struct PQLSequence
 	bool			cycle;
 	char			*comment;
 	char			*owner;
+	char			*acl;
 } PQLSequence;
 
 

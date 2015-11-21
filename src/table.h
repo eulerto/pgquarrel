@@ -2,6 +2,7 @@
 #define TABLE_H
 
 #include "common.h"
+#include "privileges.h"
 
 typedef struct PQLAttribute
 {
@@ -41,6 +42,7 @@ typedef struct PQLTable
 
 	char			*comment;
 	char			*owner;
+	char			*acl;
 } PQLTable;
 
 PQLTable *getTables(PGconn *c, int *n);

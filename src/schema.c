@@ -21,7 +21,7 @@ getSchemas(PGconn *c, int *n)
 	logNoise("schema: server version: %d", PQserverVersion(c));
 
 	res = PQexec(c,
-				"SELECT nspname, obj_description(n.oid, 'pg_namespace') AS description, pg_get_userbyid(nspowner) AS nspowner FROM pg_namespace n WHERE nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname");
+				"SELECT nspname, obj_description(n.oid, 'pg_namespace') AS description, pg_get_userbyid(nspowner) AS nspowner, nspacl FROM pg_namespace n WHERE nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -49,6 +49,10 @@ getSchemas(PGconn *c, int *n)
 			s[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
 
 		s[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "nspowner")));
+		if (PQgetisnull(res, i, PQfnumber(res, "nspacl")))
+			s[i].acl = NULL;
+		else
+			s[i].acl = strdup(PQgetvalue(res, i, PQfnumber(res, "nspacl")));
 
 		logDebug("schema %s", formatObjectIdentifier(s[i].schemaname));
 	}
@@ -89,6 +93,18 @@ dumpCreateSchema(FILE *output, PQLSchema s)
 		fprintf(output, "ALTER SCHEMA %s OWNER TO %s;",
 				formatObjectIdentifier(s.schemaname),
 				s.owner);
+	}
+
+	/* privileges */
+	/* XXX second s.obj isn't used. Add an invalid PQLObject? */
+	if (options.privileges)
+	{
+		PQLObject tmp;
+
+		tmp.schemaname = s.schemaname;
+		tmp.objectname = NULL;
+
+		dumpGrantAndRevoke(output, PGQ_SCHEMA, tmp, tmp, NULL, s.acl, NULL);
 	}
 }
 
@@ -133,5 +149,19 @@ dumpAlterSchema(FILE *output, PQLSchema a, PQLSchema b)
 					formatObjectIdentifier(b.schemaname),
 					b.owner);
 		}
+	}
+
+	/* privileges */
+	if (options.privileges)
+	{
+		PQLObject tmpa, tmpb;
+
+		tmpa.schemaname = a.schemaname;
+		tmpa.objectname = NULL;
+		tmpb.schemaname = b.schemaname;
+		tmpb.objectname = NULL;
+
+		if (a.acl != NULL || b.acl != NULL)
+			dumpGrantAndRevoke(output, PGQ_SCHEMA, tmpa, tmpb, a.acl, b.acl, NULL);
 	}
 }

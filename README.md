@@ -129,12 +129,12 @@ Features
 
 	<tr>
 		<td>GRANT</td>
-		<td>not implemented</td>
+		<td>partial</td>
 		<td></td>
 	</tr>
 	<tr>
 		<td>REVOKE</td>
-		<td>not implemented</td>
+		<td>partial</td>
 		<td></td>
 	</tr>
 	<tr>
@@ -232,7 +232,6 @@ Features
 Although **pgquarrel** does not support all PostgreSQL objects, it covers many of the use cases. In future releases, we expect to implement the TODO items to cover more cases. The main absences are:
 
 * inheritance;
-* permissions (GRANT/REVOKE);
 * roles.
 
 Tests

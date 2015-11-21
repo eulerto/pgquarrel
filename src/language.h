@@ -2,6 +2,7 @@
 #define LANGUAGE_H
 
 #include "common.h"
+#include "privileges.h"
 
 typedef struct PQLLanguage
 {
@@ -13,6 +14,7 @@ typedef struct PQLLanguage
 	char	*validator;
 	char	*comment;
 	char	*owner;
+	char	*acl;
 } PQLLanguage;
 
 PQLLanguage *getLanguages(PGconn *c, int *n);

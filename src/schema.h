@@ -2,12 +2,14 @@
 #define SCHEMA_H
 
 #include "common.h"
+#include "privileges.h"
 
 typedef struct PQLSchema
 {
 	char	*schemaname;
 	char	*comment;
 	char	*owner;
+	char	*acl;
 } PQLSchema;
 
 PQLSchema *getSchemas(PGconn *c, int *n);

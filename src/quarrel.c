@@ -242,6 +242,12 @@ loadConfig(const char *cf, QuarrelOptions *options)
 			options->owner = parseBoolean("owner", mini_file_get_value(config,
 											   "general", "owner"));
 
+		if (mini_file_get_value(config, "general", "privileges") == NULL)
+			options->privileges = false;		/* default */
+		else
+			options->privileges = parseBoolean("privileges", mini_file_get_value(config,
+											   "general", "privileges"));
+
 		/* from options */
 		tmp = mini_file_get_value(config, "from", "host");
 		if (tmp != NULL)

@@ -1,6 +1,13 @@
 DROP DATABASE IF EXISTS quarrel2;
 CREATE DATABASE quarrel2;
 
+DROP ROLE IF EXISTS same_role_1;
+DROP ROLE IF EXISTS same_role_2;
+DROP ROLE IF EXISTS same_role_3;
+CREATE ROLE same_role_1;
+CREATE ROLE same_role_2;
+CREATE ROLE same_role_3;
+
 \c quarrel2
 
 \i dellstore.sql
@@ -12,6 +19,8 @@ CREATE DATABASE quarrel2;
 \i to-sequence.sql
 
 \i to-domain.sql
+
+\i to-function.sql
 
 \i to-extension.sql
 

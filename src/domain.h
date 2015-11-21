@@ -2,6 +2,7 @@
 #define DOMAIN_H
 
 #include "common.h"
+#include "privileges.h"
 
 typedef struct PQLDomain
 {
@@ -16,6 +17,7 @@ typedef struct PQLDomain
 	int				ncheck;
 	char			*comment;
 	char			*owner;
+	char			*acl;
 } PQLDomain;
 
 PQLDomain *getDomains(PGconn *c, int *n);

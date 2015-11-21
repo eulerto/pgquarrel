@@ -2,6 +2,7 @@
 #define FUNCTION_H
 
 #include "common.h"
+#include "privileges.h"
 
 typedef struct PQLFunction
 {
@@ -21,6 +22,7 @@ typedef struct PQLFunction
 	char			*body;
 	char			*comment;
 	char			*owner;
+	char			*acl;
 } PQLFunction;
 
 PQLFunction *getFunctions(PGconn *c, int *n);
