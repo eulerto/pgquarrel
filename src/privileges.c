@@ -416,6 +416,14 @@ dumpGrant(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee,
 			extra,
 			grantee);
 	}
+	else if (objecttype == PGQ_DATABASE || objecttype == PGQ_FOREIGN_DATA_WRAPPER ||
+			objecttype == PGQ_FOREIGN_SERVER || objecttype == PGQ_LANGUAGE ||
+			objecttype == PGQ_SCHEMA || objecttype == PGQ_TABLESPACE)
+	{
+		fprintf(output, " %s TO %s;",
+			formatObjectIdentifier(a.objectname),
+			grantee);
+	}
 	else
 	{
 		fprintf(output, " %s.%s TO %s;",
@@ -480,6 +488,14 @@ dumpRevoke(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee
 			formatObjectIdentifier(a.schemaname),
 			formatObjectIdentifier(a.objectname),
 			extra,
+			grantee);
+	}
+	else if (objecttype == PGQ_DATABASE || objecttype == PGQ_FOREIGN_DATA_WRAPPER ||
+			objecttype == PGQ_FOREIGN_SERVER || objecttype == PGQ_LANGUAGE ||
+			objecttype == PGQ_SCHEMA || objecttype == PGQ_TABLESPACE)
+	{
+		fprintf(output, " %s FROM %s;",
+			formatObjectIdentifier(a.objectname),
 			grantee);
 	}
 	else

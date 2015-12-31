@@ -101,8 +101,12 @@ dumpCreateSchema(FILE *output, PQLSchema s)
 	{
 		PQLObject tmp;
 
-		tmp.schemaname = s.schemaname;
-		tmp.objectname = NULL;
+		/*
+		 * don't use schemaname because objects without qualification use
+		 * objectname as name.
+		 * */
+		tmp.schemaname = NULL;
+		tmp.objectname = s.schemaname;
 
 		dumpGrantAndRevoke(output, PGQ_SCHEMA, tmp, tmp, NULL, s.acl, NULL);
 	}
@@ -156,10 +160,14 @@ dumpAlterSchema(FILE *output, PQLSchema a, PQLSchema b)
 	{
 		PQLObject tmpa, tmpb;
 
-		tmpa.schemaname = a.schemaname;
-		tmpa.objectname = NULL;
-		tmpb.schemaname = b.schemaname;
-		tmpb.objectname = NULL;
+		/*
+		 * don't use schemaname because objects without qualification use
+		 * objectname as name.
+		 * */
+		tmpa.schemaname = NULL;
+		tmpa.objectname = a.schemaname;
+		tmpb.schemaname = NULL;
+		tmpb.objectname = b.schemaname;
 
 		if (a.acl != NULL || b.acl != NULL)
 			dumpGrantAndRevoke(output, PGQ_SCHEMA, tmpa, tmpb, a.acl, b.acl, NULL);
