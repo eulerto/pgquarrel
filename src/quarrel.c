@@ -8,9 +8,11 @@
  * event trigger: partial
  * extension: partial
  * function: partial
+ * grant: partial
  * index: partial
  * language: partial
  * materialized view: partial
+ * revoke: partial
  * rule: partial
  * schema: partial
  * sequence: partial
@@ -21,8 +23,6 @@
  *
  *  UNSUPPORTED
  * ~~~~~~~~~~~~~
- * grant
- * revoke
  * foreign data wrapper
  * foreign table
  * server
