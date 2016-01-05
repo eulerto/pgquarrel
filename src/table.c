@@ -4,6 +4,7 @@
  * CREATE TABLE
  * DROP TABLE
  * ALTER TABLE
+ * ALTER TABLE ... ALTER COLUMN ... SET STATISTICS
  * COMMENT ON TABLE
  * COMMENT ON COLUMN
  * COMMENT ON CONSTRAINT
@@ -16,7 +17,6 @@
  * ALTER TABLE ... RENAME CONSTRAINT ... TO
  * ALTER TABLE ... RENAME TO
  * ALTER TABLE ... SET SCHEMA TO
- * ALTER TABLE ... ALTER COLUMN ... SET STATISTICS
  * ALTER TABLE ... ALTER COLUMN ... SET STORAGE
  * ALTER TABLE ... SET (...)
  * ALTER TABLE ... RESET (...)
@@ -37,6 +37,7 @@
 static void dumpAddColumn(FILE *output, PQLTable t, int i);
 static void dumpRemoveColumn(FILE *output, PQLTable t, int i);
 static void dumpAlterColumn(FILE *output, PQLTable a, int i, PQLTable b, int j);
+static void dumpAlterColumnSet(FILE *output, PQLTable a, int i, bool force);
 
 PQLTable *
 getTables(PGconn *c, int *n)
@@ -303,7 +304,7 @@ getTableAttributes(PGconn *c, PQLTable *t)
 
 		/* FIXME attcollation (9.1)? */
 		r = snprintf(query, nquery,
-			"SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, s.description FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) LEFT JOIN (pg_description s INNER JOIN pg_class x ON (x.oid = s.classoid AND x.relname = 'pg_attribute')) ON (s.objoid = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
+			"SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, s.description, a.attstattarget FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) LEFT JOIN (pg_description s INNER JOIN pg_class x ON (x.oid = s.classoid AND x.relname = 'pg_attribute')) ON (s.objoid = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
 			t->obj.oid);
 
 		if (r < nquery)
@@ -351,6 +352,9 @@ getTableAttributes(PGconn *c, PQLTable *t)
 		else
 			t->attributes[i].attdefexpr = strdup(PQgetvalue(res, i, PQfnumber(res,
 												 "attdefexpr")));
+		/* statistics target */
+		t->attributes[i].attstattarget = atoi(PQgetvalue(res, i, PQfnumber(res, "attstattarget")));
+
 		/* collation */
 		if (PQgetisnull(res, i, PQfnumber(res, "attcollation")))
 			t->attributes[i].attcollation = NULL;
@@ -504,6 +508,10 @@ dumpCreateTable(FILE *output, PQLTable t)
 		fprintf(output, "\nWITH (%s)", t.reloptions);
 
 	fprintf(output, ";");
+
+	/* statistics target */
+	for (i = 0; i < t.nattributes; i++)
+		dumpAlterColumnSet(output, t, i, false);
 
 	/* print primary key */
 	if (t.pk.conname != NULL)
@@ -751,6 +759,21 @@ dumpAlterColumn(FILE *output, PQLTable a, int i, PQLTable b, int j)
 	}
 }
 
+static void
+dumpAlterColumnSet(FILE *output, PQLTable a, int i, bool force)
+{
+	if (a.attributes[i].attstattarget != -1 || force)
+	{
+		fprintf(output, "\n\n");
+		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET STATISTICS %d",
+				formatObjectIdentifier(a.obj.schemaname),
+				formatObjectIdentifier(a.obj.objectname),
+				a.attributes[i].attname,
+				a.attributes[i].attstattarget);
+		fprintf(output, ";");
+	}
+}
+
 void
 dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 {
@@ -772,6 +795,8 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 					 b.attributes[j].atttypname);
 
 			dumpAddColumn(output, b, j);
+			dumpAlterColumnSet(output, b, j, false);	/* column properties */
+
 			j++;
 		}
 		/*
@@ -809,6 +834,10 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 				dumpAlterColumn(output, a, i, b, j);
 			}
 
+			/* column statistics changed */
+			if (a.attributes[i].attstattarget != b.attributes[j].attstattarget)
+				dumpAlterColumnSet(output, b, j, true);
+
 			i++;
 			j++;
 		}
@@ -830,6 +859,8 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 					 b.attributes[j].atttypname);
 
 			dumpAddColumn(output, b, j);
+			dumpAlterColumnSet(output, b, j, false);	/* column properties */
+
 			j++;
 		}
 	}

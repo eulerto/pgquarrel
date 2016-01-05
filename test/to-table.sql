@@ -1,3 +1,11 @@
+CREATE TABLE same_table_1 (
+	a integer not null,
+	b text not null,
+	c varchar(40),
+	d double precision,
+	PRIMARY KEY(a)
+);
+
 CREATE TABLE to_table_1 (
 	a integer not null,
 	b varchar(30) not null,
@@ -34,3 +42,8 @@ CREATE TABLE to_table_3 (
 --);
 
 --CREATE TABLE to_table_5 OF to_type_1;
+
+-- statistics target
+ALTER TABLE same_table_1 ALTER COLUMN c SET STATISTICS 25;
+ALTER TABLE same_table_1 ALTER COLUMN d SET STATISTICS 44;
+ALTER TABLE to_table_2 ALTER COLUMN c SET STATISTICS 123;
