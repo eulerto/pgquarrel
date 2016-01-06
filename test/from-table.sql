@@ -14,3 +14,6 @@ CREATE TABLE from_table1 (
 -- statistics target
 ALTER TABLE same_table_1 ALTER COLUMN b SET STATISTICS 90;
 ALTER TABLE same_table_1 ALTER COLUMN c SET STATISTICS 33;
+
+-- storage
+ALTER TABLE same_table_1 ALTER COLUMN b SET STORAGE EXTERNAL;

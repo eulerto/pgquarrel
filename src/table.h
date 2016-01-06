@@ -13,6 +13,8 @@ typedef struct PQLAttribute
 	char		*attdefexpr;
 	char		*attcollation;
 	int			attstattarget;
+	char		*attstorage;
+	bool		defstorage;
 	char		*comment;
 } PQLAttribute;
 
