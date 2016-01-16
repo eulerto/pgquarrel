@@ -200,7 +200,7 @@ appendStringList(stringList *sl, const char *s)
 	cell = (stringListCell *) malloc(strlen(s) + 1);
 
 	cell->next = NULL;
-	strcpy(cell->value, s);
+	cell->value = strdup(s);
 
 	if (sl->tail)
 		sl->tail->next = cell;
