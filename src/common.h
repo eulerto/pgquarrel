@@ -112,5 +112,6 @@ void printStringList(FILE *fd, stringList sl);
 #ifdef _NOT_USED
 bool searchStringList(stringList *sl, const char *s);
 #endif
+void freeStringList(stringList *sl);
 
 #endif	/* COMMON_H */

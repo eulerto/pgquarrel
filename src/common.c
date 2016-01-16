@@ -245,3 +245,25 @@ searchStringList(stringList *sl, const char *s)
 	return false;
 }
 #endif
+
+void
+freeStringList(stringList *sl)
+{
+	stringListCell	*cell, *p;
+
+	if (sl == NULL)
+		return;
+
+	cell = p = sl->head;
+	while (cell)
+	{
+		p = cell->next;
+
+		free(cell->value);
+		free(cell);
+
+		cell = p;
+	}
+
+	free(sl);
+}
