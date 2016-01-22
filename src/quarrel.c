@@ -5,7 +5,7 @@
  * ~~~~~~~~~~~
  * comment: partial
  * domain: partial
- * event trigger: partial
+ * event trigger: complete
  * extension: partial
  * function: partial
  * grant: partial
