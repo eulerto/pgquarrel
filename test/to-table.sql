@@ -6,6 +6,19 @@ CREATE TABLE same_table_1 (
 	PRIMARY KEY(a)
 );
 
+CREATE TABLE same_table_2 (
+	a integer not null,
+	b text,
+	PRIMARY KEY(a)
+);
+
+CREATE TABLE same_table_3 (
+	a integer not null,
+	b text,
+	c numeric(5,2),
+	PRIMARY KEY(a)
+);
+
 CREATE TABLE to_table_1 (
 	a integer not null,
 	b varchar(30) not null,
@@ -42,6 +55,10 @@ CREATE TABLE to_table_3 (
 --);
 
 --CREATE TABLE to_table_5 OF to_type_1;
+
+-- reloptions
+ALTER TABLE same_table_1 SET (autovacuum_enabled = off, autovacuum_vacuum_cost_delay = 13);
+ALTER TABLE same_table_2 SET (autovacuum_vacuum_scale_factor = 0.44, autovacuum_analyze_scale_factor = 0.22);
 
 -- statistics target
 ALTER TABLE same_table_1 ALTER COLUMN c SET STATISTICS 25;
