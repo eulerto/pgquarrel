@@ -17,7 +17,7 @@ typedef struct aclList
 	aclItem		*tail;
 } aclList;
 
-enum PQObjectType
+enum PQLObjectType
 {
 	PGQ_TABLE = 0,
 	PGQ_SEQUENCE = 1,
