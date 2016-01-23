@@ -29,3 +29,5 @@ CREATE ROLE same_role_3;
 \i from-schema.sql
 
 --\i from-eventtrigger.sql
+
+\i from-cast.sql

@@ -3,6 +3,7 @@
  *
  *  SUPPORTED
  * ~~~~~~~~~~~
+ * cast: complete
  * comment: partial
  * domain: partial
  * event trigger: complete
@@ -30,7 +31,6 @@
  * security label
  * text search { configuration | dictionary | parser | template }
  * aggregate
- * cast
  * collation
  * conversion
  *
@@ -51,6 +51,7 @@
 #include "quarrel.h"
 #include "common.h"
 
+#include "cast.h"
 #include "domain.h"
 #include "eventtrigger.h"
 #include "extension.h"
@@ -101,6 +102,7 @@ static FILE *openTempFile(char *p);
 static void closeTempFile(FILE *fp, char *p);
 static bool isEmptyFile(char *p);
 
+static void quarrelCasts();
 static void quarrelDomains();
 static void quarrelEventTriggers();
 static void quarrelExtensions();
@@ -364,6 +366,86 @@ connectDatabase(const char *host, const char *port, const char *user,
 	}
 
 	return conn;
+}
+
+static void
+quarrelCasts()
+{
+	PQLCast		*casts1 = NULL;		/* from */
+	PQLCast		*casts2 = NULL;		/* to */
+	int			ncasts1 = 0;		/* # of casts */
+	int			ncasts2 = 0;
+	int			i, j;
+
+	/* Casts */
+	casts1 = getCasts(conn1, &ncasts1);
+	casts2 = getCasts(conn2, &ncasts2);
+
+#ifdef PGQ_DEBUG
+	for (i = 0; i < ncasts1; i++)
+		logNoise("server1: cast %s AS %s", casts1[i].source, casts1[i].target);
+
+	for (i = 0; i < ncasts2; i++)
+		logNoise("server2: cast %s AS %s", casts2[i].source, casts2[i].target);
+#endif
+
+	/*
+	 * We have two sorted lists. Let's figure out which elements are not in the
+	 * other list.
+	 * We have two sorted lists. The strategy is transverse both lists only once
+	 * to figure out casts not presented in the other list.
+	 */
+	i = j = 0;
+	while (i < ncasts1 || j < ncasts2)
+	{
+		/* End of casts1 list. Print casts2 list until its end. */
+		if (i == ncasts1)
+		{
+			logDebug("cast %s AS %s: server2", casts2[j].source, casts2[j].target);
+
+			dumpCreateCast(fpre, casts2[j]);
+
+			j++;
+			qstat.castadded++;
+		}
+		/* End of casts2 list. Print casts1 list until its end. */
+		else if (j == ncasts2)
+		{
+			logDebug("cast %s AS %s: server1", casts1[i].source, casts1[i].target);
+
+			dumpDropCast(fpost, casts1[i]);
+
+			i++;
+			qstat.castremoved++;
+		}
+		else if (compareCasts(casts1[i], casts2[j]) == 0)
+		{
+			logDebug("cast %s AS %s: server1 server2", casts1[i].source, casts1[i].target);
+
+			dumpAlterCast(fpre, casts1[i], casts2[j]);
+
+			i++;
+			j++;
+		}
+		else if (compareCasts(casts1[i], casts2[j]) < 0)
+		{
+			logDebug("cast %s AS %s: server1", casts1[i].source, casts1[i].target);
+
+			dumpDropCast(fpost, casts1[i]);
+
+			i++;
+			qstat.castremoved++;
+		}
+		else if (compareCasts(casts1[i], casts2[j]) > 0)
+		{
+			logDebug("cast %s AS %s: server2", casts2[j].source, casts2[j].target);
+
+			dumpCreateCast(fpre, casts2[j]);
+
+			j++;
+			qstat.castadded++;
+		}
+	}
 }
 
 static void
@@ -2145,6 +2227,7 @@ int main(int argc, char *argv[])
 	quarrelSchemas();
 	quarrelExtensions();
 
+	quarrelCasts();
 	quarrelDomains();
 	quarrelTypes();
 	quarrelSequences();
