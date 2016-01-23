@@ -10,6 +10,7 @@
  *
  * ALTER EXTENSION ... ADD
  * ALTER EXTENSION ... DROP
+ * ALTER EXTENSION ... SET SCHEMA
  */
 
 PQLExtension *

@@ -8,7 +8,7 @@
  *
  * TODO
  *
- * ALTER FUNCTION ... SET: reloptions
+ * ALTER FUNCTION ... { SET | RESET}
  * ALTER FUNCTION ... RENAME TO
  * ALTER FUNCTION ... SET SCHEMA
  */

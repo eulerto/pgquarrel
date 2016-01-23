@@ -9,6 +9,8 @@
  * TODO
  *
  * ALTER INDEX ... { SET | RESET }
+ * ALTER INDEX ... RENAME TO
+ * ALTER INDEX ... SET TABLESPACE
  */
 
 PQLIndex *
