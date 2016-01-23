@@ -82,6 +82,12 @@ enum PQLLogLevel
 	PGQ_NOISE = 4
 };
 
+enum PQLSetOperation
+{
+	PGQ_INTERSECT = 0,
+	PGQ_EXCEPT = 1
+};
+
 extern enum PQLLogLevel loglevel;
 extern int pgversion1;
 extern int pgversion2;
@@ -105,6 +111,7 @@ int compareRelations(PQLObject a, PQLObject b);
 int compareNamesAndRelations(PQLObject a, PQLObject b, char *aname, char *bname);
 const char *formatObjectIdentifier(char *s);
 void logGeneric(enum PQLLogLevel level, const char *fmt, ...);
+char *diffRelOptions(char *a, char *b, int kind);
 
 void appendStringList(stringList *sl, const char *s);
 void appendAllStringList(stringList *sl, char *s, const char *d);

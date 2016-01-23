@@ -27,6 +27,10 @@ static const char *logLevelTag[] =
 };
 
 
+static stringList *buildRelOptions(char *options);
+static stringListCell *intersectWithSortedLists(stringListCell *a, stringListCell *b);
+static stringListCell *exceptWithSortedLists(stringListCell *a, stringListCell *b);
+
 void
 logGeneric(enum PQLLogLevel level, const char *fmt, ...)
 {
@@ -266,4 +270,271 @@ freeStringList(stringList *sl)
 	}
 
 	free(sl);
+}
+
+/*
+ * Build an ordered linked list from a comma-separated string. If there is no
+ * reloptions return NULL.
+ */
+static stringList *
+buildRelOptions(char *options)
+{
+	stringList		*sl;
+	stringListCell	*x;
+	char			*tmp;
+	char			*p;
+
+	char			*item;
+	char			*nextitem;
+	int				len;
+
+	sl = (stringList *) malloc(sizeof(stringList));
+	sl->head = sl->tail = NULL;
+
+	/* no options, bail out */
+	if (options == NULL)
+	{
+		logDebug("reloptions is empty");
+		return sl;
+	}
+
+	len = strlen(options);
+
+	tmp = (char *) malloc((len + 1) * sizeof(char));
+	tmp = strdup(options);
+	p = tmp;
+
+	for (item = p; item; item = nextitem)
+	{
+		stringListCell	*sc;
+
+		nextitem = strchr(item, ',');
+		if (nextitem)
+			*nextitem++ = '\0';
+
+		/* left trim */
+		while (isspace(*item))
+			item++;
+
+		sc = (stringListCell *) malloc(sizeof(stringListCell));
+		sc->value = strdup(item);
+		sc->next = NULL;
+
+		logNoise("reloption item: \"%s\"", item);
+
+		/* add stringListCell to stringList in order */
+		if (sl->tail)
+		{
+			stringListCell	*cur = sl->head;
+
+			if (strcmp(cur->value, sc->value) > 0)
+			{
+				sc->next = cur;
+				sl->head = sc;
+			}
+			else
+			{
+				while (cur != NULL)
+				{
+					if (cur == sl->tail)
+					{
+						cur->next = sc;
+						sl->tail = sc;
+						break;
+					}
+
+					if (strcmp(cur->value, sc->value) < 0 && strcmp(cur->next->value, sc->value) >= 0)
+					{
+						sc->next = cur->next;
+						cur->next = sc;
+						break;
+					}
+
+					cur = cur->next;
+				}
+			}
+		}
+		else
+		{
+			sl->head = sc;
+			sl->tail = sc;
+		}
+	}
+
+	/* check the order */
+	for (x = sl->head; x; x = x->next)
+		logNoise("reloption in order: \"%s\"", x->value);
+
+	return sl;
+}
+
+/*
+ * Return a linked list of stringListCell that contains elements from 'a' that
+ * is also in 'b'. If 'withvalue' is true, then strings are built with values
+ * from 'b' else the list will contain only the options.
+ * TODO cleanup tmpa and tmpb memory
+ */
+static stringListCell *
+intersectWithSortedLists(stringListCell *a, stringListCell *b)
+{
+	stringListCell	*t;
+	char			*c, *d;
+	char			*tmpa, *tmpb;
+
+	/* end of linked list */
+	if (a == NULL || b == NULL)
+		return NULL;
+
+	/* both string lists are not NULL */
+	tmpa = strdup(a->value);
+	tmpb = strdup(b->value);
+	c = strtok(tmpa, "=");
+	d = strtok(tmpb, "=");
+
+	/*
+	 * if same option and value, call recursively incrementing both lists. We
+	 * don't want to include reloption that doesn't change the value.
+	 * */
+	if (strcmp(a->value, b->value) == 0)
+		return intersectWithSortedLists(a->next, b->next);
+
+	/* advance "smaller" string list and call recursively */
+	if (strcmp(c, d) < 0)
+		return intersectWithSortedLists(a->next, b);
+
+	if (strcmp(c, d) > 0)
+		return intersectWithSortedLists(a, b->next);
+
+	/*
+	 * executed only if both options are equal. If we are here, that is because
+	 * the value changed (see comment a few lines above); in this case, we want
+	 * to apply this change.
+	 * */
+	t = (stringListCell *) malloc(sizeof(stringListCell));
+	t->value = strdup(a->value);
+
+	/* advance both string lists and call recursively */
+	t->next = intersectWithSortedLists(a->next, b->next);
+
+	return t;
+}
+
+/*
+ * Given two sorted linked lists (A, B), produce another linked list that is
+ * the result of 'A minus B' i.e. elements that are only presented in A. If
+ * there aren't elements, return NULL.
+ * TODO cleanup tmpa and tmpb memory
+ */
+static stringListCell *
+exceptWithSortedLists(stringListCell *a, stringListCell *b)
+{
+	stringListCell	*t;
+	char			*c, *d;
+	char			*tmpa, *tmpb;
+
+	/* end of list */
+	if (a == NULL)
+		return NULL;
+
+	/* latter list is NULL then transverse former list and build a linked list */
+	if (b == NULL)
+	{
+		t = (stringListCell *) malloc(sizeof(stringListCell));
+		tmpa = strdup(a->value);
+		c = strtok(tmpa, "=");
+		t->value = strdup(c);
+		t->next = exceptWithSortedLists(a->next, b);
+
+		return t;
+	}
+
+	/* both string list are not NULL */
+	tmpa = strdup(a->value);
+	tmpb = strdup(b->value);
+	c = strtok(tmpa, "=");
+	d = strtok(tmpb, "=");
+
+	/* advance latter list and call recursively */
+	if (strcmp(c, d) > 0)
+		return exceptWithSortedLists(a, b->next);
+
+	/* advance both string lists and call recursively */
+	if (strcmp(c, d) == 0)
+		return exceptWithSortedLists(a->next, b->next);
+
+	/* executed only if A value is not in B */
+	t = (stringListCell *) malloc(sizeof(stringListCell));
+	t->value = strdup(c);
+	t->next = exceptWithSortedLists(a->next, b);
+
+	return t;
+}
+
+/*
+ * Return an allocated string that contains comma-separated options according
+ * to set operation. If there aren't options, return NULL.
+ */
+char *
+diffRelOptions(char *a, char *b, int kind)
+{
+	char			*list = NULL;
+	stringList		*first, *second;
+	stringListCell	*headitem, *p;
+	bool			firstitem = true;
+
+	/* if a is NULL, there is neither intersection nor complement (except) */
+	if (a == NULL)
+		return NULL;
+
+	/* if b is NULL, there isn't intersection */
+	if (kind == PGQ_INTERSECT && b == NULL)
+		return NULL;
+
+	first = buildRelOptions(a);
+	second = buildRelOptions(b);
+
+	if (kind == PGQ_INTERSECT)
+		headitem = intersectWithSortedLists(first->head, second->head);
+	else if (kind == PGQ_EXCEPT)
+		headitem = exceptWithSortedLists(first->head, second->head);
+	else
+		logError("set operation not supported");
+
+	if (headitem)
+	{
+		int		listlen;
+		int		n = 0;
+
+		/* in the worst case, 'list' will be 'a' */
+		listlen = strlen(a) + 1;
+		list = (char *) malloc(listlen * sizeof(char));
+
+		/* build a list like 'a=10, b=20, c=30' or 'a, b, c' */
+		for (p = headitem; p; p = p->next)
+		{
+			if (firstitem)
+			{
+				firstitem = false;
+			}
+			else
+			{
+				/* if it is not the first item, add comma and space before it */
+				strncpy(list + n, ", ", 2);
+				n += 2;
+			}
+
+			strcpy(list + n, p->value);
+			n += strlen(p->value);
+		}
+	}
+
+	if (list)
+		logNoise("reloptions diff (%d): %s", kind, list);
+
+	if (first)
+		freeStringList(first);
+	if (second)
+		freeStringList(second);
+
+	return list;
 }
