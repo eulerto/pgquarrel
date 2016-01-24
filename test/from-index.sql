@@ -1,3 +1,3 @@
-CREATE INDEX from_index_1 ON products(actor);
+CREATE INDEX same_index_1 ON products(actor);
 
-CREATE INDEX from_index_2 ON customers(country);
+CREATE INDEX from_index_1 ON customers(country);

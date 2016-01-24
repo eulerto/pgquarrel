@@ -8,7 +8,6 @@
  *
  * TODO
  *
- * ALTER INDEX ... { SET | RESET }
  * ALTER INDEX ... RENAME TO
  * ALTER INDEX ... SET TABLESPACE
  */
@@ -118,24 +117,60 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 				formatObjectIdentifier(a.obj.objectname), b.tbspcname);
 	}
 
-	if ((a.reloptions == NULL && b.reloptions != NULL) ||
-			(a.reloptions != NULL && b.reloptions != NULL &&
-			 strcmp(a.reloptions, b.reloptions) != 0))
+	/* reloptions */
+	if (a.reloptions == NULL && b.reloptions != NULL)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER INDEX %s.%s SET (%s);",
 				formatObjectIdentifier(a.obj.schemaname),
 				formatObjectIdentifier(a.obj.objectname), b.reloptions);
 	}
-#ifdef _NOT_USED
+	else if (a.reloptions != NULL && b.reloptions != NULL &&
+				strcmp(a.reloptions, b.reloptions) != 0)
+	{
+		char	*resetlist;
+		char	*setlist;
+
+		resetlist = diffRelOptions(a.reloptions, b.reloptions, PGQ_EXCEPT);
+		if (resetlist)
+		{
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER INDEX %s.%s RESET (%s)",
+						formatObjectIdentifier(b.obj.schemaname),
+						formatObjectIdentifier(b.obj.objectname),
+						resetlist);
+			fprintf(output, ";");
+			free(resetlist);
+		}
+
+		setlist = diffRelOptions(b.reloptions, a.reloptions, PGQ_INTERSECT);
+		if (setlist)
+		{
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER INDEX %s.%s SET (%s)",
+						formatObjectIdentifier(b.obj.schemaname),
+						formatObjectIdentifier(b.obj.objectname),
+						setlist);
+			fprintf(output, ";");
+			free(setlist);
+		}
+	}
 	else if (a.reloptions != NULL && b.reloptions == NULL)
 	{
-		fprintf(output, "\n\n");
-		fprintf(output, "ALTER INDEX %s.%s RESET (%s);",
-				formatObjectIdentifier(a.obj.schemaname),
-				formatObjectIdentifier(a.obj.objectname), b.reloptions);
+		char	*resetlist;
+
+		resetlist = diffRelOptions(a.reloptions, b.reloptions, PGQ_EXCEPT);
+		if (resetlist)
+		{
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER INDEX %s.%s RESET (%s)",
+						formatObjectIdentifier(b.obj.schemaname),
+						formatObjectIdentifier(b.obj.objectname),
+						resetlist);
+			fprintf(output, ";");
+			free(resetlist);
+		}
 	}
-#endif
 
 	/* comment */
 	if (options.comment)
