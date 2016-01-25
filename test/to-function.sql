@@ -31,7 +31,9 @@ $$
 BEGIN
 	RETURN args1 * args2 * args1;
 END
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+SET search_path TO public
+SET work_mem TO '100MB';
 
 COMMENT ON FUNCTION same_function_2(integer, integer) IS 'this is comment for same_function_2';
 

@@ -8,7 +8,6 @@
  *
  * TODO
  *
- * ALTER FUNCTION ... { SET | RESET}
  * ALTER FUNCTION ... RENAME TO
  * ALTER FUNCTION ... SET SCHEMA
  */
@@ -25,10 +24,10 @@ getFunctions(PGconn *c, int *n)
 	/* proleakproof is new in 9.2 */
 	if (PQserverVersion(c) >= 90200)
 		res = PQexec(c,
-					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, proleakproof, proconfig, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_arguments(p.oid)");
+					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, proleakproof, array_to_string(proconfig, ',') AS proconfig, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_arguments(p.oid)");
 	else
 		res = PQexec(c,
-					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, false AS proleakproof, proconfig, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_arguments(p.oid)");
+					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, false AS proleakproof, array_to_string(proconfig, ',') AS proconfig, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_arguments(p.oid)");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -162,9 +161,30 @@ dumpCreateFunction(FILE *output, PQLFunction f, bool orreplace)
 	if (strcmp(f.rows, "0") != 0)
 		fprintf(output, " ROWS %s", f.rows);
 
-	/* FIXME Does configparams have SET in it? */
 	if (f.configparams != NULL)
-		fprintf(output, "\n    %s", f.configparams);
+	{
+		stringList		*sl;
+		stringListCell	*cell;
+
+		sl = buildRelOptions(f.configparams);
+		for (cell = sl->head; cell; cell = cell->next)
+		{
+			char	*str;
+
+			str = strchr(cell->value, '=');
+			if (str == NULL)
+				continue;
+			*str++ = '\0';
+
+			fprintf(output, " SET %s TO ", cell->value);
+
+			if (strcasecmp(cell->value, "DateStyle") == 0 ||
+					strcasecmp(cell->value, "search_path") == 0)
+				fprintf(output, "%s", str);
+			else
+				fprintf(output, "'%s'", str);
+		}
+	}
 
 	fprintf(output, "\nAS $$%s$$;", f.body);
 
@@ -302,6 +322,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 		fprintf(output, " ROWS %s", b.rows);
 	}
 
+	/* configuration parameters */
 	if (a.configparams != NULL && b.configparams == NULL)
 	{
 		if (printalter)
@@ -315,11 +336,10 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 
 		fprintf(output, " RESET ALL");
 	}
-	/* FIXME reloptions is broken */
-	else if ((a.configparams == NULL && b.configparams != NULL) ||
-			 (a.configparams != NULL && b.configparams != NULL &&
-			  strcmp(a.configparams, b.configparams) != 0))
+	else if (a.configparams == NULL && b.configparams != NULL)
 	{
+		stringList	*sl;
+
 		if (printalter)
 		{
 			fprintf(output, "\n\n");
@@ -329,7 +349,82 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 		}
 		printalter = false;
 
-		fprintf(output, " SET (%s)", b.configparams);
+		sl = buildRelOptions(b.configparams);
+		if (sl)
+		{
+			stringListCell	*cell;
+
+			for (cell = sl->head; cell; cell = cell->next)
+			{
+				char	*str;
+
+				str = strchr(cell->value, '=');
+				if (str == NULL)
+					continue;
+				*str++ = '\0';
+
+				fprintf(output, " SET %s TO ", cell->value);
+
+				if (strcasecmp(cell->value, "DateStyle") == 0 ||
+						strcasecmp(cell->value, "search_path") == 0)
+					fprintf(output, "%s", str);
+				else
+					fprintf(output, "'%s'", str);
+			}
+
+			free(sl);
+		}
+	}
+	else if (a.configparams != NULL && b.configparams != NULL &&
+			  strcmp(a.configparams, b.configparams) != 0)
+	{
+		stringList	*rlist, *slist;
+
+		if (printalter)
+		{
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname), b.arguments);
+		}
+		printalter = false;
+
+		rlist = diffRelOptions(a.configparams, b.configparams, PGQ_EXCEPT);
+		if (rlist)
+		{
+			stringListCell	*cell;
+
+			for (cell = rlist->head; cell; cell = cell->next)
+				fprintf(output, " RESET %s", cell->value);
+
+			free(rlist);
+		}
+
+		slist = diffRelOptions(b.configparams, a.configparams, PGQ_INTERSECT);
+		if (slist)
+		{
+			stringListCell	*cell;
+
+			for (cell = slist->head; cell; cell = cell->next)
+			{
+				char	*str;
+
+				str = strchr(cell->value, '=');
+				if (str == NULL)
+					continue;
+				*str++ = '\0';
+
+				fprintf(output, " SET %s TO ", cell->value);
+
+				if (strcasecmp(cell->value, "DateStyle") == 0 ||
+						strcasecmp(cell->value, "search_path") == 0)
+					fprintf(output, "%s", str);
+				else
+					fprintf(output, "'%s'", str);
+			}
+
+			free(slist);
+		}
 	}
 
 	if (!printalter)

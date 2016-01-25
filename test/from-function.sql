@@ -24,7 +24,9 @@ $$
 BEGIN
 	RETURN args1 * args2;
 END
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+SET work_mem TO '50MB'
+SET enable_seqscan TO false;
 
 COMMENT ON FUNCTION same_function_1(integer, integer) IS 'this is comment for same_function_1';
 
