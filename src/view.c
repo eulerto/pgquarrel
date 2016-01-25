@@ -8,7 +8,6 @@
  *
  * TODO
  *
- * ALTER VIEW ... { SET | RESET }
  * ALTER VIEW ... ALTER COLUMN ... { SET | DROP } DEFAULT
  * ALTER VIEW ... RENAME TO
  * ALTER VIEW ... SET SCHEMA
@@ -104,6 +103,7 @@ dumpCreateView(FILE *output, PQLView v)
 	fprintf(output, "CREATE VIEW %s.%s", formatObjectIdentifier(v.obj.schemaname),
 			formatObjectIdentifier(v.obj.objectname));
 
+	/* reloptions */
 	if (v.reloptions != NULL)
 		fprintf(output, " WITH (%s)", v.reloptions);
 
@@ -138,24 +138,101 @@ dumpCreateView(FILE *output, PQLView v)
 void
 dumpAlterView(FILE *output, PQLView a, PQLView b)
 {
-	if ((a.reloptions == NULL && b.reloptions != NULL) ||
-			(a.reloptions != NULL && b.reloptions != NULL &&
-			 strcmp(a.reloptions, b.reloptions) != 0))
+	/* check option */
+	if (a.checkoption == NULL && b.checkoption != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER VIEW %s.%s SET (%s);",
-				formatObjectIdentifier(a.obj.schemaname),
-				formatObjectIdentifier(a.obj.objectname), b.reloptions);
+		fprintf(output, "ALTER VIEW %s.%s SET (check_option=%s)",
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					b.checkoption);
+		fprintf(output, ";");
 	}
-#ifdef _NOT_USED
+	else if (a.checkoption != NULL && b.checkoption == NULL)
+	{
+		fprintf(output, "\n\n");
+		fprintf(output, "ALTER VIEW %s.%s RESET (check_option);",
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname));
+	}
+	else if (a.checkoption != NULL && b.checkoption != NULL &&
+				strcmp(a.checkoption, b.checkoption) != 0)
+	{
+		fprintf(output, "\n\n");
+		fprintf(output, "ALTER VIEW %s.%s SET (check_option=%s)",
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					b.checkoption);
+		fprintf(output, ";");
+	}
+
+	/* reloptions */
+	if (a.reloptions == NULL && b.reloptions != NULL)
+	{
+		fprintf(output, "\n\n");
+		fprintf(output, "ALTER VIEW %s.%s SET (%s)",
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					b.reloptions);
+		fprintf(output, ";");
+	}
+	else if (a.reloptions != NULL && b.reloptions != NULL &&
+			 strcmp(a.reloptions, b.reloptions) != 0)
+	{
+		stringList	*rlist, *slist;
+
+		rlist = diffRelOptions(a.reloptions, b.reloptions, PGQ_EXCEPT);
+		if (rlist)
+		{
+			char	*resetlist;
+
+			resetlist = printRelOptions(rlist);
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER VIEW %s.%s RESET (%s)",
+						formatObjectIdentifier(b.obj.schemaname),
+						formatObjectIdentifier(b.obj.objectname),
+						resetlist);
+			fprintf(output, ";");
+			free(resetlist);
+			free(rlist);
+		}
+
+		slist = diffRelOptions(b.reloptions, a.reloptions, PGQ_INTERSECT);
+		if (slist)
+		{
+			char	*setlist;
+
+			setlist = printRelOptions(slist);
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER VIEW %s.%s SET (%s)",
+						formatObjectIdentifier(b.obj.schemaname),
+						formatObjectIdentifier(b.obj.objectname),
+						setlist);
+			fprintf(output, ";");
+			free(setlist);
+			free(slist);
+		}
+	}
 	else if (a.reloptions != NULL && b.reloptions == NULL)
 	{
-		fprintf(output, "\n\n");
-		fprintf(output, "ALTER VIEW %s.%s RESET (%s);",
-				formatObjectIdentifier(a.obj.schemaname),
-				formatObjectIdentifier(a.obj.objectname), b.reloptions);
+		stringList	*rlist;
+
+		rlist = diffRelOptions(a.reloptions, b.reloptions, PGQ_EXCEPT);
+		if (rlist)
+		{
+			char	*resetlist;
+
+			resetlist = printRelOptions(rlist);
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER VIEW %s.%s RESET (%s)",
+						formatObjectIdentifier(b.obj.schemaname),
+						formatObjectIdentifier(b.obj.objectname),
+						resetlist);
+			fprintf(output, ";");
+			free(resetlist);
+			free(rlist);
+		}
 	}
-#endif
 
 	/* comment */
 	if (options.comment)

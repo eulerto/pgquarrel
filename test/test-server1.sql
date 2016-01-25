@@ -31,3 +31,5 @@ CREATE ROLE same_role_3;
 --\i from-eventtrigger.sql
 
 \i from-cast.sql
+
+\i from-view.sql
