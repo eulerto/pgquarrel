@@ -15,7 +15,6 @@
  * CREATE TABLE ... TABLESPACE
  * CREATE TABLE ... EXCLUDE
  *
- * ALTER TABLE ... ALTER COLUMN ... { SET | RESET }
  * ALTER TABLE ... RENAME COLUMN ... TO
  * ALTER TABLE ... RENAME CONSTRAINT ... TO
  * ALTER TABLE ... RENAME TO
@@ -38,6 +37,7 @@ static void dumpRemoveColumn(FILE *output, PQLTable t, int i);
 static void dumpAlterColumn(FILE *output, PQLTable a, int i, PQLTable b, int j);
 static void dumpAlterColumnSetStatistics(FILE *output, PQLTable a, int i, bool force);
 static void dumpAlterColumnSetStorage(FILE *output, PQLTable a, int i, bool force);
+static void dumpAlterColumnSetOptions(FILE *output, PQLTable a, int i, PQLTable b, int j);
 
 PQLTable *
 getTables(PGconn *c, int *n)
@@ -304,7 +304,7 @@ getTableAttributes(PGconn *c, PQLTable *t)
 
 		/* FIXME attcollation (9.1)? */
 		r = snprintf(query, nquery,
-			"SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, s.description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) LEFT JOIN (pg_description s INNER JOIN pg_class x ON (x.oid = s.classoid AND x.relname = 'pg_attribute')) ON (s.objoid = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
+			"SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, s.description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) LEFT JOIN (pg_description s INNER JOIN pg_class x ON (x.oid = s.classoid AND x.relname = 'pg_attribute')) ON (s.objoid = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
 			t->obj.oid);
 
 		if (r < nquery)
@@ -395,6 +395,13 @@ getTableAttributes(PGconn *c, PQLTable *t)
 		else
 			t->attributes[i].attcollation = strdup(PQgetvalue(res, i, PQfnumber(res,
 												   "attcollation")));
+
+		/* attribute options */
+		if (PQgetisnull(res, i, PQfnumber(res, "attoptions")))
+			t->attributes[i].attoptions = NULL;
+		else
+			t->attributes[i].attoptions = strdup(PQgetvalue(res, i, PQfnumber(res,
+													"attoptions")));
 
 		/* comment */
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
@@ -653,6 +660,20 @@ dumpCreateTable(FILE *output, PQLTable t)
 		}
 	}
 
+	/* attribute options */
+	for (i = 0; i < t.nattributes; i++)
+	{
+		if (t.attributes[i].attoptions)
+		{
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET (%s)",
+							formatObjectIdentifier(t.obj.schemaname),
+							formatObjectIdentifier(t.obj.objectname),
+							t.attributes[i].attname,
+							t.attributes[i].attoptions);
+		}
+	}
+
 	/* owner */
 	if (options.owner)
 	{
@@ -696,6 +717,10 @@ dumpAddColumn(FILE *output, PQLTable t, int i)
 	 */
 	if (t.attributes[i].attnotnull)
 		fprintf(output, " NOT NULL");
+
+	/* attribute options */
+	if (t.attributes[i].attoptions)
+		fprintf(output, " SET (%s)", t.attributes[i].attoptions);
 
 	fprintf(output, ";");
 
@@ -828,6 +853,83 @@ dumpAlterColumnSetStorage(FILE *output, PQLTable a, int i, bool force)
 	}
 }
 
+/*
+ * Set attribute options if needed
+ */
+static void
+dumpAlterColumnSetOptions(FILE *output, PQLTable a, int i, PQLTable b, int j)
+{
+	if (a.attributes[i].attoptions == NULL && b.attributes[j].attoptions != NULL)
+	{
+		fprintf(output, "\n\n");
+		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET (%s)",
+						formatObjectIdentifier(b.obj.schemaname),
+						formatObjectIdentifier(b.obj.objectname),
+						b.attributes[j].attname,
+						b.attributes[j].attoptions);
+	}
+	else if (a.attributes[i].attoptions != NULL && b.attributes[j].attoptions == NULL)
+	{
+		stringList	*rlist;
+
+		rlist = diffRelOptions(a.attributes[i].attoptions, b.attributes[j].attoptions, PGQ_EXCEPT);
+		if (rlist)
+		{
+			char	*resetlist;
+
+			resetlist = printRelOptions(rlist);
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s RESET (%s)",
+						formatObjectIdentifier(b.obj.schemaname),
+						formatObjectIdentifier(b.obj.objectname),
+						b.attributes[j].attname,
+						resetlist);
+			fprintf(output, ";");
+			free(resetlist);
+			free(rlist);
+		}
+	}
+	else if (a.attributes[i].attoptions != NULL && b.attributes[j].attoptions != NULL &&
+				strcmp(a.attributes[i].attoptions, b.attributes[j].attoptions) != 0)
+	{
+		stringList	*rlist, *slist;
+
+		rlist = diffRelOptions(a.attributes[i].attoptions, b.attributes[j].attoptions, PGQ_EXCEPT);
+		if (rlist)
+		{
+			char	*resetlist;
+
+			resetlist = printRelOptions(rlist);
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s RESET (%s)",
+						formatObjectIdentifier(b.obj.schemaname),
+						formatObjectIdentifier(b.obj.objectname),
+						b.attributes[j].attname,
+						resetlist);
+			fprintf(output, ";");
+			free(resetlist);
+			free(rlist);
+		}
+
+		slist = diffRelOptions(b.attributes[j].attoptions, a.attributes[i].attoptions, PGQ_INTERSECT);
+		if (slist)
+		{
+			char	*setlist;
+
+			setlist = printRelOptions(slist);
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET (%s)",
+						formatObjectIdentifier(b.obj.schemaname),
+						formatObjectIdentifier(b.obj.objectname),
+						b.attributes[j].attname,
+						setlist);
+			fprintf(output, ";");
+			free(setlist);
+			free(slist);
+		}
+	}
+}
+
 void
 dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 {
@@ -889,6 +991,9 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 
 				dumpAlterColumn(output, a, i, b, j);
 			}
+
+			/* do attribute options change? */
+			dumpAlterColumnSetOptions(output, a, i, b, j);
 
 			/* column statistics changed */
 			if (a.attributes[i].attstattarget != b.attributes[j].attstattarget)

@@ -6,6 +6,8 @@ CREATE TABLE same_table_1 (
 	PRIMARY KEY(a)
 );
 
+ALTER TABLE same_table_1 ALTER COLUMN b SET (n_distinct=6);
+
 CREATE TABLE same_table_2 (
 	a integer not null,
 	b text,
@@ -18,6 +20,8 @@ CREATE TABLE same_table_3 (
 	c numeric(5,2),
 	PRIMARY KEY(a)
 );
+
+ALTER TABLE same_table_3 ALTER COLUMN c SET (n_distinct_inherited=8);
 
 CREATE TABLE to_table_1 (
 	a integer not null,
