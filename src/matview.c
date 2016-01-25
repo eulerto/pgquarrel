@@ -13,7 +13,6 @@
  * ALTER MATERIALIZED VIEW ... ALTER COLUMN ... { SET | RESET }
  * ALTER MATERIALIZED VIEW ... CLUSTER ON
  * ALTER MATERIALIZED VIEW ... SET WITHOUT CLUSTER
- * ALTER MATERIALIZED VIEW ... { SET | RESET }
  * ALTER MATERIALIZED VIEW ... RENAME TO
  * ALTER MATERIALIZED VIEW ... RENAME COLUMN ... TO
  * ALTER MATERIALIZED VIEW ... SET SCHEMA
@@ -29,17 +28,15 @@ getMaterializedViews(PGconn *c, int *n)
 
 	logNoise("materialized view: server version: %d", PQserverVersion(c));
 
-	/*
-	 * FIXME exclude check_option from reloptions.
-	 * check_option is new in 9.4
-	 * array_remove() is new in 9.3
-	 */
-	if (PQserverVersion(c) >= 90300)
-		res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, pg_get_viewdef(c.oid) AS viewdef, array_to_string(array_remove(array_remove(c.reloptions,'check_option=local'),'check_option=cascaded'), ', ') AS reloptions, relispopulated, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'm' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
-	else
-		res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, pg_get_viewdef(c.oid) AS viewdef, array_to_string(c.reloptions, ', ') AS reloptions, relispopulated, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'm' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
+	/* check postgres version */
+	if (PQserverVersion(c) < 90300)
+	{
+		logWarning("version %d does not support materialized views", PQserverVersion(c));
+		return NULL;
+	}
+
+	res = PQexec(c,
+				 "SELECT c.oid, n.nspname, c.relname, pg_get_viewdef(c.oid) AS viewdef, array_to_string(c.reloptions, ', ') AS reloptions, relispopulated, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'm' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -79,6 +76,16 @@ getMaterializedViews(PGconn *c, int *n)
 
 		logDebug("materialized view %s.%s", formatObjectIdentifier(v[i].obj.schemaname),
 				 formatObjectIdentifier(v[i].obj.objectname));
+
+		if (v[i].reloptions)
+			logDebug("materialized view %s.%s: reloptions: %s",
+					formatObjectIdentifier(v[i].obj.schemaname),
+					formatObjectIdentifier(v[i].obj.objectname),
+					v[i].reloptions);
+		else
+			logDebug("materialized view %s.%s: no reloptions",
+					formatObjectIdentifier(v[i].obj.schemaname),
+					formatObjectIdentifier(v[i].obj.objectname));
 	}
 
 	PQclear(res);
@@ -148,24 +155,73 @@ dumpCreateMaterializedView(FILE *output, PQLMaterializedView v)
 void
 dumpAlterMaterializedView(FILE *output, PQLMaterializedView a, PQLMaterializedView b)
 {
-	if ((a.reloptions == NULL && b.reloptions != NULL) ||
-			(a.reloptions != NULL && b.reloptions != NULL &&
-			 strcmp(a.reloptions, b.reloptions) != 0))
+	/* reloptions */
+	if ((a.reloptions == NULL && b.reloptions != NULL))
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER MATERIALIZED VIEW %s.%s SET (%s);",
-				formatObjectIdentifier(a.obj.schemaname),
-				formatObjectIdentifier(a.obj.objectname), b.reloptions);
+		fprintf(output, "ALTER MATERIALIZED VIEW %s.%s SET (%s)",
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					b.reloptions);
+		fprintf(output, ";");
 	}
-#ifdef _NOT_USED
+	else if (a.reloptions != NULL && b.reloptions != NULL &&
+			 strcmp(a.reloptions, b.reloptions) != 0)
+	{
+		stringList	*rlist, *slist;
+
+		rlist = diffRelOptions(a.reloptions, b.reloptions, PGQ_EXCEPT);
+		if (rlist)
+		{
+			char	*resetlist;
+
+			resetlist = printRelOptions(rlist);
+			fprintf(output, "\n--aqui\n");
+			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s RESET (%s)",
+						formatObjectIdentifier(b.obj.schemaname),
+						formatObjectIdentifier(b.obj.objectname),
+						resetlist);
+			fprintf(output, ";");
+			free(resetlist);
+			free(rlist);
+		}
+
+		slist = buildRelOptions(b.reloptions);
+		if (slist)
+		{
+			char	*setlist;
+
+			setlist = printRelOptions(slist);
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s SET (%s)",
+						formatObjectIdentifier(b.obj.schemaname),
+						formatObjectIdentifier(b.obj.objectname),
+						setlist);
+			fprintf(output, ";");
+			free(setlist);
+			free(slist);
+		}
+	}
 	else if (a.reloptions != NULL && b.reloptions == NULL)
 	{
-		fprintf(output, "\n\n");
-		fprintf(output, "ALTER MATERIALIZED VIEW %s.%s RESET (%s);",
-				formatObjectIdentifier(a.obj.schemaname),
-				formatObjectIdentifier(a.obj.objectname), b.reloptions);
+		stringList	*rlist;
+
+		rlist = diffRelOptions(a.reloptions, b.reloptions, PGQ_EXCEPT);
+		if (rlist)
+		{
+			char	*resetlist;
+
+			resetlist = printRelOptions(rlist);
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s RESET (%s)",
+						formatObjectIdentifier(b.obj.schemaname),
+						formatObjectIdentifier(b.obj.objectname),
+						resetlist);
+			fprintf(output, ";");
+			free(resetlist);
+			free(rlist);
+		}
 	}
-#endif
 
 	/* comment */
 	if (options.comment)

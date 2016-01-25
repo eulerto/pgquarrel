@@ -33,3 +33,5 @@ CREATE ROLE same_role_3;
 \i to-cast.sql
 
 \i to-view.sql
+
+\i to-matview.sql
