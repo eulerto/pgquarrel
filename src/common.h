@@ -111,7 +111,10 @@ int compareRelations(PQLObject a, PQLObject b);
 int compareNamesAndRelations(PQLObject a, PQLObject b, char *aname, char *bname);
 const char *formatObjectIdentifier(char *s);
 void logGeneric(enum PQLLogLevel level, const char *fmt, ...);
-char *diffRelOptions(char *a, char *b, int kind);
+
+stringList *buildRelOptions(char *options);
+stringList *diffRelOptions(char *a, char *b, int kind);
+char *printRelOptions(stringList *sl);
 
 void appendStringList(stringList *sl, const char *s);
 void appendAllStringList(stringList *sl, char *s, const char *d);

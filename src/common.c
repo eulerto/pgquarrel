@@ -27,7 +27,6 @@ static const char *logLevelTag[] =
 };
 
 
-static stringList *buildRelOptions(char *options);
 static stringListCell *intersectWithSortedLists(stringListCell *a, stringListCell *b);
 static stringListCell *exceptWithSortedLists(stringListCell *a, stringListCell *b);
 
@@ -276,7 +275,7 @@ freeStringList(stringList *sl)
  * Build an ordered linked list from a comma-separated string. If there is no
  * reloptions return NULL.
  */
-static stringList *
+stringList *
 buildRelOptions(char *options)
 {
 	stringList		*sl;
@@ -471,16 +470,17 @@ exceptWithSortedLists(stringListCell *a, stringListCell *b)
 }
 
 /*
- * Return an allocated string that contains comma-separated options according
- * to set operation. If there aren't options, return NULL.
+ * Return a linked list that contains elements according to specified set
+ * operation (kind). If there aren't options, return NULL.
  */
-char *
+stringList *
 diffRelOptions(char *a, char *b, int kind)
 {
-	char			*list = NULL;
 	stringList		*first, *second;
-	stringListCell	*headitem, *p;
-	bool			firstitem = true;
+	stringList		*ret = NULL;
+	stringListCell	*headitem;
+
+	logNoise("reloptions: set operation %d", kind);
 
 	/* if a is NULL, there is neither intersection nor complement (except) */
 	if (a == NULL)
@@ -500,18 +500,68 @@ diffRelOptions(char *a, char *b, int kind)
 	else
 		logError("set operation not supported");
 
+	/* build a linked list */
 	if (headitem)
+	{
+		stringListCell	*p;
+
+		ret = (stringList *) malloc(sizeof(stringList));
+
+		/* linked list head */
+		ret->head = headitem;
+
+		/* find linked list tail */
+		p = headitem;
+		while (p->next)
+			p = p->next;
+		ret->tail = p;
+	}
+
+	/* free temporary lists */
+	if (first)
+		freeStringList(first);
+	if (second)
+		freeStringList(second);
+
+	return ret;
+}
+
+/*
+ * Return an allocated string that contains comma-separated options. Return
+ * NULL if linked list is NULL.
+ */
+char *
+printRelOptions(stringList *sl)
+{
+	char			*list = NULL;
+	stringListCell	*p;
+	bool			firstitem = true;
+
+	if (sl)
 	{
 		int		listlen;
 		int		n = 0;
 
-		/* in the worst case, 'list' will be 'a' */
-		listlen = strlen(a) + 1;
+		/* allocate memory for at list one parameter (based on autovac parameters) */
+		listlen = 40;
 		list = (char *) malloc(listlen * sizeof(char));
 
 		/* build a list like 'a=10, b=20, c=30' or 'a, b, c' */
-		for (p = headitem; p; p = p->next)
+		for (p = sl->head; p; p = p->next)
 		{
+			int	newlen;
+
+			newlen = n + strlen(p->value) + 2 + 1;	/* string space including new option */
+			if (newlen > listlen)
+			{
+				logNoise("allocate more memory (was %d ; is %d)", listlen, newlen);
+
+				listlen = newlen;
+				list = (char *) realloc(list, listlen);
+				if (list == NULL)
+					logError("could not allocate memory");
+			}
+
 			if (firstitem)
 			{
 				firstitem = false;
@@ -529,12 +579,7 @@ diffRelOptions(char *a, char *b, int kind)
 	}
 
 	if (list)
-		logNoise("reloptions diff (%d): %s", kind, list);
-
-	if (first)
-		freeStringList(first);
-	if (second)
-		freeStringList(second);
+		logNoise("reloptions: %s", list);
 
 	return list;
 }

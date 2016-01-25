@@ -943,12 +943,14 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 	else if (a.reloptions != NULL && b.reloptions != NULL &&
 			 strcmp(a.reloptions, b.reloptions) != 0)
 	{
-		char	*resetlist;
-		char	*setlist;
+		stringList	*rlist, *slist;
 
-		resetlist = diffRelOptions(a.reloptions, b.reloptions, PGQ_EXCEPT);
-		if (resetlist)
+		rlist = diffRelOptions(a.reloptions, b.reloptions, PGQ_EXCEPT);
+		if (rlist)
 		{
+			char	*resetlist;
+
+			resetlist = printRelOptions(rlist);
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER TABLE %s.%s RESET (%s)",
 						formatObjectIdentifier(b.obj.schemaname),
@@ -956,11 +958,15 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 						resetlist);
 			fprintf(output, ";");
 			free(resetlist);
+			free(rlist);
 		}
 
-		setlist = diffRelOptions(b.reloptions, a.reloptions, PGQ_INTERSECT);
-		if (setlist)
+		slist = diffRelOptions(b.reloptions, a.reloptions, PGQ_INTERSECT);
+		if (slist)
 		{
+			char	*setlist;
+
+			setlist = printRelOptions(slist);
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER TABLE %s.%s SET (%s)",
 						formatObjectIdentifier(b.obj.schemaname),
@@ -968,15 +974,19 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 						setlist);
 			fprintf(output, ";");
 			free(setlist);
+			free(slist);
 		}
 	}
 	else if (a.reloptions != NULL && b.reloptions == NULL)
 	{
-		char	*resetlist;
+		stringList	*rlist;
 
-		resetlist = diffRelOptions(a.reloptions, b.reloptions, PGQ_EXCEPT);
-		if (resetlist)
+		rlist = diffRelOptions(a.reloptions, b.reloptions, PGQ_EXCEPT);
+		if (rlist)
 		{
+			char	*resetlist;
+
+			resetlist = printRelOptions(rlist);
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER TABLE %s.%s RESET (%s)",
 						formatObjectIdentifier(b.obj.schemaname),
@@ -984,6 +994,7 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 						resetlist);
 			fprintf(output, ";");
 			free(resetlist);
+			free(rlist);
 		}
 	}
 
