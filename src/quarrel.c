@@ -5,6 +5,7 @@
  * ~~~~~~~~~~~
  * cast: complete
  * comment: partial
+ * conversion: partial
  * domain: partial
  * event trigger: complete
  * extension: partial
@@ -32,7 +33,6 @@
  * text search { configuration | dictionary | parser | template }
  * aggregate
  * collation
- * conversion
  *
  * operator
  * operator { class | family }
@@ -52,6 +52,7 @@
 #include "common.h"
 
 #include "cast.h"
+#include "conversion.h"
 #include "domain.h"
 #include "eventtrigger.h"
 #include "extension.h"
@@ -81,7 +82,8 @@ QuarrelOptions		options;
 
 PQLStatistic		qstat = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-							 0, 0, 0, 0, 0, 0, 0, 0};
+							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+							 0, 0};
 
 FILE				*fout;			/* output file */
 FILE				*fpre, *fpost;	/* temporary files */
@@ -103,6 +105,7 @@ static void closeTempFile(FILE *fp, char *p);
 static bool isEmptyFile(char *p);
 
 static void quarrelCasts();
+static void quarrelConversions();
 static void quarrelDomains();
 static void quarrelEventTriggers();
 static void quarrelExtensions();
@@ -444,6 +447,92 @@ quarrelCasts()
 
 			j++;
 			qstat.castadded++;
+		}
+	}
+}
+
+static void
+quarrelConversions()
+{
+	PQLConversion	*conversions1 = NULL;	/* from */
+	PQLConversion	*conversions2 = NULL;	/* to */
+	int				nconversions1 = 0;		/* # of conversions */
+	int				nconversions2 = 0;
+	int				i, j;
+
+	conversions1 = getConversions(conn1, &nconversions1);
+	conversions2 = getConversions(conn2, &nconversions2);
+
+#ifdef PGQ_DEBUG
+	for (i = 0; i < nconversions1; i++)
+		logNoise("server1: %s.%s %u", conversions1[i].obj.schemaname,
+				 conversions1[i].obj.objectname, conversions1[i].obj.oid);
+
+	for (i = 0; i < nconversions2; i++)
+		logNoise("server2: %s.%s %u", conversions2[i].obj.schemaname,
+				 conversions2[i].obj.objectname, conversions2[i].obj.oid);
+#endif
+
+	/*
+	 * We have two sorted lists. Let's figure out which elements are not in the
+	 * other list.
+	 * We have two sorted lists. The strategy is transverse both lists only once
+	 * to figure out relations not presented in the other list.
+	 */
+	i = j = 0;
+	while (i < nconversions1 || j < nconversions2)
+	{
+		/* End of conversions1 list. Print conversions2 list until its end. */
+		if (i == nconversions1)
+		{
+			logDebug("conversion %s.%s: server2", conversions2[j].obj.schemaname,
+					 conversions2[j].obj.objectname);
+
+			dumpCreateConversion(fpre, conversions2[j]);
+
+			j++;
+			qstat.conversionadded++;
+		}
+		/* End of conversions2 list. Print conversions1 list until its end. */
+		else if (j == nconversions2)
+		{
+			logDebug("conversion %s.%s: server1", conversions1[i].obj.schemaname,
+					 conversions1[i].obj.objectname);
+
+			dumpDropConversion(fpost, conversions1[i]);
+
+			i++;
+			qstat.conversionremoved++;
+		}
+		else if (compareRelations(conversions1[i].obj, conversions2[j].obj) == 0)
+		{
+			logDebug("conversion %s.%s: server1 server2", conversions1[i].obj.schemaname,
+					 conversions1[i].obj.objectname);
+
+			dumpAlterConversion(fpre, conversions1[i], conversions2[j]);
+
+			i++;
+			j++;
+		}
+		else if (compareRelations(conversions1[i].obj, conversions2[j].obj) < 0)
+		{
+			logDebug("conversion %s.%s: server1", conversions1[i].obj.schemaname,
+					 conversions1[i].obj.objectname);
+
+			dumpDropConversion(fpost, conversions1[i]);
+
+			i++;
+			qstat.conversionremoved++;
+		}
+		else if (compareRelations(conversions1[i].obj, conversions2[j].obj) > 0)
+		{
+			logDebug("conversion %s.%s: server2", conversions2[j].obj.schemaname,
+					 conversions2[j].obj.objectname);
+
+			dumpCreateConversion(fpre, conversions2[j]);
+
+			j++;
+			qstat.conversionadded++;
 		}
 	}
 }
@@ -2228,6 +2317,7 @@ int main(int argc, char *argv[])
 	quarrelExtensions();
 
 	quarrelCasts();
+	quarrelConversions();
 	quarrelDomains();
 	quarrelTypes();
 	quarrelSequences();

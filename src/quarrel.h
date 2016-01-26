@@ -22,6 +22,8 @@ typedef struct PQLStatistic
 {
 	int		castadded;
 	int		castremoved;
+	int		conversionadded;
+	int		conversionremoved;
 	int		domainadded;
 	int		domainremoved;
 	int		evttrgadded;

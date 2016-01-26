@@ -6,6 +6,8 @@ add_executable(pgquarrel
 	src/cast.h
 	src/common.c
 	src/common.h
+	src/conversion.c
+	src/conversion.h
 	src/domain.c
 	src/domain.h
 	src/eventtrigger.c

@@ -62,6 +62,11 @@ Features
 		<td></td>
 	</tr>
 	<tr>
+		<td>CONVERSION</td>
+		<td>partial</td>
+		<td></td>
+	</tr>
+	<tr>
 		<td>DOMAIN</td>
 		<td>partial</td>
 		<td></td>
@@ -194,11 +199,6 @@ Features
 	</tr>
 	<tr>
 		<td>COLLATION</td>
-		<td>not implemented</td>
-		<td></td>
-	</tr>
-	<tr>
-		<td>CONVERSION</td>
 		<td>not implemented</td>
 		<td></td>
 	</tr>
