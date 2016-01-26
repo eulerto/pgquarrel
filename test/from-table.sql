@@ -22,6 +22,12 @@ CREATE TABLE same_table_3 (
 
 ALTER TABLE same_table_3 ALTER COLUMN c SET (n_distinct=5,n_distinct_inherited=10);
 
+CREATE TABLE same_table_4 (
+	a integer not null,
+	b text,
+	PRIMARY KEY(a)
+) WITH (fillfactor=50,autovacuum_enabled=off);
+
 CREATE TABLE from_table1 (
 	a integer NOT NULL,
 	b varchar(30) NOT NULL,

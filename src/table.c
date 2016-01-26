@@ -911,7 +911,13 @@ dumpAlterColumnSetOptions(FILE *output, PQLTable a, int i, PQLTable b, int j)
 			free(rlist);
 		}
 
-		slist = diffRelOptions(b.attributes[j].attoptions, a.attributes[i].attoptions, PGQ_INTERSECT);
+		/*
+		 * FIXME we used to use diffRelOptions with PGQ_INTERSECT kind but it
+		 * is buggy. Instead, we use all options from b. It is not wrong, but
+		 * it would be nice to remove unnecessary options (e.g. same
+		 * option/value).
+		 */
+		slist = buildRelOptions(b.attributes[j].attoptions);
 		if (slist)
 		{
 			char	*setlist;
@@ -1063,7 +1069,13 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 			free(rlist);
 		}
 
-		slist = diffRelOptions(b.reloptions, a.reloptions, PGQ_INTERSECT);
+		/*
+		 * FIXME we used to use diffRelOptions with PGQ_INTERSECT kind but it
+		 * is buggy. Instead, we use all options from b. It is not wrong, but
+		 * it would be nice to remove unnecessary options (e.g. same
+		 * option/value).
+		 */
+		slist = buildRelOptions(b.reloptions);
 		if (slist)
 		{
 			char	*setlist;

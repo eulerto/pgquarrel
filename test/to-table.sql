@@ -23,6 +23,12 @@ CREATE TABLE same_table_3 (
 
 ALTER TABLE same_table_3 ALTER COLUMN c SET (n_distinct_inherited=8);
 
+CREATE TABLE same_table_4 (
+	a integer not null,
+	b text,
+	PRIMARY KEY(a)
+) WITH (autovacuum_analyze_scale_factor=0.12,autovacuum_vacuum_cost_limit=234,autovacuum_vacuum_scale_factor=0.23);
+
 CREATE TABLE to_table_1 (
 	a integer not null,
 	b varchar(30) not null,

@@ -186,6 +186,12 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView a, PQLMaterializedVi
 			free(rlist);
 		}
 
+		/*
+		 * FIXME we used to use diffRelOptions with PGQ_INTERSECT kind but it
+		 * is buggy. Instead, we use all options from b. It is not wrong, but
+		 * it would be nice to remove unnecessary options (e.g. same
+		 * option/value).
+		 */
 		slist = buildRelOptions(b.reloptions);
 		if (slist)
 		{

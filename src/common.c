@@ -372,6 +372,8 @@ buildRelOptions(char *options)
  * is also in 'b'. If 'withvalue' is true, then strings are built with values
  * from 'b' else the list will contain only the options.
  * TODO cleanup tmpa and tmpb memory
+ * TODO this function is buggy. Your return should be a linked list with almost
+ * TODO all elements from B except those whose option/value is the same as in A.
  */
 static stringListCell *
 intersectWithSortedLists(stringListCell *a, stringListCell *b)
@@ -472,6 +474,7 @@ exceptWithSortedLists(stringListCell *a, stringListCell *b)
 /*
  * Return a linked list that contains elements according to specified set
  * operation (kind). If there aren't options, return NULL.
+ * TODO is there a use case for PGQ_INTERSECT? If not, remove it.
  */
 stringList *
 diffRelOptions(char *a, char *b, int kind)
