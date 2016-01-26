@@ -44,7 +44,7 @@
  * ALTER LARGE OBJECT
  *
  *
- * Copyright (c) 2015, Euler Taveira
+ * Copyright (c) 2015-2016, Euler Taveira
  *
  */
 
