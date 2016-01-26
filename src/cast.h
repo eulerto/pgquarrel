@@ -3,13 +3,6 @@
 
 #include "common.h"
 
-/*
- * Same as FirstNormalObjectId in access/transam.h. This value does not change
- * since a long time ago (2005). It is safe to use this value as a cutting
- * point for user oids x system oids.
- */
-#define	PGQ_FIRST_USER_OID		16384
-
 enum PQLCastMethod
 {
 	PGQ_CAST_METHOD_BINARY = 'b',

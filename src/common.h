@@ -9,6 +9,13 @@
 #include <pg_config.h>
 #include <c.h>			/* bool, true, false */
 
+/*
+ * Same as FirstNormalObjectId in access/transam.h. This value does not change
+ * since a long time ago (2005). It is safe to use this value as a cutting
+ * point for user oids x system oids.
+ */
+#define	PGQ_FIRST_USER_OID		16384
+
 #define	PGQMAXPATH			300
 #define	PGQQRYLEN			300
 
