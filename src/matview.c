@@ -176,7 +176,7 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView a, PQLMaterializedVi
 			char	*resetlist;
 
 			resetlist = printRelOptions(rlist);
-			fprintf(output, "\n--aqui\n");
+			fprintf(output, "\n--\n");
 			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s RESET (%s)",
 						formatObjectIdentifier(b.obj.schemaname),
 						formatObjectIdentifier(b.obj.objectname),
