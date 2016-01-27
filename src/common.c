@@ -4,7 +4,6 @@
  */
 #include "common.h"
 
-#include "c.h"
 #include "parser/keywords.h"
 
 #define	PG_KEYWORD(a,b,c) {a,0,c},
