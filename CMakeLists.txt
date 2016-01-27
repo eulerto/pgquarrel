@@ -4,6 +4,8 @@ project(pgquarrel C)
 add_executable(pgquarrel
 	src/cast.c
 	src/cast.h
+	src/collation.c
+	src/collation.h
 	src/common.c
 	src/common.h
 	src/conversion.c

@@ -52,6 +52,7 @@
 #include "common.h"
 
 #include "cast.h"
+#include "collation.h"
 #include "conversion.h"
 #include "domain.h"
 #include "eventtrigger.h"
@@ -83,7 +84,7 @@ QuarrelOptions		options;
 PQLStatistic		qstat = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-							 0, 0};
+							 0, 0, 0, 0};
 
 FILE				*fout;			/* output file */
 FILE				*fpre, *fpost;	/* temporary files */
@@ -105,6 +106,7 @@ static void closeTempFile(FILE *fp, char *p);
 static bool isEmptyFile(char *p);
 
 static void quarrelCasts();
+static void quarrelCollations();
 static void quarrelConversions();
 static void quarrelDomains();
 static void quarrelEventTriggers();
@@ -447,6 +449,93 @@ quarrelCasts()
 
 			j++;
 			qstat.castadded++;
+		}
+	}
+}
+
+static void
+quarrelCollations()
+{
+	PQLCollation	*collations1 = NULL;	/* from */
+	PQLCollation	*collations2 = NULL;	/* to */
+	int			ncollations1 = 0;			/* # of collations */
+	int			ncollations2 = 0;
+	int			i, j;
+
+	/* Collations */
+	collations1 = getCollations(conn1, &ncollations1);
+	collations2 = getCollations(conn2, &ncollations2);
+
+#ifdef PGQ_DEBUG
+	for (i = 0; i < ncollations1; i++)
+		logNoise("server1: %s.%s", collations1[i].obj.schemaname,
+				 collations1[i].obj.objectname);
+
+	for (i = 0; i < ncollations2; i++)
+		logNoise("server2: %s.%s", collations2[i].obj.schemaname,
+				 collations2[i].obj.objectname);
+#endif
+
+	/*
+	 * We have two sorted lists. Let's figure out which elements are not in the
+	 * other list.
+	 * We have two sorted lists. The strategy is transverse both lists only once
+	 * to figure out collations not presented in the other list.
+	 */
+	i = j = 0;
+	while (i < ncollations1 || j < ncollations2)
+	{
+		/* End of collations1 list. Print collations2 list until its end. */
+		if (i == ncollations1)
+		{
+			logDebug("collation %s.%s: server2", collations2[j].obj.schemaname,
+					 collations2[j].obj.objectname);
+
+			dumpCreateCollation(fpre, collations2[j]);
+
+			j++;
+			qstat.collationadded++;
+		}
+		/* End of collations2 list. Print collations1 list until its end. */
+		else if (j == ncollations2)
+		{
+			logDebug("collation %s.%s: server1", collations1[i].obj.schemaname,
+					 collations1[i].obj.objectname);
+
+			dumpDropCollation(fpost, collations1[i]);
+
+			i++;
+			qstat.collationremoved++;
+		}
+		else if (compareRelations(collations1[i].obj, collations2[j].obj) == 0)
+		{
+			logDebug("collation %s.%s: server1 server2", collations1[i].obj.schemaname,
+					 collations1[i].obj.objectname);
+
+			dumpAlterCollation(fpre, collations1[i], collations2[j]);
+
+			i++;
+			j++;
+		}
+		else if (compareRelations(collations1[i].obj, collations2[j].obj) < 0)
+		{
+			logDebug("collation %s.%s: server1", collations1[i].obj.schemaname,
+					 collations1[i].obj.objectname);
+
+			dumpDropCollation(fpost, collations1[i]);
+
+			i++;
+			qstat.collationremoved++;
+		}
+		else if (compareRelations(collations1[i].obj, collations2[j].obj) > 0)
+		{
+			logDebug("collation %s.%s: server2", collations2[j].obj.schemaname,
+					 collations2[j].obj.objectname);
+
+			dumpCreateCollation(fpre, collations2[j]);
+
+			j++;
+			qstat.collationadded++;
 		}
 	}
 }
@@ -2317,6 +2406,7 @@ int main(int argc, char *argv[])
 	quarrelExtensions();
 
 	quarrelCasts();
+	quarrelCollations();
 	quarrelConversions();
 	quarrelDomains();
 	quarrelTypes();

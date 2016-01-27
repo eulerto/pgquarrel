@@ -32,6 +32,8 @@ CREATE ROLE same_role_3;
 
 \i from-cast.sql
 
+\i from-collation.sql
+
 \i from-view.sql
 
 \i from-matview.sql
