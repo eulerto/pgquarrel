@@ -481,7 +481,7 @@ diffRelOptions(char *a, char *b, int kind)
 {
 	stringList		*first, *second;
 	stringList		*ret = NULL;
-	stringListCell	*headitem;
+	stringListCell	*headitem = NULL;
 
 	logNoise("reloptions: set operation %d", kind);
 
