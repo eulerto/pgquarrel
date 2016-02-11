@@ -934,7 +934,6 @@ quarrelFunctions()
 			logDebug("function %s.%s(%s): server2", functions2[j].obj.schemaname,
 					 functions2[j].obj.objectname, functions2[j].arguments);
 
-			/*getFunctionAttributes(conn2, &functions2[j]);*/
 			dumpCreateFunction(fpre, functions2[j], false);
 
 			j++;
@@ -956,8 +955,6 @@ quarrelFunctions()
 			logDebug("function %s.%s(%s): server1 server2", functions1[i].obj.schemaname,
 					 functions1[i].obj.objectname, functions1[i].arguments);
 
-			/*getFunctionAttributes(conn1, &functions1[i]);
-			getFunctionAttributes(conn2, &functions2[j]);*/
 			/*
 			 * When we change return type we have to recreate the function
 			 * because there is no ALTER FUNCTION command for it.
@@ -988,7 +985,6 @@ quarrelFunctions()
 			logDebug("function %s.%s(%s): server2", functions2[j].obj.schemaname,
 					 functions2[j].obj.objectname, functions2[j].arguments);
 
-			/*getFunctionAttributes(conn2, &functions2[j]);*/
 			dumpCreateFunction(fpre, functions2[j], false);
 
 			j++;
@@ -1037,7 +1033,6 @@ quarrelIndexes()
 			logDebug("index %s.%s: server2", indexes2[j].obj.schemaname,
 					 indexes2[j].obj.objectname);
 
-			getIndexAttributes(conn2, &indexes2[j]);
 			dumpCreateIndex(fpre, indexes2[j]);
 
 			j++;
@@ -1059,8 +1054,6 @@ quarrelIndexes()
 			logDebug("index %s.%s: server1 server2", indexes1[i].obj.schemaname,
 					 indexes1[i].obj.objectname);
 
-			getIndexAttributes(conn1, &indexes1[i]);
-			getIndexAttributes(conn2, &indexes2[j]);
 			dumpAlterIndex(fpre, indexes1[i], indexes2[j]);
 
 			i++;
@@ -1081,7 +1074,6 @@ quarrelIndexes()
 			logDebug("index %s.%s: server2", indexes2[j].obj.schemaname,
 					 indexes2[j].obj.objectname);
 
-			getIndexAttributes(conn2, &indexes2[j]);
 			dumpCreateIndex(fpre, indexes2[j]);
 
 			j++;
@@ -1212,7 +1204,6 @@ quarrelMaterializedViews()
 			logDebug("materialized view %s.%s: server2", matviews2[j].obj.schemaname,
 					 matviews2[j].obj.objectname);
 
-			getMaterializedViewAttributes(conn2, &matviews2[j]);
 			dumpCreateMaterializedView(fpre, matviews2[j]);
 
 			j++;
@@ -1235,8 +1226,6 @@ quarrelMaterializedViews()
 					 matviews1[i].obj.schemaname,
 					 matviews1[i].obj.objectname);
 
-			getMaterializedViewAttributes(conn1, &matviews1[i]);
-			getMaterializedViewAttributes(conn2, &matviews2[j]);
 			dumpAlterMaterializedView(fpre, matviews1[i], matviews2[j]);
 
 			i++;
@@ -1257,7 +1246,6 @@ quarrelMaterializedViews()
 			logDebug("materialized view %s.%s: server2", matviews2[j].obj.schemaname,
 					 matviews2[j].obj.objectname);
 
-			getMaterializedViewAttributes(conn2, &matviews2[j]);
 			dumpCreateMaterializedView(fpre, matviews2[j]);
 
 			j++;

@@ -16,7 +16,6 @@ typedef struct PQLIndex
 
 
 PQLIndex *getIndexes(PGconn *c, int *n);
-void getIndexAttributes(PGconn *c, PQLIndex *s);
 
 void dumpDropIndex(FILE *output, PQLIndex s);
 void dumpCreateIndex(FILE *output, PQLIndex s);

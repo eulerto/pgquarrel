@@ -83,11 +83,6 @@ getViews(PGconn *c, int *n)
 }
 
 void
-getViewAttributes(PGconn *c, PQLView *v)
-{
-}
-
-void
 freeViews(PQLView *v, int n)
 {
 	if (n > 0)

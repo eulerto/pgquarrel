@@ -95,11 +95,6 @@ freeIndexes(PQLIndex *i, int n)
 }
 
 void
-getIndexAttributes(PGconn *c, PQLIndex *i)
-{
-}
-
-void
 dumpDropIndex(FILE *output, PQLIndex i)
 {
 	fprintf(output, "\n\n");

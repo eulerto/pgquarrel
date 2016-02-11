@@ -26,7 +26,6 @@ typedef struct PQLFunction
 } PQLFunction;
 
 PQLFunction *getFunctions(PGconn *c, int *n);
-void getFunctionAttributes(PGconn *c, PQLFunction *f);
 int compareFunctions(PQLFunction a, PQLFunction b);
 
 void dumpDropFunction(FILE *output, PQLFunction f);

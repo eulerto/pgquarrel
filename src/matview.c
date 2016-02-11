@@ -121,11 +121,6 @@ freeMaterializedViews(PQLMaterializedView *v, int n)
 }
 
 void
-getMaterializedViewAttributes(PGconn *c, PQLMaterializedView *v)
-{
-}
-
-void
 dumpDropMaterializedView(FILE *output, PQLMaterializedView v)
 {
 	fprintf(output, "\n\n");

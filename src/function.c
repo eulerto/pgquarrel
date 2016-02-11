@@ -137,11 +137,6 @@ freeFunctions(PQLFunction *f, int n)
 }
 
 void
-getFunctionAttributes(PGconn *c, PQLFunction *f)
-{
-}
-
-void
 dumpDropFunction(FILE *output, PQLFunction f)
 {
 	fprintf(output, "\n\n");
