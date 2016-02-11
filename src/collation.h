@@ -21,4 +21,7 @@ void getCollationConstraints(PGconn *c, PQLCollation *d);
 void dumpDropCollation(FILE *output, PQLCollation d);
 void dumpCreateCollation(FILE *output, PQLCollation d);
 void dumpAlterCollation(FILE *output, PQLCollation a, PQLCollation b);
+
+void freeCollations(PQLCollation *c, int n);
+
 #endif	/* COLLATION_H */

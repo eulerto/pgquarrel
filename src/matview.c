@@ -94,6 +94,31 @@ getMaterializedViews(PGconn *c, int *n)
 }
 
 void
+freeMaterializedViews(PQLMaterializedView *v, int n)
+{
+	if (n > 0)
+	{
+		int	i;
+
+		for (i = 0; i < n; i++)
+		{
+			free(v[i].obj.schemaname);
+			free(v[i].obj.objectname);
+			if (v[i].tbspcname)
+				free(v[i].tbspcname);
+			free(v[i].viewdef);
+			if (v[i].reloptions)
+				free(v[i].reloptions);
+			if (v[i].comment)
+				free(v[i].comment);
+			free(v[i].owner);
+		}
+
+		free(v);
+	}
+}
+
+void
 getMaterializedViewAttributes(PGconn *c, PQLMaterializedView *v)
 {
 }
@@ -182,8 +207,9 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView a, PQLMaterializedVi
 						formatObjectIdentifier(b.obj.objectname),
 						resetlist);
 			fprintf(output, ";");
+
 			free(resetlist);
-			free(rlist);
+			freeStringList(rlist);
 		}
 
 		/*
@@ -204,8 +230,9 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView a, PQLMaterializedVi
 						formatObjectIdentifier(b.obj.objectname),
 						setlist);
 			fprintf(output, ";");
+
 			free(setlist);
-			free(slist);
+			freeStringList(slist);
 		}
 	}
 	else if (a.reloptions != NULL && b.reloptions == NULL)
@@ -224,8 +251,9 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView a, PQLMaterializedVi
 						formatObjectIdentifier(b.obj.objectname),
 						resetlist);
 			fprintf(output, ";");
+
 			free(resetlist);
-			free(rlist);
+			freeStringList(rlist);
 		}
 	}
 

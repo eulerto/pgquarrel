@@ -22,4 +22,6 @@ void dumpDropIndex(FILE *output, PQLIndex s);
 void dumpCreateIndex(FILE *output, PQLIndex s);
 void dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b);
 
+void freeIndexes(PQLIndex *i, int n);
+
 #endif	/* INDEX_H */

@@ -49,6 +49,8 @@ getCasts(PGconn *c, int *n)
 
 	res = PQexec(c, query);
 
+	free(query);
+
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
 		logError("query failed: %s", PQresultErrorMessage(res));
@@ -86,6 +88,26 @@ getCasts(PGconn *c, int *n)
 	PQclear(res);
 
 	return d;
+}
+
+void
+freeCasts(PQLCast *c, int n)
+{
+	if (n > 0)
+	{
+		int	i;
+
+		for (i = 0; i < n; i++)
+		{
+			free(c[i].source);
+			free(c[i].target);
+			free(c[i].funcname);
+			if (c[i].comment)
+				free(c[i].comment);
+		}
+
+		free(c);
+	}
 }
 
 void

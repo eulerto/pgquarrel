@@ -21,4 +21,6 @@ void dumpDropView(FILE *output, PQLView v);
 void dumpCreateView(FILE *output, PQLView v);
 void dumpAlterView(FILE *output, PQLView a, PQLView b);
 
+void freeViews(PQLView *v, int n);
+
 #endif	/* VIEW_H */

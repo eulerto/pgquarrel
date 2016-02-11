@@ -22,4 +22,6 @@ void dumpDropLanguage(FILE *output, PQLLanguage s);
 void dumpCreateLanguage(FILE *output, PQLLanguage s);
 void dumpAlterLanguage(FILE *output, PQLLanguage a, PQLLanguage b);
 
+void freeLanguages(PQLLanguage *l, int n);
+
 #endif	/* LANGUAGE_H */

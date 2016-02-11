@@ -31,4 +31,6 @@ void dumpDropSequence(FILE *output, PQLSequence s);
 void dumpCreateSequence(FILE *output, PQLSequence s);
 void dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b);
 
+void freeSequences(PQLSequence *s, int n);
+
 #endif	/* SEQUENCE_H */

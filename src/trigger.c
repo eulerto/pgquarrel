@@ -58,6 +58,27 @@ getTriggers(PGconn *c, int *n)
 }
 
 void
+freeTriggers(PQLTrigger *t, int n)
+{
+	if (n > 0)
+	{
+		int	i;
+
+		for (i = 0; i < n; i++)
+		{
+			free(t[i].trgname);
+			free(t[i].table.schemaname);
+			free(t[i].table.objectname);
+			free(t[i].trgdef);
+			if (t[i].comment)
+				free(t[i].comment);
+		}
+
+		free(t);
+	}
+}
+
+void
 dumpCreateTrigger(FILE *output, PQLTrigger t)
 {
 	fprintf(output, "\n\n");

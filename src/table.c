@@ -141,6 +141,8 @@ getCheckConstraints(PGconn *c, PQLTable *t, int n)
 
 		res = PQexec(c, query);
 
+		free(query);
+
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		{
 			logError("query failed: %s", PQresultErrorMessage(res));
@@ -200,6 +202,8 @@ getFKConstraints(PGconn *c, PQLTable *t, int n)
 		} while (true);
 
 		res = PQexec(c, query);
+
+		free(query);
 
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		{
@@ -263,6 +267,8 @@ getPKConstraints(PGconn *c, PQLTable *t, int n)
 
 		res = PQexec(c, query);
 
+		free(query);
+
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		{
 			logError("query failed: %s", PQresultErrorMessage(res));
@@ -316,6 +322,8 @@ getTableAttributes(PGconn *c, PQLTable *t)
 	} while (true);
 
 	res = PQexec(c, query);
+
+	free(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -427,6 +435,96 @@ getTableAttributes(PGconn *c, PQLTable *t)
 }
 
 void
+freeTables(PQLTable *t, int n)
+{
+	if (n > 0)
+	{
+		int	i;
+
+		for (i = 0; i < n; i++)
+		{
+			int	j;
+
+			free(t[i].obj.schemaname);
+			free(t[i].obj.objectname);
+			free(t[i].owner);
+			if (t[i].tbspcname)
+				free(t[i].tbspcname);
+			if (t[i].reloptions)
+				free(t[i].reloptions);
+			if (t[i].comment)
+				free(t[i].comment);
+			if (t[i].acl)
+				free(t[i].acl);
+
+			/* attributes */
+			for (j = 0; j < t[i].nattributes; j++)
+			{
+				free(t[i].attributes[j].attname);
+				free(t[i].attributes[j].atttypname);
+				if (t[i].attributes[j].attdefexpr)
+					free(t[i].attributes[j].attdefexpr);
+				if (t[i].attributes[j].attcollation)
+					free(t[i].attributes[j].attcollation);
+				if (t[i].attributes[j].attstorage)
+					free(t[i].attributes[j].attstorage);
+				if (t[i].attributes[j].attoptions)
+					free(t[i].attributes[j].attoptions);
+				if (t[i].attributes[j].comment)
+					free(t[i].attributes[j].comment);
+			}
+
+			/* check constraints */
+			for (j = 0; j < t[i].ncheck; j++)
+			{
+				free(t[i].check[j].conname);
+				free(t[i].check[j].condef);
+				if (t[i].check[j].comment)
+					free(t[i].check[j].comment);
+			}
+
+			/* foreign keys */
+			for (j = 0; j < t[i].nfk; j++)
+			{
+				free(t[i].fk[j].conname);
+				free(t[i].fk[j].condef);
+				if (t[i].fk[j].comment)
+					free(t[i].fk[j].comment);
+			}
+
+			/* primary key */
+			if (t[i].pk.conname)
+				free(t[i].pk.conname);
+			if (t[i].pk.condef)
+				free(t[i].pk.condef);
+			if (t[i].pk.comment)
+				free(t[i].pk.comment);
+
+			/* ownedby sequences */
+			for (j = 0; j < t[i].nownedby; j++)
+			{
+				free(t[i].seqownedby[j].schemaname);
+				free(t[i].seqownedby[j].objectname);
+				free(t[i].attownedby[j]);
+			}
+
+			if (t[i].attributes)
+				free(t[i].attributes);
+			if (t[i].check)
+				free(t[i].check);
+			if (t[i].fk)
+				free(t[i].fk);
+			if (t[i].seqownedby)
+				free(t[i].seqownedby);
+			if (t[i].attownedby)
+				free(t[i].attownedby);
+		}
+
+		free(t);
+	}
+}
+
+void
 getOwnedBySequences(PGconn *c, PQLTable *t)
 {
 	char		*query = NULL;
@@ -451,6 +549,8 @@ getOwnedBySequences(PGconn *c, PQLTable *t)
 	} while (true);
 
 	res = PQexec(c, query);
+
+	free(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -885,8 +985,9 @@ dumpAlterColumnSetOptions(FILE *output, PQLTable a, int i, PQLTable b, int j)
 						b.attributes[j].attname,
 						resetlist);
 			fprintf(output, ";");
+
 			free(resetlist);
-			free(rlist);
+			freeStringList(rlist);
 		}
 	}
 	else if (a.attributes[i].attoptions != NULL && b.attributes[j].attoptions != NULL &&
@@ -907,8 +1008,9 @@ dumpAlterColumnSetOptions(FILE *output, PQLTable a, int i, PQLTable b, int j)
 						b.attributes[j].attname,
 						resetlist);
 			fprintf(output, ";");
+
 			free(resetlist);
-			free(rlist);
+			freeStringList(rlist);
 		}
 
 		/*
@@ -930,8 +1032,9 @@ dumpAlterColumnSetOptions(FILE *output, PQLTable a, int i, PQLTable b, int j)
 						b.attributes[j].attname,
 						setlist);
 			fprintf(output, ";");
+
 			free(setlist);
-			free(slist);
+			freeStringList(slist);
 		}
 	}
 }
@@ -1065,8 +1168,9 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 						formatObjectIdentifier(b.obj.objectname),
 						resetlist);
 			fprintf(output, ";");
+
 			free(resetlist);
-			free(rlist);
+			freeStringList(rlist);
 		}
 
 		/*
@@ -1087,8 +1191,9 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 						formatObjectIdentifier(b.obj.objectname),
 						setlist);
 			fprintf(output, ";");
+
 			free(setlist);
-			free(slist);
+			freeStringList(slist);
 		}
 	}
 	else if (a.reloptions != NULL && b.reloptions == NULL)
@@ -1107,8 +1212,9 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 						formatObjectIdentifier(b.obj.objectname),
 						resetlist);
 			fprintf(output, ";");
+
 			free(resetlist);
-			free(rlist);
+			freeStringList(rlist);
 		}
 	}
 

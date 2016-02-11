@@ -63,6 +63,27 @@ getSchemas(PGconn *c, int *n)
 }
 
 void
+freeSchemas(PQLSchema *s, int n)
+{
+	if (n > 0)
+	{
+		int	i;
+
+		for (i = 0; i < n; i++)
+		{
+			free(s[i].schemaname);
+			if (s[i].comment)
+				free(s[i].comment);
+			if (s[i].acl)
+				free(s[i].acl);
+			free(s[i].owner);
+		}
+
+		free(s);
+	}
+}
+
+void
 dumpDropSchema(FILE *output, PQLSchema s)
 {
 	fprintf(output, "\n\n");

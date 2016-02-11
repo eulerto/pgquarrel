@@ -17,4 +17,6 @@ void dumpDropSchema(FILE *output, PQLSchema s);
 void dumpCreateSchema(FILE *output, PQLSchema s);
 void dumpAlterSchema(FILE *output, PQLSchema a, PQLSchema b);
 
+void freeSchemas(PQLSchema *s, int n);
+
 #endif	/* SCHEMA_H */

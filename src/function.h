@@ -33,4 +33,6 @@ void dumpDropFunction(FILE *output, PQLFunction f);
 void dumpCreateFunction(FILE *output, PQLFunction f, bool orreplace);
 void dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b);
 
+void freeFunctions(PQLFunction *f, int n);
+
 #endif	/* FUNCTION_H */

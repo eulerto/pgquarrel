@@ -55,6 +55,27 @@ getRules(PGconn *c, int *n)
 }
 
 void
+freeRules(PQLRule *r, int n)
+{
+	if (n > 0)
+	{
+		int	i;
+
+		for (i = 0; i < n; i++)
+		{
+			free(r[i].table.schemaname);
+			free(r[i].table.objectname);
+			free(r[i].rulename);
+			free(r[i].ruledef);
+			if (r[i].comment)
+				free(r[i].comment);
+		}
+
+		free(r);
+	}
+}
+
+void
 dumpDropRule(FILE *output, PQLRule r)
 {
 	fprintf(output, "\n\n");

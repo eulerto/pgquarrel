@@ -181,11 +181,12 @@ splitACLItem(char *a)
 }
 
 void
-freeACLItem(aclItem *a)
+freeACLItem(aclItem *ai)
 {
-	free(a->grantee);
-	free(a->privileges);
-	free(a->grantor);
+	free(ai->grantee);
+	free(ai->privileges);
+	free(ai->grantor);
+	free(ai);
 }
 
 aclList *
@@ -212,7 +213,7 @@ buildACL(char *acl)
 
 	len = strlen(acl);
 
-	tmp = (char *) malloc((len + 1) * sizeof(char));
+	/* use a temporary variable to avoid changing the original acl */
 	tmp = strdup(acl);
 	p = tmp;
 
@@ -296,6 +297,20 @@ buildACL(char *acl)
 	return al;
 }
 
+void
+freeACL(aclList *al)
+{
+	aclItem	*ai;
+
+	if (al == NULL)
+		return;
+
+	for (ai = al->head; ai; ai = ai->next)
+		freeACLItem(ai);
+
+	free(al);
+}
+
 /*
  * Return an allocated string that contains characters available in string a
  * but not in b.
@@ -359,12 +374,16 @@ diffPrivileges(char *a, char *b)
 void
 dumpGrant(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee, char *extra)
 {
+	char	*p;
+
 	/* nothing to be done */
 	if (privs == NULL)
 		return;
 
+	p = formatPrivileges(privs);
+
 	fprintf(output, "\n\n");
-	fprintf(output, "GRANT %s ON ", formatPrivileges(privs));
+	fprintf(output, "GRANT %s ON ", p);
 
 	switch (objecttype)
 	{
@@ -428,17 +447,23 @@ dumpGrant(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee,
 			formatObjectIdentifier(a.objectname),
 			grantee);
 	}
+
+	free(p);
 }
 
 void
 dumpRevoke(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee, char *extra)
 {
+	char	*p;
+
 	/* nothing to be done */
 	if (privs == NULL)
 		return;
 
+	p = formatPrivileges(privs);
+
 	fprintf(output, "\n\n");
-	fprintf(output, "REVOKE %s ON ", formatPrivileges(privs));
+	fprintf(output, "REVOKE %s ON ", p);
 
 	switch (objecttype)
 	{
@@ -502,6 +527,8 @@ dumpRevoke(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee
 			formatObjectIdentifier(a.objectname),
 			grantee);
 	}
+
+	free(p);
 }
 
 void
@@ -572,8 +599,7 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject a, PQLObject b, char 
 			break;
 	}
 
-	if (ala != NULL)
-		free(ala);
-	if (alb != NULL)
-		free(alb);
+	/* free temporary lists */
+	freeACL(ala);
+	freeACL(alb);
 }

@@ -107,6 +107,36 @@ compareFunctions(PQLFunction a, PQLFunction b)
 }
 
 void
+freeFunctions(PQLFunction *f, int n)
+{
+	if (n > 0)
+	{
+		int	i;
+
+		for (i = 0; i < n; i++)
+		{
+			free(f[i].obj.schemaname);
+			free(f[i].obj.objectname);
+			free(f[i].arguments);
+			free(f[i].body);
+			free(f[i].returntype);
+			free(f[i].language);
+			free(f[i].cost);
+			free(f[i].rows);
+			if (f[i].configparams)
+				free(f[i].configparams);
+			if (f[i].comment)
+				free(f[i].comment);
+			free(f[i].owner);
+			if (f[i].acl)
+				free(f[i].acl);
+		}
+
+		free(f);
+	}
+}
+
+void
 getFunctionAttributes(PGconn *c, PQLFunction *f)
 {
 }
@@ -184,6 +214,8 @@ dumpCreateFunction(FILE *output, PQLFunction f, bool orreplace)
 			else
 				fprintf(output, "'%s'", str);
 		}
+
+		freeStringList(sl);
 	}
 
 	fprintf(output, "\nAS $$%s$$;", f.body);
@@ -372,7 +404,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 					fprintf(output, "'%s'", str);
 			}
 
-			free(sl);
+			freeStringList(sl);
 		}
 	}
 	else if (a.configparams != NULL && b.configparams != NULL &&
@@ -397,7 +429,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 			for (cell = rlist->head; cell; cell = cell->next)
 				fprintf(output, " RESET %s", cell->value);
 
-			free(rlist);
+			freeStringList(rlist);
 		}
 
 		/*
@@ -429,7 +461,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 					fprintf(output, "'%s'", str);
 			}
 
-			free(slist);
+			freeStringList(slist);
 		}
 	}
 

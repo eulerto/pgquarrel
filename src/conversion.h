@@ -21,4 +21,6 @@ void dumpDropConversion(FILE *output, PQLConversion d);
 void dumpCreateConversion(FILE *output, PQLConversion d);
 void dumpAlterConversion(FILE *output, PQLConversion a, PQLConversion b);
 
+void freeConversions(PQLConversion *c, int n);
+
 #endif	/* CONVERSION_H */

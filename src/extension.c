@@ -61,6 +61,26 @@ getExtensions(PGconn *c, int *n)
 }
 
 void
+freeExtensions(PQLExtension *e, int n)
+{
+	if (n > 0)
+	{
+		int	i;
+
+		for (i = 0; i < n; i++)
+		{
+			free(e[i].extensionname);
+			free(e[i].schemaname);
+			free(e[i].version);
+			if (e[i].comment)
+				free(e[i].comment);
+		}
+
+		free(e);
+	}
+}
+
+void
 dumpDropExtension(FILE *output, PQLExtension e)
 {
 	fprintf(output, "\n\n");

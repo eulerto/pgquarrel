@@ -67,6 +67,30 @@ getIndexes(PGconn *c, int *n)
 }
 
 void
+freeIndexes(PQLIndex *i, int n)
+{
+	if (n > 0)
+	{
+		int	j;
+
+		for (j = 0; j < n; j++)
+		{
+			free(i[j].obj.schemaname);
+			free(i[j].obj.objectname);
+			if (i[j].tbspcname)
+				free(i[j].tbspcname);
+			free(i[j].indexdef);
+			if (i[j].reloptions)
+				free(i[j].reloptions);
+			if (i[j].comment)
+				free(i[j].comment);
+		}
+
+		free(i);
+	}
+}
+
+void
 getIndexAttributes(PGconn *c, PQLIndex *i)
 {
 }
@@ -142,8 +166,9 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 						formatObjectIdentifier(b.obj.objectname),
 						resetlist);
 			fprintf(output, ";");
+
 			free(resetlist);
-			free(rlist);
+			freeStringList(rlist);
 		}
 
 		/*
@@ -164,8 +189,9 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 						formatObjectIdentifier(b.obj.objectname),
 						setlist);
 			fprintf(output, ";");
+
 			free(setlist);
-			free(slist);
+			freeStringList(slist);
 		}
 	}
 	else if (a.reloptions != NULL && b.reloptions == NULL)
@@ -184,8 +210,9 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 						formatObjectIdentifier(b.obj.objectname),
 						resetlist);
 			fprintf(output, ";");
+
 			free(resetlist);
-			free(rlist);
+			freeStringList(rlist);
 		}
 	}
 

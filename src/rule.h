@@ -16,4 +16,6 @@ void dumpDropRule(FILE *output, PQLRule s);
 void dumpCreateRule(FILE *output, PQLRule s);
 void dumpAlterRule(FILE *output, PQLRule a, PQLRule b);
 
+void freeRules(PQLRule *r, int n);
+
 #endif	/* RULE_H */

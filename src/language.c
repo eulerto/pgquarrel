@@ -68,6 +68,30 @@ getLanguages(PGconn *c, int *n)
 }
 
 void
+freeLanguages(PQLLanguage *l, int n)
+{
+	if (n > 0)
+	{
+		int	i;
+
+		for (i = 0; i < n; i++)
+		{
+			free(l[i].languagename);
+			free(l[i].callhandler);
+			free(l[i].inlinehandler);
+			free(l[i].validator);
+			if (l[i].comment)
+				free(l[i].comment);
+			free(l[i].owner);
+			if (l[i].acl)
+				free(l[i].acl);
+		}
+
+		free(l);
+	}
+}
+
+void
 dumpDropLanguage(FILE *output, PQLLanguage l)
 {
 	fprintf(output, "\n\n");

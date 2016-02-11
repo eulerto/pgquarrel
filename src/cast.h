@@ -36,4 +36,7 @@ PQLCast *getCasts(PGconn *c, int *n);
 void dumpDropCast(FILE *output, PQLCast d);
 void dumpCreateCast(FILE *output, PQLCast d);
 void dumpAlterCast(FILE *output, PQLCast a, PQLCast b);
+
+void freeCasts(PQLCast *c, int n);
+
 #endif	/* CAST_H */

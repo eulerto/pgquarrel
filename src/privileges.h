@@ -37,8 +37,9 @@ char *formatPrivileges(char *s);
 char *diffPrivileges(char *a, char *b);
 
 aclItem *splitACLItem(char *a);
-void freeACLItem(aclItem *a);
 aclList *buildACL(char *acl);
+void freeACLItem(aclItem *ai);
+void freeACL(aclList *al);
 
 void dumpGrant(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee, char *extra);
 void dumpRevoke(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee, char *extra);

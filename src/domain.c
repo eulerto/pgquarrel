@@ -121,6 +121,9 @@ getDomainConstraints(PGconn *c, PQLDomain *d)
 	} while (true);
 
 	res = PQexec(c, query);
+
+	free(query);
+
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
 		logError("query failed: %s", PQresultErrorMessage(res));
@@ -149,6 +152,44 @@ getDomainConstraints(PGconn *c, PQLDomain *d)
 	}
 
 	PQclear(res);
+}
+
+void
+freeDomains(PQLDomain *d, int n)
+{
+	if (n > 0)
+	{
+		int	i;
+
+		for (i = 0; i < n; i++)
+		{
+			int	j;
+
+			free(d[i].obj.schemaname);
+			free(d[i].obj.objectname);
+			free(d[i].domaindef);
+			if (d[i].collation)
+				free(d[i].collation);
+			if (d[i].ddefault)
+				free(d[i].ddefault);
+			if (d[i].comment)
+				free(d[i].comment);
+			free(d[i].owner);
+			if (d[i].acl)
+				free(d[i].acl);
+
+			for (j = 0 ; j < d[i].ncheck; j++)
+			{
+				free(d[i].check[j].conname);
+				free(d[i].check[j].condef);
+			}
+
+			if (d[i].check)
+				free(d[i].check);
+		}
+
+		free(d);
+	}
 }
 
 void

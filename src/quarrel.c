@@ -451,6 +451,9 @@ quarrelCasts()
 			qstat.castadded++;
 		}
 	}
+
+	freeCasts(casts1, ncasts1);
+	freeCasts(casts2, ncasts2);
 }
 
 static void
@@ -538,6 +541,9 @@ quarrelCollations()
 			qstat.collationadded++;
 		}
 	}
+
+	freeCollations(collations1, ncollations1);
+	freeCollations(collations2, ncollations2);
 }
 
 static void
@@ -624,6 +630,9 @@ quarrelConversions()
 			qstat.conversionadded++;
 		}
 	}
+
+	freeConversions(conversions1, nconversions1);
+	freeConversions(conversions2, nconversions2);
 }
 
 static void
@@ -715,6 +724,9 @@ quarrelDomains()
 			qstat.domainadded++;
 		}
 	}
+
+	freeDomains(domains1, ndomains1);
+	freeDomains(domains2, ndomains2);
 }
 
 static void
@@ -794,6 +806,9 @@ quarrelEventTriggers()
 			qstat.evttrgadded++;
 		}
 	}
+
+	freeEventTriggers(evttrgs1, nevttrgs1);
+	freeEventTriggers(evttrgs2, nevttrgs2);
 }
 
 static void
@@ -873,6 +888,9 @@ quarrelExtensions()
 			qstat.extensionadded++;
 		}
 	}
+
+	freeExtensions(extensions1, nextensions1);
+	freeExtensions(extensions2, nextensions2);
 }
 
 static void
@@ -975,6 +993,9 @@ quarrelFunctions()
 			qstat.functionadded++;
 		}
 	}
+
+	freeFunctions(functions1, nfunctions1);
+	freeFunctions(functions2, nfunctions2);
 }
 
 static void
@@ -1065,6 +1086,9 @@ quarrelIndexes()
 			qstat.indexadded++;
 		}
 	}
+
+	freeIndexes(indexes1, nindexes1);
+	freeIndexes(indexes2, nindexes2);
 }
 
 static void
@@ -1144,6 +1168,9 @@ quarrelLanguages()
 			qstat.languageadded++;
 		}
 	}
+
+	freeLanguages(languages1, nlanguages1);
+	freeLanguages(languages2, nlanguages2);
 }
 
 static void
@@ -1234,6 +1261,9 @@ quarrelMaterializedViews()
 			qstat.matviewadded++;
 		}
 	}
+
+	freeMaterializedViews(matviews1, nmatviews1);
+	freeMaterializedViews(matviews2, nmatviews2);
 }
 
 static void
@@ -1320,6 +1350,9 @@ quarrelRules()
 			qstat.ruleadded++;
 		}
 	}
+
+	freeRules(rules1, nrules1);
+	freeRules(rules2, nrules2);
 }
 
 static void
@@ -1399,6 +1432,9 @@ quarrelSchemas()
 			qstat.schemaadded++;
 		}
 	}
+
+	freeSchemas(schemas1, nschemas1);
+	freeSchemas(schemas2, nschemas2);
 }
 
 static void
@@ -1489,6 +1525,9 @@ quarrelSequences()
 			qstat.seqadded++;
 		}
 	}
+
+	freeSequences(sequences1, nsequences1);
+	freeSequences(sequences2, nsequences2);
 }
 
 static void
@@ -1593,6 +1632,9 @@ quarrelTables()
 			qstat.tableadded++;
 		}
 	}
+
+	freeTables(tables1, ntables1);
+	freeTables(tables2, ntables2);
 }
 
 static void
@@ -1679,6 +1721,9 @@ quarrelTriggers()
 			qstat.trgadded++;
 		}
 	}
+
+	freeTriggers(triggers1, ntriggers1);
+	freeTriggers(triggers2, ntriggers2);
 }
 
 static void
@@ -1765,6 +1810,9 @@ quarrelBaseTypes()
 			qstat.typeadded++;
 		}
 	}
+
+	freeBaseTypes(types1, ntypes1);
+	freeBaseTypes(types2, ntypes2);
 }
 
 static void
@@ -1851,6 +1899,9 @@ quarrelCompositeTypes()
 			qstat.typeadded++;
 		}
 	}
+
+	freeCompositeTypes(types1, ntypes1);
+	freeCompositeTypes(types2, ntypes2);
 }
 
 static void
@@ -1937,6 +1988,9 @@ quarrelEnumTypes()
 			qstat.typeadded++;
 		}
 	}
+
+	freeEnumTypes(types1, ntypes1);
+	freeEnumTypes(types2, ntypes2);
 }
 
 static void
@@ -2023,6 +2077,9 @@ quarrelRangeTypes()
 			qstat.typeadded++;
 		}
 	}
+
+	freeRangeTypes(types1, ntypes1);
+	freeRangeTypes(types2, ntypes2);
 }
 
 static void
@@ -2118,6 +2175,9 @@ quarrelViews()
 			qstat.viewadded++;
 		}
 	}
+
+	freeViews(views1, nviews1);
+	freeViews(views2, nviews2);
 }
 
 static void
@@ -2310,6 +2370,9 @@ int main(int argc, char *argv[])
 
 	/* read configuration file */
 	loadConfig(configfile, &options);
+
+	/* config filename was not used anymore; free it */
+	free(configfile);
 
 	/* connecting to server1 ... */
 	conn1 = connectDatabase(options.fhost, options.fport, options.fusername,

@@ -62,6 +62,29 @@ getEventTriggers(PGconn *c, int *n)
 }
 
 void
+freeEventTriggers(PQLEventTrigger *e, int n)
+{
+	if (n > 0)
+	{
+		int	i;
+
+		for (i = 0; i < n; i++)
+		{
+			free(e[i].trgname);
+			free(e[i].event);
+			if (e[i].tags)
+				free(e[i].tags);
+			free(e[i].functionname);
+			if (e[i].comment)
+				free(e[i].comment);
+			free(e[i].owner);
+		}
+
+		free(e);
+	}
+}
+
+void
 dumpCreateEventTrigger(FILE *output, PQLEventTrigger e)
 {
 	fprintf(output, "\n\n");

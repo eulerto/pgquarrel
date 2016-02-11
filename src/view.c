@@ -88,6 +88,31 @@ getViewAttributes(PGconn *c, PQLView *v)
 }
 
 void
+freeViews(PQLView *v, int n)
+{
+	if (n > 0)
+	{
+		int	i;
+
+		for (i = 0; i < n; i++)
+		{
+			free(v[i].obj.schemaname);
+			free(v[i].obj.objectname);
+			free(v[i].viewdef);
+			if (v[i].reloptions)
+				free(v[i].reloptions);
+			if (v[i].checkoption)
+				free(v[i].checkoption);
+			if (v[i].comment)
+				free(v[i].comment);
+			free(v[i].owner);
+		}
+
+		free(v);
+	}
+}
+
+void
 dumpDropView(FILE *output, PQLView v)
 {
 	fprintf(output, "\n\n");
@@ -193,8 +218,9 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 						formatObjectIdentifier(b.obj.objectname),
 						resetlist);
 			fprintf(output, ";");
+
 			free(resetlist);
-			free(rlist);
+			freeStringList(rlist);
 		}
 
 		/*
@@ -215,8 +241,9 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 						formatObjectIdentifier(b.obj.objectname),
 						setlist);
 			fprintf(output, ";");
+
 			free(setlist);
-			free(slist);
+			freeStringList(slist);
 		}
 	}
 	else if (a.reloptions != NULL && b.reloptions == NULL)
@@ -235,8 +262,9 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 						formatObjectIdentifier(b.obj.objectname),
 						resetlist);
 			fprintf(output, ";");
+
 			free(resetlist);
-			free(rlist);
+			freeStringList(rlist);
 		}
 	}
 

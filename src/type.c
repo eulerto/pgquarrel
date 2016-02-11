@@ -131,6 +131,8 @@ getCompositeTypeAttributes(PGconn *c, PQLCompositeType *t)
 
 	res = PQexec(c, query);
 
+	free(query);
+
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
 		logError("query failed: %s", PQresultErrorMessage(res));
@@ -245,6 +247,8 @@ getEnumTypeLabels(PGconn *c, PQLEnumType *t)
 	} while (true);
 
 	res = PQexec(c, query);
+
+	free(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -394,6 +398,135 @@ getRangeTypes(PGconn *c, int *n)
 	PQclear(res);
 
 	return t;
+}
+
+void
+freeBaseTypes(PQLBaseType *t, int n)
+{
+	if (n > 0)
+	{
+		int	i;
+
+		for (i = 0; i < n; i++)
+		{
+			free(t[i].obj.schemaname);
+			free(t[i].obj.objectname);
+			free(t[i].input);
+			free(t[i].output);
+			free(t[i].receive);
+			free(t[i].send);
+			free(t[i].modin);
+			free(t[i].modout);
+			free(t[i].analyze);
+			if (t[i].typdefault)
+				free(t[i].typdefault);
+			free(t[i].category);
+			free(t[i].delimiter);
+			free(t[i].align);
+			free(t[i].storage);
+			free(t[i].owner);
+			if (t[i].acl)
+				free(t[i].acl);
+			if (t[i].comment)
+				free(t[i].comment);
+		}
+
+		free(t);
+	}
+}
+
+void
+freeCompositeTypes(PQLCompositeType *t, int n)
+{
+	if (n > 0)
+	{
+		int	i;
+
+		for (i = 0; i < n; i++)
+		{
+			int	j;
+
+			free(t[i].obj.schemaname);
+			free(t[i].obj.objectname);
+			free(t[i].owner);
+			if (t[i].acl)
+				free(t[i].acl);
+			if (t[i].comment)
+				free(t[i].comment);
+
+			for (j = 0; j < t[i].nattributes; j++)
+			{
+				free(t[i].attributes[j].attname);
+				free(t[i].attributes[j].typname);
+				if (t[i].attributes[j].collschemaname)
+					free(t[i].attributes[j].collschemaname);
+				if (t[i].attributes[j].collname)
+					free(t[i].attributes[j].collname);
+			}
+		}
+
+		free(t);
+	}
+}
+
+void
+freeEnumTypes(PQLEnumType *t, int n)
+{
+	if (n > 0)
+	{
+		int	i;
+
+		for (i = 0; i < n; i++)
+		{
+			int	j;
+
+			free(t[i].obj.schemaname);
+			free(t[i].obj.objectname);
+			free(t[i].owner);
+			if (t[i].acl)
+				free(t[i].acl);
+			if (t[i].comment)
+				free(t[i].comment);
+
+			for (j = 0; j < t[i].nlabels; j++)
+				free(t[i].labels[j]);
+
+			free(t[i].labels);
+		}
+
+		free(t);
+	}
+}
+
+void
+freeRangeTypes(PQLRangeType *t, int n)
+{
+	if (n > 0)
+	{
+		int	i;
+
+		for (i = 0; i < n; i++)
+		{
+			free(t[i].obj.schemaname);
+			free(t[i].obj.objectname);
+			free(t[i].subtype);
+			free(t[i].opcschemaname);
+			free(t[i].opcname);
+			if (t[i].collschemaname)
+				free(t[i].collschemaname);
+			if (t[i].collname)
+				free(t[i].collname);
+			free(t[i].canonical);
+			free(t[i].diff);
+			free(t[i].owner);
+			if (t[i].acl)
+				free(t[i].acl);
+			if (t[i].comment)
+				free(t[i].comment);
+		}
+
+		free(t);
+	}
 }
 
 void

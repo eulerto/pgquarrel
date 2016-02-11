@@ -171,7 +171,7 @@ formatObjectIdentifier(char *s)
 	if (!need_quotes)
 	{
 		/* no quotes needed */
-		ret = strdup(s);
+		ret = s;
 	}
 	else
 	{
@@ -298,7 +298,6 @@ buildRelOptions(char *options)
 
 	len = strlen(options);
 
-	tmp = (char *) malloc((len + 1) * sizeof(char));
 	tmp = strdup(options);
 	p = tmp;
 
@@ -362,6 +361,8 @@ buildRelOptions(char *options)
 	/* check the order */
 	for (x = sl->head; x; x = x->next)
 		logNoise("reloption in order: \"%s\"", x->value);
+
+	free(tmp);
 
 	return sl;
 }
@@ -440,9 +441,13 @@ exceptWithSortedLists(stringListCell *a, stringListCell *b)
 	if (b == NULL)
 	{
 		t = (stringListCell *) malloc(sizeof(stringListCell));
+
+		/* use a temporary variable because strtok() "destroy" the original string */
 		tmpa = strdup(a->value);
 		c = strtok(tmpa, "=");
 		t->value = strdup(c);
+		free(tmpa);
+
 		t->next = exceptWithSortedLists(a->next, b);
 
 		return t;
@@ -456,15 +461,32 @@ exceptWithSortedLists(stringListCell *a, stringListCell *b)
 
 	/* advance latter list and call recursively */
 	if (strcmp(c, d) > 0)
+	{
+		/* avoid leaking temporary variables */
+		free(tmpa);
+		free(tmpb);
+
 		return exceptWithSortedLists(a, b->next);
+	}
 
 	/* advance both string lists and call recursively */
 	if (strcmp(c, d) == 0)
+	{
+		/* avoid leaking temporary variables */
+		free(tmpa);
+		free(tmpb);
+
 		return exceptWithSortedLists(a->next, b->next);
+	}
 
 	/* executed only if A value is not in B */
 	t = (stringListCell *) malloc(sizeof(stringListCell));
 	t->value = strdup(c);
+
+	/* avoid leaking temporary variables */
+	free(tmpa);
+	free(tmpb);
+
 	t->next = exceptWithSortedLists(a->next, b);
 
 	return t;

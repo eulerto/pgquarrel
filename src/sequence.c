@@ -97,6 +97,8 @@ getSequenceAttributes(PGconn *c, PQLSequence *s)
 
 	res = PQexec(c, query);
 
+	free(query);
+
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
 		logError("query failed: %s", PQresultErrorMessage(res));
@@ -119,8 +121,36 @@ getSequenceAttributes(PGconn *c, PQLSequence *s)
 		s->cycle = (PQgetvalue(res, 0, PQfnumber(res, "is_cycled"))[0] == 't');
 	}
 
-	free(query);
 	PQclear(res);
+}
+
+void
+freeSequences(PQLSequence *s, int n)
+{
+	if (n > 0)
+	{
+		int	i;
+
+		for (i = 0; i < n; i++)
+		{
+			free(s[i].obj.schemaname);
+			free(s[i].obj.objectname);
+			if (s[i].comment)
+				free(s[i].comment);
+			free(s[i].owner);
+			if (s[i].acl)
+				free(s[i].acl);
+
+			/* attributes */
+			free(s[i].incvalue);
+			free(s[i].startvalue);
+			free(s[i].maxvalue);
+			free(s[i].minvalue);
+			free(s[i].cache);
+		}
+
+		free(s);
+	}
 }
 
 void

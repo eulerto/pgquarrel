@@ -40,6 +40,8 @@ getCollations(PGconn *c, int *n)
 
 	res = PQexec(c, query);
 
+	free(query);
+
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
 		logError("query failed: %s", PQresultErrorMessage(res));
@@ -79,6 +81,29 @@ getCollations(PGconn *c, int *n)
 	PQclear(res);
 
 	return d;
+}
+
+void
+freeCollations(PQLCollation *c, int n)
+{
+	if (n > 0)
+	{
+		int	i;
+
+		for (i = 0; i < n; i++)
+		{
+			free(c[i].obj.schemaname);
+			free(c[i].obj.objectname);
+			free(c[i].encoding);
+			free(c[i].collate);
+			free(c[i].ctype);
+			if (c[i].comment)
+				free(c[i].comment);
+			free(c[i].owner);
+		}
+
+		free(c);
+	}
 }
 
 void
