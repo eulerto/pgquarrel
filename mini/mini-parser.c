@@ -94,6 +94,10 @@ mini_parse_line(MiniFile *mini_file, char *line)
 			section[section_len] = '\0';
 
 			mini_file_tmp = mini_file_insert_section(mini_file, section);
+
+			/* Free temporary variable. Section name was strdup'ed in function above. */
+			free(section);
+
 			if(mini_file_tmp == NULL)
 				return -1;
 
@@ -144,6 +148,11 @@ mini_parse_line(MiniFile *mini_file, char *line)
 
 			mini_file_tmp = mini_file_insert_key_and_value(mini_file, key,
 			                value);
+
+			/* Free temporary variables. Key/Value were strdup'ed in function above. */
+			free(key);
+			free(value);
+
 			if(mini_file_tmp == NULL)
 				return -1;
 	}
@@ -193,6 +202,9 @@ mini_parse_file(const char *file_name)
 			fprintf(stderr, "parse error at line %d\n", lineno);
 			break;
 		}
+
+		/* Free used line. It will be used again and again... */
+		free(line);
 
 		line = mini_readline(file);
 		lineno++;
