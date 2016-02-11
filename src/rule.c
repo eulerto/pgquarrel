@@ -46,6 +46,7 @@ getRules(PGconn *c, int *n)
 			r[i].comment = NULL;
 		else
 			r[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+
 		logDebug("rule %s on %s.%s", formatObjectIdentifier(r[i].rulename), formatObjectIdentifier(r[i].table.schemaname), formatObjectIdentifier(r[i].table.objectname));
 	}
 

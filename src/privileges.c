@@ -553,6 +553,7 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject a, PQLObject b, char 
 		if (tmpa == NULL)
 		{
 			logDebug("grant to %s: server2 (end)", tmpb->grantee);
+
 			dumpGrant(output, objecttype, b, tmpb->privileges, tmpb->grantee, ((objecttype == PGQ_FUNCTION) ? extra : NULL));
 			tmpb = tmpb->next;
 		}
@@ -560,6 +561,7 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject a, PQLObject b, char 
 		else if (tmpb == NULL)
 		{
 			logDebug("revoke from %s: server1 (end)", tmpa->grantee);
+
 			dumpRevoke(output, objecttype, a, tmpa->privileges, tmpa->grantee, ((objecttype == PGQ_FUNCTION) ? extra : NULL));
 			tmpa = tmpa->next;
 		}
@@ -568,6 +570,7 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject a, PQLObject b, char 
 			char	*privs;
 
 			logDebug("grant/revoke %s: server1 server2", tmpa->grantee);
+
 			privs = diffPrivileges(tmpa->privileges, tmpb->privileges);
 			dumpRevoke(output, objecttype, a, privs, tmpa->grantee, ((objecttype == PGQ_FUNCTION) ? extra : NULL));
 			if (privs != NULL)
@@ -584,12 +587,14 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject a, PQLObject b, char 
 		else if (strcmp(tmpa->grantee, tmpb->grantee) < 0)
 		{
 			logDebug("revoke from %s: server1", tmpa->grantee);
+
 			dumpRevoke(output, objecttype, a, tmpa->privileges, tmpa->grantee, ((objecttype == PGQ_FUNCTION) ? extra : NULL));
 			tmpa = tmpa->next;
 		}
 		else if (strcmp(tmpa->grantee, tmpb->grantee) > 0)
 		{
 			logDebug("grant to %s: server2", tmpb->grantee);
+
 			dumpGrant(output, objecttype, b, tmpb->privileges, tmpb->grantee, ((objecttype == PGQ_FUNCTION) ? extra : NULL));
 			tmpb = tmpb->next;
 		}

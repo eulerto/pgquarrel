@@ -52,6 +52,7 @@ getExtensions(PGconn *c, int *n)
 			e[i].comment = NULL;
 		else
 			e[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+
 		logDebug("extension %s", formatObjectIdentifier(e[i].extensionname));
 	}
 

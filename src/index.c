@@ -60,6 +60,7 @@ getIndexes(PGconn *c, int *n)
 			i[k].comment = NULL;
 		else
 			i[k].comment = strdup(PQgetvalue(res, k, PQfnumber(res, "description")));
+
 		logDebug("index %s.%s", formatObjectIdentifier(i[k].obj.schemaname),
 				 formatObjectIdentifier(i[k].obj.objectname));
 	}
