@@ -154,8 +154,15 @@ getCompositeTypeAttributes(PGconn *c, PQLCompositeType *t)
 	{
 		t->attributes[i].attname = strdup(PQgetvalue(res, i, PQfnumber(res, "attname")));
 		t->attributes[i].typname = strdup(PQgetvalue(res, i, PQfnumber(res, "attdefinition")));
-		t->attributes[i].collschemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "collschemaname")));
-		t->attributes[i].collname = strdup(PQgetvalue(res, i, PQfnumber(res, "collname")));
+		/* collation can be NULL in 9.0 or earlier */
+		if (PQgetisnull(res, i, PQfnumber(res, "collschemaname")))
+			t->attributes[i].collschemaname = NULL;
+		else
+			t->attributes[i].collschemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "collschemaname")));
+		if (PQgetisnull(res, i, PQfnumber(res, "collname")))
+			t->attributes[i].collname = NULL;
+		else
+			t->attributes[i].collname = strdup(PQgetvalue(res, i, PQfnumber(res, "collname")));
 	}
 
 	PQclear(res);
