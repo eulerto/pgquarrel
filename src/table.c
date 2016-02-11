@@ -227,7 +227,6 @@ getFKConstraints(PGconn *c, PQLTable *t, int n)
 		{
 			t[i].fk[j].conname = strdup(PQgetvalue(res, j, PQfnumber(res, "conname")));
 			t[i].fk[j].condef = strdup(PQgetvalue(res, j, PQfnumber(res, "condef")));
-			t[i].fk[j].comment = strdup(PQgetvalue(res, j, PQfnumber(res, "description")));
 			if (PQgetisnull(res, j, PQfnumber(res, "description")))
 				t[i].fk[j].comment = NULL;
 			else
@@ -282,7 +281,6 @@ getPKConstraints(PGconn *c, PQLTable *t, int n)
 		{
 			t[i].pk.conname = strdup(PQgetvalue(res, 0, PQfnumber(res, "conname")));
 			t[i].pk.condef = strdup(PQgetvalue(res, 0, PQfnumber(res, "condef")));
-			t[i].pk.comment = strdup(PQgetvalue(res, 0, PQfnumber(res, "description")));
 			if (PQgetisnull(res, 0, PQfnumber(res, "description")))
 				t[i].pk.comment = NULL;
 			else
