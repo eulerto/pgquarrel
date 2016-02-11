@@ -100,17 +100,18 @@ getDomainConstraints(PGconn *c, PQLDomain *d)
 	int			i;
 	int			r;
 
-	do {
+	do
+	{
 		query = (char *) malloc(nquery * sizeof(char));
 
 		if (PG_VERSION_NUM >= 90100)
 			r = snprintf(query, nquery,
-				"SELECT conname, pg_get_constraintdef(oid) AS condef, convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
-				d->obj.oid);
+						 "SELECT conname, pg_get_constraintdef(oid) AS condef, convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
+						 d->obj.oid);
 		else
 			r = snprintf(query, nquery,
-				"SELECT conname, pg_get_constraintdef(oid) AS condef, true AS convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
-				d->obj.oid);
+						 "SELECT conname, pg_get_constraintdef(oid) AS condef, true AS convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
+						 d->obj.oid);
 
 		if (r < nquery)
 			break;
@@ -118,7 +119,8 @@ getDomainConstraints(PGconn *c, PQLDomain *d)
 		logNoise("query size: required (%u) ; initial (%u)", r, nquery);
 		nquery = r + 1;	/* make enough room for query */
 		free(query);
-	} while (true);
+	}
+	while (true);
 
 	res = PQexec(c, query);
 

@@ -26,8 +26,10 @@ static const char *logLevelTag[] =
 };
 
 
-static stringListCell *intersectWithSortedLists(stringListCell *a, stringListCell *b);
-static stringListCell *exceptWithSortedLists(stringListCell *a, stringListCell *b);
+static stringListCell *intersectWithSortedLists(stringListCell *a,
+		stringListCell *b);
+static stringListCell *exceptWithSortedLists(stringListCell *a,
+		stringListCell *b);
 
 void
 logGeneric(enum PQLLogLevel level, const char *fmt, ...)
@@ -340,7 +342,8 @@ buildRelOptions(char *options)
 						break;
 					}
 
-					if (strcmp(cur->value, sc->value) < 0 && strcmp(cur->next->value, sc->value) >= 0)
+					if (strcmp(cur->value, sc->value) < 0 &&
+							strcmp(cur->next->value, sc->value) >= 0)
 					{
 						sc->next = cur->next;
 						cur->next = sc;

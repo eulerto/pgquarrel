@@ -84,7 +84,8 @@ QuarrelOptions		options;
 PQLStatistic		qstat = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-							 0, 0, 0, 0};
+							 0, 0, 0, 0
+					  };
 
 FILE				*fout;			/* output file */
 FILE				*fpre, *fpost;	/* temporary files */
@@ -241,13 +242,13 @@ loadConfig(const char *cf, QuarrelOptions *options)
 			options->comment = false;		/* default */
 		else
 			options->comment = parseBoolean("comment", mini_file_get_value(config,
-											   "general", "comment"));
+											"general", "comment"));
 
 		if (mini_file_get_value(config, "general", "owner") == NULL)
 			options->owner = false;		/* default */
 		else
 			options->owner = parseBoolean("owner", mini_file_get_value(config,
-											   "general", "owner"));
+										  "general", "owner"));
 
 		if (mini_file_get_value(config, "general", "privileges") == NULL)
 			options->privileges = false;		/* default */
@@ -860,7 +861,8 @@ quarrelExtensions()
 			i++;
 			qstat.extensionremoved++;
 		}
-		else if (strcmp(extensions1[i].extensionname, extensions2[j].extensionname) == 0)
+		else if (strcmp(extensions1[i].extensionname,
+						extensions2[j].extensionname) == 0)
 		{
 			logDebug("extension %s: server1 server2", extensions1[i].extensionname);
 
@@ -1229,7 +1231,8 @@ quarrelMaterializedViews()
 		}
 		else if (compareRelations(matviews1[i].obj, matviews2[j].obj) == 0)
 		{
-			logDebug("materialized view %s.%s: server1 server2", matviews1[i].obj.schemaname,
+			logDebug("materialized view %s.%s: server1 server2",
+					 matviews1[i].obj.schemaname,
 					 matviews1[i].obj.objectname);
 
 			getMaterializedViewAttributes(conn1, &matviews1[i]);
@@ -1319,7 +1322,8 @@ quarrelRules()
 			i++;
 			qstat.ruleremoved++;
 		}
-		else if (compareNamesAndRelations(rules1[i].table, rules2[j].table, rules1[i].rulename, rules2[j].rulename) == 0)
+		else if (compareNamesAndRelations(rules1[i].table, rules2[j].table,
+										  rules1[i].rulename, rules2[j].rulename) == 0)
 		{
 			logDebug("rule %s.%s: server1 server2", rules1[i].table.schemaname,
 					 rules1[i].table.objectname);
@@ -1329,7 +1333,8 @@ quarrelRules()
 			i++;
 			j++;
 		}
-		else if (compareNamesAndRelations(rules1[i].table, rules2[j].table, rules1[i].rulename, rules2[j].rulename) < 0)
+		else if (compareNamesAndRelations(rules1[i].table, rules2[j].table,
+										  rules1[i].rulename, rules2[j].rulename) < 0)
 		{
 			logDebug("rule %s.%s: server1", rules1[i].table.schemaname,
 					 rules1[i].table.objectname);
@@ -1339,7 +1344,8 @@ quarrelRules()
 			i++;
 			qstat.ruleremoved++;
 		}
-		else if (compareNamesAndRelations(rules1[i].table, rules2[j].table, rules1[i].rulename, rules2[j].rulename) > 0)
+		else if (compareNamesAndRelations(rules1[i].table, rules2[j].table,
+										  rules1[i].rulename, rules2[j].rulename) > 0)
 		{
 			logDebug("rule %s.%s: server2", rules2[j].table.schemaname,
 					 rules2[j].table.objectname);
@@ -1690,7 +1696,8 @@ quarrelTriggers()
 			i++;
 			qstat.trgremoved++;
 		}
-		else if (compareNamesAndRelations(triggers1[i].table, triggers2[j].table, triggers1[i].trgname, triggers2[j].trgname) == 0)
+		else if (compareNamesAndRelations(triggers1[i].table, triggers2[j].table,
+										  triggers1[i].trgname, triggers2[j].trgname) == 0)
 		{
 			logDebug("trigger %s.%s: server1 server2", triggers1[i].table.schemaname,
 					 triggers1[i].table.objectname);
@@ -1700,7 +1707,8 @@ quarrelTriggers()
 			i++;
 			j++;
 		}
-		else if (compareNamesAndRelations(triggers1[i].table, triggers2[j].table, triggers1[i].trgname, triggers2[j].trgname) < 0)
+		else if (compareNamesAndRelations(triggers1[i].table, triggers2[j].table,
+										  triggers1[i].trgname, triggers2[j].trgname) < 0)
 		{
 			logDebug("trigger %s.%s: server1", triggers1[i].table.schemaname,
 					 triggers1[i].table.objectname);
@@ -1710,7 +1718,8 @@ quarrelTriggers()
 			i++;
 			qstat.trgremoved++;
 		}
-		else if (compareNamesAndRelations(triggers1[i].table, triggers2[j].table, triggers1[i].trgname, triggers2[j].trgname) > 0)
+		else if (compareNamesAndRelations(triggers1[i].table, triggers2[j].table,
+										  triggers1[i].trgname, triggers2[j].trgname) > 0)
 		{
 			logDebug("trigger %s.%s: server2", triggers2[j].table.schemaname,
 					 triggers2[j].table.objectname);
@@ -2209,7 +2218,8 @@ mergeTempFiles(FILE *pre, FILE *post, FILE *output)
 	{
 		if (fputs(buf, output) == EOF)
 		{
-			logError("could not write to temporary file \"%s\": %s", prepath, strerror(errno));
+			logError("could not write to temporary file \"%s\": %s", prepath,
+					 strerror(errno));
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -2217,7 +2227,8 @@ mergeTempFiles(FILE *pre, FILE *post, FILE *output)
 	/* EOF is expected to be reached. Check feof()? */
 	if (ferror(pre) != 0)
 	{
-		logError("error while reading temporary file \"%s\": %s", prepath, strerror(errno));
+		logError("error while reading temporary file \"%s\": %s", prepath,
+				 strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 
@@ -2225,7 +2236,8 @@ mergeTempFiles(FILE *pre, FILE *post, FILE *output)
 	{
 		if (fputs(buf, output) == EOF)
 		{
-			logError("could not write to temporary file \"%s\": %s", postpath, strerror(errno));
+			logError("could not write to temporary file \"%s\": %s", postpath,
+					 strerror(errno));
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -2233,7 +2245,8 @@ mergeTempFiles(FILE *pre, FILE *post, FILE *output)
 	/* EOF is expected to be reached. Check feof()? */
 	if (ferror(post) != 0)
 	{
-		logError("error while reading temporary file \"%s\": %s", postpath, strerror(errno));
+		logError("error while reading temporary file \"%s\": %s", postpath,
+				 strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 }
@@ -2300,7 +2313,8 @@ printStatistics(void)
 {
 	fprintf(stderr, "%d table(s) added, %d table(s) removed\n", qstat.tableadded,
 			qstat.tableremoved);
-	fprintf(stderr, "%d sequence(s) added, %d sequence(s) removed\n", qstat.seqadded,
+	fprintf(stderr, "%d sequence(s) added, %d sequence(s) removed\n",
+			qstat.seqadded,
 			qstat.seqremoved);
 	fprintf(stderr, "%d index(es) added, %d index(es) removed\n", qstat.indexadded,
 			qstat.indexremoved);

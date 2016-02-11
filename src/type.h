@@ -89,7 +89,8 @@ void dumpCreateEnumType(FILE *output, PQLEnumType t);
 void dumpCreateRangeType(FILE *output, PQLRangeType t);
 
 void dumpAlterBaseType(FILE *output, PQLBaseType a, PQLBaseType b);
-void dumpAlterCompositeType(FILE *output, PQLCompositeType a, PQLCompositeType b);
+void dumpAlterCompositeType(FILE *output, PQLCompositeType a,
+							PQLCompositeType b);
 void dumpAlterEnumType(FILE *output, PQLEnumType a, PQLEnumType b);
 void dumpAlterRangeType(FILE *output, PQLRangeType a, PQLRangeType b);
 

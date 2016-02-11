@@ -48,9 +48,9 @@ getTriggers(PGconn *c, int *n)
 			t[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
 
 		logDebug("trigger %s on %s.%s",
-				formatObjectIdentifier(t[i].trgname),
-				formatObjectIdentifier(t[i].table.schemaname),
-				formatObjectIdentifier(t[i].table.objectname));
+				 formatObjectIdentifier(t[i].trgname),
+				 formatObjectIdentifier(t[i].table.schemaname),
+				 formatObjectIdentifier(t[i].table.objectname));
 	}
 
 	PQclear(res);
@@ -101,14 +101,16 @@ void
 dumpDropTrigger(FILE *output, PQLTrigger t)
 {
 	fprintf(output, "\n\n");
-	fprintf(output, "DROP TRIGGER %s ON %s.%s;", t.trgname, t.table.schemaname, t.table.objectname);
+	fprintf(output, "DROP TRIGGER %s ON %s.%s;", t.trgname, t.table.schemaname,
+			t.table.objectname);
 }
 
 void
 dumpAlterTrigger(FILE *output, PQLTrigger a, PQLTrigger b)
 {
 	fprintf(output, "\n\n");
-	fprintf(output, "ALTER TRIGGER %s ON %s.%s RENAME TO %s;", a.trgname, b.table.schemaname, b.table.objectname, b.trgname);
+	fprintf(output, "ALTER TRIGGER %s ON %s.%s RENAME TO %s;", a.trgname,
+			b.table.schemaname, b.table.objectname, b.trgname);
 
 	/* comment */
 	if (options.comment)
@@ -120,8 +122,8 @@ dumpAlterTrigger(FILE *output, PQLTrigger a, PQLTrigger b)
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON TRIGGER %s ON %s.%s IS '%s';",
 					formatObjectIdentifier(b.trgname),
-				formatObjectIdentifier(b.table.schemaname),
-				formatObjectIdentifier(b.table.objectname),
+					formatObjectIdentifier(b.table.schemaname),
+					formatObjectIdentifier(b.table.objectname),
 					b.comment);
 		}
 		else if (a.comment != NULL && b.comment == NULL)

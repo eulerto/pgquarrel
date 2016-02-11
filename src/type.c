@@ -31,12 +31,12 @@ getBaseTypes(PGconn *c, int *n)
 	{
 		/* typcollation is new in 9.1 */
 		res = PQexec(c,
-					"SELECT t.oid, n.nspname, t.typname, typlen AS length, typinput AS input, typoutput AS output, typreceive AS receive, typsend AS send, typmodin AS modin, typmodout AS modout, typanalyze AS analyze, (typcollation <> 0) as collatable, typdefault, typcategory AS category, typispreferred AS preferred, typdelim AS delimiter, typalign AS align, typstorage AS storage, typbyval AS byvalue, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'b' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
+					 "SELECT t.oid, n.nspname, t.typname, typlen AS length, typinput AS input, typoutput AS output, typreceive AS receive, typsend AS send, typmodin AS modin, typmodout AS modout, typanalyze AS analyze, (typcollation <> 0) as collatable, typdefault, typcategory AS category, typispreferred AS preferred, typdelim AS delimiter, typalign AS align, typstorage AS storage, typbyval AS byvalue, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'b' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
 	}
 	else
 	{
 		res = PQexec(c,
-					"SELECT t.oid, n.nspname, t.typname, typlen AS length, typinput AS input, typoutput AS output, typreceive AS receive, typsend AS send, typmodin AS modin, typmodout AS modout, typanalyze AS analyze, false AS collatable, typdefault, typcategory AS category, typispreferred AS preferred, typdelim AS delimiter, typalign AS align, typstorage AS storage, typbyval AS byvalue, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'b' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
+					 "SELECT t.oid, n.nspname, t.typname, typlen AS length, typinput AS input, typoutput AS output, typreceive AS receive, typsend AS send, typmodin AS modin, typmodout AS modout, typanalyze AS analyze, false AS collatable, typdefault, typcategory AS category, typispreferred AS preferred, typdelim AS delimiter, typalign AS align, typstorage AS storage, typbyval AS byvalue, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'b' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -110,16 +110,19 @@ getCompositeTypeAttributes(PGconn *c, PQLCompositeType *t)
 	int			i;
 	int			r;
 
-	do {
+	do
+	{
 		query = (char *) malloc(nquery * sizeof(char));
 
 		/* typcollation is new in 9.1 */
 		if (PQserverVersion(c) >= 90100)
 			r = snprintf(query, nquery,
-					"SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, p.nspname AS collschemaname, CASE WHEN a.attcollation <> u.typcollation THEN l.collname ELSE NULL END AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) LEFT JOIN pg_type u ON (u.oid = a.atttypid) LEFT JOIN (pg_collation l LEFT JOIN pg_namespace p ON (l.collnamespace = p.oid)) ON (a.attcollation = l.oid) WHERE t.oid = %u ORDER BY a.attnum", t->obj.oid);
+						 "SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, p.nspname AS collschemaname, CASE WHEN a.attcollation <> u.typcollation THEN l.collname ELSE NULL END AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) LEFT JOIN pg_type u ON (u.oid = a.atttypid) LEFT JOIN (pg_collation l LEFT JOIN pg_namespace p ON (l.collnamespace = p.oid)) ON (a.attcollation = l.oid) WHERE t.oid = %u ORDER BY a.attnum",
+						 t->obj.oid);
 		else
 			r = snprintf(query, nquery,
-					"SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, NULL AS collschemaname, NULL AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) WHERE t.oid = %u ORDER BY a.attnum", t->obj.oid);
+						 "SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, NULL AS collschemaname, NULL AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) WHERE t.oid = %u ORDER BY a.attnum",
+						 t->obj.oid);
 
 		if (r < nquery)
 			break;
@@ -127,7 +130,8 @@ getCompositeTypeAttributes(PGconn *c, PQLCompositeType *t)
 		logNoise("query size: required (%u) ; initial (%u)", r, nquery);
 		nquery = r + 1;	/* make enough room for query */
 		free(query);
-	} while (true);
+	}
+	while (true);
 
 	res = PQexec(c, query);
 
@@ -144,25 +148,31 @@ getCompositeTypeAttributes(PGconn *c, PQLCompositeType *t)
 
 	t->nattributes = PQntuples(res);
 	if (t->nattributes > 0)
-		t->attributes = (PQLAttrCompositeType *) malloc(t->nattributes * sizeof(PQLAttrCompositeType));
+		t->attributes = (PQLAttrCompositeType *) malloc(t->nattributes * sizeof(
+							PQLAttrCompositeType));
 	else
 		t->attributes = NULL;
 
-	logDebug("number of attributes on composite type \"%s\".\"%s\": %d", t->obj.schemaname, t->obj.objectname, t->nattributes);
+	logDebug("number of attributes on composite type \"%s\".\"%s\": %d",
+			 t->obj.schemaname, t->obj.objectname, t->nattributes);
 
 	for (i = 0; i < t->nattributes; i++)
 	{
-		t->attributes[i].attname = strdup(PQgetvalue(res, i, PQfnumber(res, "attname")));
-		t->attributes[i].typname = strdup(PQgetvalue(res, i, PQfnumber(res, "attdefinition")));
+		t->attributes[i].attname = strdup(PQgetvalue(res, i, PQfnumber(res,
+										  "attname")));
+		t->attributes[i].typname = strdup(PQgetvalue(res, i, PQfnumber(res,
+										  "attdefinition")));
 		/* collation can be NULL in 9.0 or earlier */
 		if (PQgetisnull(res, i, PQfnumber(res, "collschemaname")))
 			t->attributes[i].collschemaname = NULL;
 		else
-			t->attributes[i].collschemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "collschemaname")));
+			t->attributes[i].collschemaname = strdup(PQgetvalue(res, i, PQfnumber(res,
+											  "collschemaname")));
 		if (PQgetisnull(res, i, PQfnumber(res, "collname")))
 			t->attributes[i].collname = NULL;
 		else
-			t->attributes[i].collname = strdup(PQgetvalue(res, i, PQfnumber(res, "collname")));
+			t->attributes[i].collname = strdup(PQgetvalue(res, i, PQfnumber(res,
+											   "collname")));
 	}
 
 	PQclear(res);
@@ -178,7 +188,7 @@ getCompositeTypes(PGconn *c, int *n)
 	logNoise("composite type: server version: %d", PQserverVersion(c));
 
 	res = PQexec(c,
-				"SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'c' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
+				 "SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'c' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -217,7 +227,8 @@ getCompositeTypes(PGconn *c, int *n)
 		/* fill composite type attributes */
 		getCompositeTypeAttributes(c, &t[i]);
 
-		logDebug("composite type \"%s\".\"%s\"", t[i].obj.schemaname, t[i].obj.objectname);
+		logDebug("composite type \"%s\".\"%s\"", t[i].obj.schemaname,
+				 t[i].obj.objectname);
 	}
 
 	PQclear(res);
@@ -234,16 +245,18 @@ getEnumTypeLabels(PGconn *c, PQLEnumType *t)
 	int			i;
 	int			r;
 
-	do {
+	do
+	{
 		query = (char *) malloc(nquery * sizeof(char));
 
 		/* enumsortorder is new in 9.1 */
 		if (PQserverVersion(c) >= 90100)
 			r = snprintf(query, nquery,
-					"SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY enumsortorder", t->obj.oid);
+						 "SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY enumsortorder",
+						 t->obj.oid);
 		else
 			r = snprintf(query, nquery,
-					"SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY oid", t->obj.oid);
+						 "SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY oid", t->obj.oid);
 
 		if (r < nquery)
 			break;
@@ -251,7 +264,8 @@ getEnumTypeLabels(PGconn *c, PQLEnumType *t)
 		logNoise("query size: required (%u) ; initial (%u)", r, nquery);
 		nquery = r + 1;	/* make enough room for query */
 		free(query);
-	} while (true);
+	}
+	while (true);
 
 	res = PQexec(c, query);
 
@@ -272,7 +286,8 @@ getEnumTypeLabels(PGconn *c, PQLEnumType *t)
 	else
 		t->labels = NULL;
 
-	logDebug("number of labels on enum type \"%s\".\"%s\": %d", t->obj.schemaname, t->obj.objectname, t->nlabels);
+	logDebug("number of labels on enum type \"%s\".\"%s\": %d", t->obj.schemaname,
+			 t->obj.objectname, t->nlabels);
 
 	for (i = 0; i < t->nlabels; i++)
 		t->labels[i] = strdup(PQgetvalue(res, i, PQfnumber(res, "enumlabel")));
@@ -290,7 +305,7 @@ getEnumTypes(PGconn *c, int *n)
 	logNoise("enum type: server version: %d", PQserverVersion(c));
 
 	res = PQexec(c,
-				"SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'e' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
+				 "SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'e' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -347,7 +362,7 @@ getRangeTypes(PGconn *c, int *n)
 	logNoise("range type: server version: %d", PQserverVersion(c));
 
 	res = PQexec(c,
-				"SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, format_type(rngsubtype, NULL) AS subtype, m.nspname AS opcnspname, o.opcname, o.opcdefault, x.nspname AS collschemaname, CASE WHEN rngcollation = t.typcollation THEN NULL ELSE rngcollation END AS collname, rngcanonical, rngsubdiff, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) INNER JOIN pg_range r ON (r.rngsubtype = t.oid) INNER JOIN pg_opclass o ON (r.rngsubopc = o.oid) INNER JOIN pg_namespace m ON (o.opcnamespace = m.oid) LEFT JOIN (pg_collation l INNER JOIN pg_namespace x ON (l.collnamespace = x.oid)) ON (r.rngcollation = l.oid) WHERE t.typtype = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
+				 "SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, format_type(rngsubtype, NULL) AS subtype, m.nspname AS opcnspname, o.opcname, o.opcdefault, x.nspname AS collschemaname, CASE WHEN rngcollation = t.typcollation THEN NULL ELSE rngcollation END AS collname, rngcanonical, rngsubdiff, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) INNER JOIN pg_range r ON (r.rngsubtype = t.oid) INNER JOIN pg_opclass o ON (r.rngsubopc = o.oid) INNER JOIN pg_namespace m ON (o.opcnamespace = m.oid) LEFT JOIN (pg_collation l INNER JOIN pg_namespace x ON (l.collnamespace = x.oid)) ON (r.rngcollation = l.oid) WHERE t.typtype = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -382,7 +397,8 @@ getRangeTypes(PGconn *c, int *n)
 		}
 		else
 		{
-			t[i].collschemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "collschemaname")));
+			t[i].collschemaname = strdup(PQgetvalue(res, i, PQfnumber(res,
+													"collschemaname")));
 			t[i].collname = strdup(PQgetvalue(res, i, PQfnumber(res, "collname")));
 		}
 		t[i].canonical = strdup(PQgetvalue(res, i, PQfnumber(res, "rngcanonical")));
@@ -736,10 +752,12 @@ dumpCreateRangeType(FILE *output, PQLRangeType t)
 
 	/* print only if it isn't the default operator class */
 	if (!t.opcdefault)
-		fprintf(output, ",\n\tSUBTYPE_OPCLASS = %s.%s", formatObjectIdentifier(t.opcschemaname), formatObjectIdentifier(t.opcname));
+		fprintf(output, ",\n\tSUBTYPE_OPCLASS = %s.%s",
+				formatObjectIdentifier(t.opcschemaname), formatObjectIdentifier(t.opcname));
 
 	if (t.collname != NULL)
-		fprintf(output, ",\n\tCOLLATION = %s.%s", formatObjectIdentifier(t.collschemaname), formatObjectIdentifier(t.collname));
+		fprintf(output, ",\n\tCOLLATION = %s.%s",
+				formatObjectIdentifier(t.collschemaname), formatObjectIdentifier(t.collname));
 
 	if (strcmp(t.canonical, "-") != 0)
 		fprintf(output, ",\n\tCANONICAL = %s", t.canonical);
@@ -778,29 +796,33 @@ dumpCreateRangeType(FILE *output, PQLRangeType t)
 void
 dumpDropBaseType(FILE *output, PQLBaseType t)
 {
-		fprintf(output, "\n\n");
-	fprintf(output, "DROP TYPE %s.%s;", formatObjectIdentifier(t.obj.schemaname), formatObjectIdentifier(t.obj.objectname));
+	fprintf(output, "\n\n");
+	fprintf(output, "DROP TYPE %s.%s;", formatObjectIdentifier(t.obj.schemaname),
+			formatObjectIdentifier(t.obj.objectname));
 }
 
 void
 dumpDropCompositeType(FILE *output, PQLCompositeType t)
 {
-		fprintf(output, "\n\n");
-	fprintf(output, "DROP TYPE %s.%s;", formatObjectIdentifier(t.obj.schemaname), formatObjectIdentifier(t.obj.objectname));
+	fprintf(output, "\n\n");
+	fprintf(output, "DROP TYPE %s.%s;", formatObjectIdentifier(t.obj.schemaname),
+			formatObjectIdentifier(t.obj.objectname));
 }
 
 void
 dumpDropEnumType(FILE *output, PQLEnumType t)
 {
-		fprintf(output, "\n\n");
-	fprintf(output, "DROP TYPE %s.%s;", formatObjectIdentifier(t.obj.schemaname), formatObjectIdentifier(t.obj.objectname));
+	fprintf(output, "\n\n");
+	fprintf(output, "DROP TYPE %s.%s;", formatObjectIdentifier(t.obj.schemaname),
+			formatObjectIdentifier(t.obj.objectname));
 }
 
 void
 dumpDropRangeType(FILE *output, PQLRangeType t)
 {
-		fprintf(output, "\n\n");
-	fprintf(output, "DROP TYPE %s.%s;", formatObjectIdentifier(t.obj.schemaname), formatObjectIdentifier(t.obj.objectname));
+	fprintf(output, "\n\n");
+	fprintf(output, "DROP TYPE %s.%s;", formatObjectIdentifier(t.obj.schemaname),
+			formatObjectIdentifier(t.obj.objectname));
 }
 
 void

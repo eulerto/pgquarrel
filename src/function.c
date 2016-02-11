@@ -245,7 +245,8 @@ dumpCreateFunction(FILE *output, PQLFunction f, bool orreplace)
 	/* privileges */
 	/* XXX second f.obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
-		dumpGrantAndRevoke(output, PGQ_FUNCTION, f.obj, f.obj, NULL, f.acl, f.arguments);
+		dumpGrantAndRevoke(output, PGQ_FUNCTION, f.obj, f.obj, NULL, f.acl,
+						   f.arguments);
 }
 
 void
@@ -408,7 +409,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 		}
 	}
 	else if (a.configparams != NULL && b.configparams != NULL &&
-			  strcmp(a.configparams, b.configparams) != 0)
+			 strcmp(a.configparams, b.configparams) != 0)
 	{
 		stringList	*rlist, *slist;
 
@@ -513,6 +514,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 	if (options.privileges)
 	{
 		if (a.acl != NULL || b.acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_FUNCTION, a.obj, b.obj, a.acl, b.acl, a.arguments);
+			dumpGrantAndRevoke(output, PGQ_FUNCTION, a.obj, b.obj, a.acl, b.acl,
+							   a.arguments);
 	}
 }

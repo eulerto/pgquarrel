@@ -35,9 +35,12 @@
 static void dumpAddColumn(FILE *output, PQLTable t, int i);
 static void dumpRemoveColumn(FILE *output, PQLTable t, int i);
 static void dumpAlterColumn(FILE *output, PQLTable a, int i, PQLTable b, int j);
-static void dumpAlterColumnSetStatistics(FILE *output, PQLTable a, int i, bool force);
-static void dumpAlterColumnSetStorage(FILE *output, PQLTable a, int i, bool force);
-static void dumpAlterColumnSetOptions(FILE *output, PQLTable a, int i, PQLTable b, int j);
+static void dumpAlterColumnSetStatistics(FILE *output, PQLTable a, int i,
+		bool force);
+static void dumpAlterColumnSetStorage(FILE *output, PQLTable a, int i,
+									  bool force);
+static void dumpAlterColumnSetOptions(FILE *output, PQLTable a, int i,
+									  PQLTable b, int j);
 
 PQLTable *
 getTables(PGconn *c, int *n)
@@ -122,14 +125,15 @@ getCheckConstraints(PGconn *c, PQLTable *t, int n)
 
 	for (i = 0; i < n; i++)
 	{
-		do {
+		do
+		{
 			query = (char *) malloc(nquery * sizeof(char));
 
 			/* FIXME conislocal (8.4)? convalidated (9.2)? */
 			/* XXX contype = 'c' needed? */
 			r = snprintf(query, nquery,
-					"SELECT conname, pg_get_constraintdef(c.oid) AS condef, d.description FROM pg_constraint c LEFT JOIN (pg_description d INNER JOIN pg_class x ON (x.oid = d.classoid AND x.relname = 'pg_constraint')) ON (d.objoid = c.oid) WHERE conrelid = %u AND contype = 'c' ORDER BY conname",
-				t[i].obj.oid);
+						 "SELECT conname, pg_get_constraintdef(c.oid) AS condef, d.description FROM pg_constraint c LEFT JOIN (pg_description d INNER JOIN pg_class x ON (x.oid = d.classoid AND x.relname = 'pg_constraint')) ON (d.objoid = c.oid) WHERE conrelid = %u AND contype = 'c' ORDER BY conname",
+						 t[i].obj.oid);
 
 			if (r < nquery)
 				break;
@@ -137,7 +141,8 @@ getCheckConstraints(PGconn *c, PQLTable *t, int n)
 			logNoise("query size: required (%u) ; initial (%u)", r, nquery);
 			nquery = r + 1;	/* make enough room for query */
 			free(query);
-		} while (true);
+		}
+		while (true);
 
 		res = PQexec(c, query);
 
@@ -168,7 +173,8 @@ getCheckConstraints(PGconn *c, PQLTable *t, int n)
 			if (PQgetisnull(res, j, PQfnumber(res, "description")))
 				t[i].check[j].comment = NULL;
 			else
-				t[i].check[j].comment = strdup(PQgetvalue(res, j, PQfnumber(res, "description")));
+				t[i].check[j].comment = strdup(PQgetvalue(res, j, PQfnumber(res,
+											   "description")));
 		}
 
 		PQclear(res);
@@ -186,12 +192,13 @@ getFKConstraints(PGconn *c, PQLTable *t, int n)
 
 	for (i = 0; i < n; i++)
 	{
-		do {
+		do
+		{
 			query = (char *) malloc(nquery * sizeof(char));
 
 			r = snprintf(query, nquery,
-					"SELECT conname, pg_get_constraintdef(c.oid) AS condef, d.description FROM pg_constraint c LEFT JOIN (pg_description d INNER JOIN pg_class x ON (x.oid = d.classoid AND x.relname = 'pg_constraint')) ON (d.objoid = c.oid) WHERE conrelid = %u AND contype = 'f' ORDER BY conname",
-					t[i].obj.oid);
+						 "SELECT conname, pg_get_constraintdef(c.oid) AS condef, d.description FROM pg_constraint c LEFT JOIN (pg_description d INNER JOIN pg_class x ON (x.oid = d.classoid AND x.relname = 'pg_constraint')) ON (d.objoid = c.oid) WHERE conrelid = %u AND contype = 'f' ORDER BY conname",
+						 t[i].obj.oid);
 
 			if (r < nquery)
 				break;
@@ -199,7 +206,8 @@ getFKConstraints(PGconn *c, PQLTable *t, int n)
 			logNoise("query size: required (%u) ; initial (%u)", r, nquery);
 			nquery = r + 1;	/* make enough room for query */
 			free(query);
-		} while (true);
+		}
+		while (true);
 
 		res = PQexec(c, query);
 
@@ -248,13 +256,14 @@ getPKConstraints(PGconn *c, PQLTable *t, int n)
 
 	for (i = 0; i < n; i++)
 	{
-		do {
+		do
+		{
 			query = (char *) malloc(nquery * sizeof(char));
 
 			/* XXX only 9.0+ */
 			r = snprintf(query, nquery,
-				"SELECT conname, pg_get_constraintdef(c.oid) AS condef, d.description FROM pg_constraint c LEFT JOIN (pg_description d INNER JOIN pg_class x ON (x.oid = d.classoid AND x.relname = 'pg_constraint')) ON (d.objoid = c.oid) WHERE conrelid = %u AND contype = 'p' ORDER BY conname",
-				t[i].obj.oid);
+						 "SELECT conname, pg_get_constraintdef(c.oid) AS condef, d.description FROM pg_constraint c LEFT JOIN (pg_description d INNER JOIN pg_class x ON (x.oid = d.classoid AND x.relname = 'pg_constraint')) ON (d.objoid = c.oid) WHERE conrelid = %u AND contype = 'p' ORDER BY conname",
+						 t[i].obj.oid);
 
 			if (r < nquery)
 				break;
@@ -262,7 +271,8 @@ getPKConstraints(PGconn *c, PQLTable *t, int n)
 			logNoise("query size: required (%u) ; initial (%u)", r, nquery);
 			nquery = r + 1;	/* make enough room for query */
 			free(query);
-		} while (true);
+		}
+		while (true);
 
 		res = PQexec(c, query);
 
@@ -303,13 +313,14 @@ getTableAttributes(PGconn *c, PQLTable *t)
 	int			i;
 	int			r;
 
-	do {
+	do
+	{
 		query = (char *) malloc(nquery * sizeof(char));
 
 		/* FIXME attcollation (9.1)? */
 		r = snprintf(query, nquery,
-			"SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, s.description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) LEFT JOIN (pg_description s INNER JOIN pg_class x ON (x.oid = s.classoid AND x.relname = 'pg_attribute')) ON (s.objoid = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
-			t->obj.oid);
+					 "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, s.description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) LEFT JOIN (pg_description s INNER JOIN pg_class x ON (x.oid = s.classoid AND x.relname = 'pg_attribute')) ON (s.objoid = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
+					 t->obj.oid);
 
 		if (r < nquery)
 			break;
@@ -317,7 +328,8 @@ getTableAttributes(PGconn *c, PQLTable *t)
 		logNoise("query size: required (%u) ; initial (%u)", r, nquery);
 		nquery = r + 1;	/* make enough room for query */
 		free(query);
-	} while (true);
+	}
+	while (true);
 
 	res = PQexec(c, query);
 
@@ -344,13 +356,13 @@ getTableAttributes(PGconn *c, PQLTable *t)
 
 	if (t->reloptions)
 		logDebug("table %s.%s: reloptions: %s",
-				formatObjectIdentifier(t->obj.schemaname),
-				formatObjectIdentifier(t->obj.objectname),
-				t->reloptions);
+				 formatObjectIdentifier(t->obj.schemaname),
+				 formatObjectIdentifier(t->obj.objectname),
+				 t->reloptions);
 	else
 		logDebug("table %s.%s: no reloptions",
-				formatObjectIdentifier(t->obj.schemaname),
-				formatObjectIdentifier(t->obj.objectname));
+				 formatObjectIdentifier(t->obj.schemaname),
+				 formatObjectIdentifier(t->obj.objectname));
 
 	for (i = 0; i < t->nattributes; i++)
 	{
@@ -371,7 +383,8 @@ getTableAttributes(PGconn *c, PQLTable *t)
 			t->attributes[i].attdefexpr = strdup(PQgetvalue(res, i, PQfnumber(res,
 												 "attdefexpr")));
 		/* statistics target */
-		t->attributes[i].attstattarget = atoi(PQgetvalue(res, i, PQfnumber(res, "attstattarget")));
+		t->attributes[i].attstattarget = atoi(PQgetvalue(res, i, PQfnumber(res,
+											  "attstattarget")));
 
 		/* storage */
 		storage = PQgetvalue(res, i, PQfnumber(res, "attstorage"))[0];
@@ -393,7 +406,8 @@ getTableAttributes(PGconn *c, PQLTable *t)
 				t->attributes[i].attstorage = NULL;
 				break;
 		}
-		t->attributes[i].defstorage = (PQgetvalue(res, i, PQfnumber(res, "defstorage"))[0] == 't');
+		t->attributes[i].defstorage = (PQgetvalue(res, i, PQfnumber(res,
+									   "defstorage"))[0] == 't');
 
 		/* collation */
 		if (PQgetisnull(res, i, PQfnumber(res, "attcollation")))
@@ -407,13 +421,14 @@ getTableAttributes(PGconn *c, PQLTable *t)
 			t->attributes[i].attoptions = NULL;
 		else
 			t->attributes[i].attoptions = strdup(PQgetvalue(res, i, PQfnumber(res,
-													"attoptions")));
+												 "attoptions")));
 
 		/* comment */
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			t->attributes[i].comment = NULL;
 		else
-			t->attributes[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			t->attributes[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res,
+											  "description")));
 
 		if (t->attributes[i].attdefexpr != NULL)
 			logDebug("table: %s.%s ; attribute %s; type: %s ; default: %s ; storage: %s",
@@ -531,12 +546,13 @@ getOwnedBySequences(PGconn *c, PQLTable *t)
 	int			i;
 	int			r;
 
-	do {
+	do
+	{
 		query = (char *) malloc(nquery * sizeof(char));
 
 		r = snprintf(query, nquery,
-				"SELECT n.nspname, c.relname, a.attname FROM pg_depend d INNER JOIN pg_class c ON (c.oid = d.objid) INNER JOIN pg_namespace n ON (n.oid = c.relnamespace) INNER JOIN pg_attribute a ON (d.refobjid = a.attrelid AND d.refobjsubid = a.attnum) WHERE d.classid = 'pg_class'::regclass AND d.objsubid = 0 AND d.refobjid = %u AND d.refobjsubid != 0 AND d.deptype = 'a' AND c.relkind = 'S'",
-				t->obj.oid);
+					 "SELECT n.nspname, c.relname, a.attname FROM pg_depend d INNER JOIN pg_class c ON (c.oid = d.objid) INNER JOIN pg_namespace n ON (n.oid = c.relnamespace) INNER JOIN pg_attribute a ON (d.refobjid = a.attrelid AND d.refobjsubid = a.attnum) WHERE d.classid = 'pg_class'::regclass AND d.objsubid = 0 AND d.refobjid = %u AND d.refobjsubid != 0 AND d.deptype = 'a' AND c.relkind = 'S'",
+					 t->obj.oid);
 
 		if (r < nquery)
 			break;
@@ -544,7 +560,8 @@ getOwnedBySequences(PGconn *c, PQLTable *t)
 		logNoise("query size: required (%u) ; initial (%u)", r, nquery);
 		nquery = r + 1;	/* make enough room for query */
 		free(query);
-	} while (true);
+	}
+	while (true);
 
 	res = PQexec(c, query);
 
@@ -576,16 +593,18 @@ getOwnedBySequences(PGconn *c, PQLTable *t)
 			 formatObjectIdentifier(t->obj.objectname), t->nownedby);
 	for (i = 0; i < t->nownedby; i++)
 	{
-		t->seqownedby[i].schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
-		t->seqownedby[i].objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "relname")));
+		t->seqownedby[i].schemaname = strdup(PQgetvalue(res, i, PQfnumber(res,
+											 "nspname")));
+		t->seqownedby[i].objectname = strdup(PQgetvalue(res, i, PQfnumber(res,
+											 "relname")));
 		t->attownedby[i] = strdup(PQgetvalue(res, i, PQfnumber(res, "attname")));
 
 		logDebug("sequence %s.%s owned by table %s.%s attribute %s",
-					 formatObjectIdentifier(t->seqownedby[i].schemaname),
-					 formatObjectIdentifier(t->seqownedby[i].objectname),
-					 formatObjectIdentifier(t->obj.schemaname),
-					 formatObjectIdentifier(t->obj.objectname),
-					 t->attownedby[i]);
+				 formatObjectIdentifier(t->seqownedby[i].schemaname),
+				 formatObjectIdentifier(t->seqownedby[i].objectname),
+				 formatObjectIdentifier(t->obj.schemaname),
+				 formatObjectIdentifier(t->obj.objectname),
+				 t->attownedby[i]);
 	}
 
 	PQclear(res);
@@ -685,10 +704,10 @@ dumpCreateTable(FILE *output, PQLTable t)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER SEQUENCE %s.%s OWNED BY %s.%s",
-					formatObjectIdentifier(t.seqownedby[i].schemaname),
-					formatObjectIdentifier(t.seqownedby[i].objectname),
-					formatObjectIdentifier(t.obj.objectname),
-					formatObjectIdentifier(t.attownedby[i]));
+				formatObjectIdentifier(t.seqownedby[i].schemaname),
+				formatObjectIdentifier(t.seqownedby[i].objectname),
+				formatObjectIdentifier(t.obj.objectname),
+				formatObjectIdentifier(t.attownedby[i]));
 		fprintf(output, ";");
 	}
 
@@ -765,10 +784,10 @@ dumpCreateTable(FILE *output, PQLTable t)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET (%s)",
-							formatObjectIdentifier(t.obj.schemaname),
-							formatObjectIdentifier(t.obj.objectname),
-							t.attributes[i].attname,
-							t.attributes[i].attoptions);
+					formatObjectIdentifier(t.obj.schemaname),
+					formatObjectIdentifier(t.obj.objectname),
+					t.attributes[i].attname,
+					t.attributes[i].attoptions);
 		}
 	}
 
@@ -961,16 +980,18 @@ dumpAlterColumnSetOptions(FILE *output, PQLTable a, int i, PQLTable b, int j)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET (%s)",
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
-						b.attributes[j].attname,
-						b.attributes[j].attoptions);
+				formatObjectIdentifier(b.obj.schemaname),
+				formatObjectIdentifier(b.obj.objectname),
+				b.attributes[j].attname,
+				b.attributes[j].attoptions);
 	}
-	else if (a.attributes[i].attoptions != NULL && b.attributes[j].attoptions == NULL)
+	else if (a.attributes[i].attoptions != NULL &&
+			 b.attributes[j].attoptions == NULL)
 	{
 		stringList	*rlist;
 
-		rlist = diffRelOptions(a.attributes[i].attoptions, b.attributes[j].attoptions, PGQ_EXCEPT);
+		rlist = diffRelOptions(a.attributes[i].attoptions, b.attributes[j].attoptions,
+							   PGQ_EXCEPT);
 		if (rlist)
 		{
 			char	*resetlist;
@@ -978,22 +999,24 @@ dumpAlterColumnSetOptions(FILE *output, PQLTable a, int i, PQLTable b, int j)
 			resetlist = printRelOptions(rlist);
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s RESET (%s)",
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
-						b.attributes[j].attname,
-						resetlist);
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					b.attributes[j].attname,
+					resetlist);
 			fprintf(output, ";");
 
 			free(resetlist);
 			freeStringList(rlist);
 		}
 	}
-	else if (a.attributes[i].attoptions != NULL && b.attributes[j].attoptions != NULL &&
-				strcmp(a.attributes[i].attoptions, b.attributes[j].attoptions) != 0)
+	else if (a.attributes[i].attoptions != NULL &&
+			 b.attributes[j].attoptions != NULL &&
+			 strcmp(a.attributes[i].attoptions, b.attributes[j].attoptions) != 0)
 	{
 		stringList	*rlist, *slist;
 
-		rlist = diffRelOptions(a.attributes[i].attoptions, b.attributes[j].attoptions, PGQ_EXCEPT);
+		rlist = diffRelOptions(a.attributes[i].attoptions, b.attributes[j].attoptions,
+							   PGQ_EXCEPT);
 		if (rlist)
 		{
 			char	*resetlist;
@@ -1001,10 +1024,10 @@ dumpAlterColumnSetOptions(FILE *output, PQLTable a, int i, PQLTable b, int j)
 			resetlist = printRelOptions(rlist);
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s RESET (%s)",
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
-						b.attributes[j].attname,
-						resetlist);
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					b.attributes[j].attname,
+					resetlist);
 			fprintf(output, ";");
 
 			free(resetlist);
@@ -1025,10 +1048,10 @@ dumpAlterColumnSetOptions(FILE *output, PQLTable a, int i, PQLTable b, int j)
 			setlist = printRelOptions(slist);
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET (%s)",
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
-						b.attributes[j].attname,
-						setlist);
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					b.attributes[j].attname,
+					setlist);
 			fprintf(output, ";");
 
 			free(setlist);
@@ -1144,9 +1167,9 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER TABLE %s.%s SET (%s)",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					b.reloptions);
+				formatObjectIdentifier(b.obj.schemaname),
+				formatObjectIdentifier(b.obj.objectname),
+				b.reloptions);
 		fprintf(output, ";");
 	}
 	else if (a.reloptions != NULL && b.reloptions != NULL &&
@@ -1162,9 +1185,9 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 			resetlist = printRelOptions(rlist);
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER TABLE %s.%s RESET (%s)",
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
-						resetlist);
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					resetlist);
 			fprintf(output, ";");
 
 			free(resetlist);
@@ -1185,9 +1208,9 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 			setlist = printRelOptions(slist);
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER TABLE %s.%s SET (%s)",
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
-						setlist);
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					setlist);
 			fprintf(output, ";");
 
 			free(setlist);
@@ -1206,9 +1229,9 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 			resetlist = printRelOptions(rlist);
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER TABLE %s.%s RESET (%s)",
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
-						resetlist);
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					resetlist);
 			fprintf(output, ";");
 
 			free(resetlist);

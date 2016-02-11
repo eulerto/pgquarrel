@@ -41,8 +41,11 @@ aclList *buildACL(char *acl);
 void freeACLItem(aclItem *ai);
 void freeACL(aclList *al);
 
-void dumpGrant(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee, char *extra);
-void dumpRevoke(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee, char *extra);
-void dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject a, PQLObject b, char *acla, char *aclb, char *extra);
+void dumpGrant(FILE *output, int objecttype, PQLObject a, char *privs,
+			   char *grantee, char *extra);
+void dumpRevoke(FILE *output, int objecttype, PQLObject a, char *privs,
+				char *grantee, char *extra);
+void dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject a, PQLObject b,
+						char *acla, char *aclb, char *extra);
 
 #endif	/* PRIVILEGES_H */

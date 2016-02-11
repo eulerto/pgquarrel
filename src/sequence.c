@@ -76,12 +76,13 @@ getSequenceAttributes(PGconn *c, PQLSequence *s)
 	PGresult	*res;
 	int			r;
 
-	do {
+	do
+	{
 		query = (char *) malloc(nquery * sizeof(char));
 
 		r = snprintf(query, nquery,
-			"SELECT increment_by, start_value, max_value, min_value, cache_value, is_cycled FROM %s.%s",
-			s->obj.schemaname, s->obj.objectname);
+					 "SELECT increment_by, start_value, max_value, min_value, cache_value, is_cycled FROM %s.%s",
+					 s->obj.schemaname, s->obj.objectname);
 
 		if (r < nquery)
 			break;
@@ -89,7 +90,8 @@ getSequenceAttributes(PGconn *c, PQLSequence *s)
 		logNoise("query size: required (%u) ; initial (%u)", r, nquery);
 		nquery = r + 1;	/* make enough room for query */
 		free(query);
-	} while (true);
+	}
+	while (true);
 
 	res = PQexec(c, query);
 

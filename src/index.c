@@ -102,7 +102,7 @@ getIndexAttributes(PGconn *c, PQLIndex *i)
 void
 dumpDropIndex(FILE *output, PQLIndex i)
 {
-		fprintf(output, "\n\n");
+	fprintf(output, "\n\n");
 	fprintf(output, "DROP INDEX %s.%s;",
 			formatObjectIdentifier(i.obj.schemaname),
 			formatObjectIdentifier(i.obj.objectname));
@@ -154,7 +154,7 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 				formatObjectIdentifier(a.obj.objectname), b.reloptions);
 	}
 	else if (a.reloptions != NULL && b.reloptions != NULL &&
-				strcmp(a.reloptions, b.reloptions) != 0)
+			 strcmp(a.reloptions, b.reloptions) != 0)
 	{
 		stringList	*rlist, *slist;
 
@@ -166,9 +166,9 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 			resetlist = printRelOptions(rlist);
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER INDEX %s.%s RESET (%s)",
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
-						resetlist);
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					resetlist);
 			fprintf(output, ";");
 
 			free(resetlist);
@@ -189,9 +189,9 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 			setlist = printRelOptions(slist);
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER INDEX %s.%s SET (%s)",
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
-						setlist);
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					setlist);
 			fprintf(output, ";");
 
 			free(setlist);
@@ -210,9 +210,9 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 			resetlist = printRelOptions(rlist);
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER INDEX %s.%s RESET (%s)",
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
-						resetlist);
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					resetlist);
 			fprintf(output, ";");
 
 			free(resetlist);

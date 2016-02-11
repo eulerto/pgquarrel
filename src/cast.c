@@ -33,11 +33,13 @@ getCasts(PGconn *c, int *n)
 
 	logNoise("cast: server version: %d", PQserverVersion(c));
 
-	do {
+	do
+	{
 		query = (char *) malloc(nquery * sizeof(char));
 
 		r = snprintf(query, nquery,
-				"SELECT c.oid, format_type(c.castsource, t.typtypmod) as source, format_type(c.casttarget, u.typtypmod) as target, castmethod, quote_ident(n.nspname) || '.' || quote_ident(f.proname) || '(' || pg_get_function_arguments(f.oid) || ')' as funcname, castcontext, d.description FROM pg_cast c LEFT JOIN pg_type t ON (c.castsource = t.oid) LEFT JOIN pg_type u ON (c.casttarget = u.oid) LEFT JOIN pg_proc f ON (c.castfunc = f.oid) LEFT JOIN pg_namespace n ON (f.pronamespace = n.oid) LEFT JOIN (pg_description d INNER JOIN pg_class x ON (x.oid = d.classoid AND x.relname = 'pg_cast')) ON (d.objoid = c.oid) WHERE c.oid >= %u ORDER BY source, target", PGQ_FIRST_USER_OID);
+					 "SELECT c.oid, format_type(c.castsource, t.typtypmod) as source, format_type(c.casttarget, u.typtypmod) as target, castmethod, quote_ident(n.nspname) || '.' || quote_ident(f.proname) || '(' || pg_get_function_arguments(f.oid) || ')' as funcname, castcontext, d.description FROM pg_cast c LEFT JOIN pg_type t ON (c.castsource = t.oid) LEFT JOIN pg_type u ON (c.casttarget = u.oid) LEFT JOIN pg_proc f ON (c.castfunc = f.oid) LEFT JOIN pg_namespace n ON (f.pronamespace = n.oid) LEFT JOIN (pg_description d INNER JOIN pg_class x ON (x.oid = d.classoid AND x.relname = 'pg_cast')) ON (d.objoid = c.oid) WHERE c.oid >= %u ORDER BY source, target",
+					 PGQ_FIRST_USER_OID);
 
 		if (r < nquery)
 			break;
@@ -45,7 +47,8 @@ getCasts(PGconn *c, int *n)
 		logNoise("query size: required (%u) ; initial (%u)", r, nquery);
 		nquery = r + 1;	/* make enough room for query */
 		free(query);
-	} while (true);
+	}
+	while (true);
 
 	res = PQexec(c, query);
 
@@ -82,7 +85,8 @@ getCasts(PGconn *c, int *n)
 		else
 			d[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
 
-		logDebug("cast \"%s\" as \"%s\" ; method: %c ; context: %c", d[i].source, d[i].target, d[i].method, d[i].context);
+		logDebug("cast \"%s\" as \"%s\" ; method: %c ; context: %c", d[i].source,
+				 d[i].target, d[i].method, d[i].context);
 	}
 
 	PQclear(res);
@@ -172,10 +176,11 @@ dumpAlterCast(FILE *output, PQLCast a, PQLCast b)
 	 * XXX CREATE the cast.
 	 */
 	if (a.method != b.method ||
-		a.context != b.context ||
-		(a.funcname == NULL && b.funcname != NULL) ||
-		(a.funcname != NULL && b.funcname == NULL) ||
-		(a.funcname != NULL && b.funcname != NULL && strcmp(a.funcname, b.funcname) != 0))
+			a.context != b.context ||
+			(a.funcname == NULL && b.funcname != NULL) ||
+			(a.funcname != NULL && b.funcname == NULL) ||
+			(a.funcname != NULL && b.funcname != NULL &&
+			 strcmp(a.funcname, b.funcname) != 0))
 	{
 		dumpDropCast(output, a);
 		dumpCreateCast(output, b);

@@ -21,7 +21,7 @@ getLanguages(PGconn *c, int *n)
 	logNoise("language: server version: %d", PQserverVersion(c));
 
 	res = PQexec(c,
-				"SELECT lanname AS languagename, CASE WHEN tmplname IS NULL THEN false ELSE true END AS pltemplate, lanpltrusted AS trusted, p1.proname AS callhandler, p2.proname AS inlinehandler, p3.proname AS validator, d.description, pg_get_userbyid(lanowner) AS lanowner, lanacl FROM pg_language l LEFT JOIN pg_pltemplate t ON (l.lanname = t.tmplname) LEFT JOIN pg_proc p1 ON (p1.oid = lanplcallfoid) LEFT JOIN pg_proc p2 ON (p2.oid = laninline) LEFT JOIN pg_proc p3 ON (p3.oid = lanvalidator) LEFT JOIN (pg_description d INNER JOIN pg_class x ON (x.oid = d.classoid AND x.relname = 'pg_language')) ON (d.objoid = l.oid) WHERE lanispl ORDER BY lanname");
+				 "SELECT lanname AS languagename, CASE WHEN tmplname IS NULL THEN false ELSE true END AS pltemplate, lanpltrusted AS trusted, p1.proname AS callhandler, p2.proname AS inlinehandler, p3.proname AS validator, d.description, pg_get_userbyid(lanowner) AS lanowner, lanacl FROM pg_language l LEFT JOIN pg_pltemplate t ON (l.lanname = t.tmplname) LEFT JOIN pg_proc p1 ON (p1.oid = lanplcallfoid) LEFT JOIN pg_proc p2 ON (p2.oid = laninline) LEFT JOIN pg_proc p3 ON (p3.oid = lanvalidator) LEFT JOIN (pg_description d INNER JOIN pg_class x ON (x.oid = d.classoid AND x.relname = 'pg_language')) ON (d.objoid = l.oid) WHERE lanispl ORDER BY lanname");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -46,7 +46,8 @@ getLanguages(PGconn *c, int *n)
 		l[i].pltemplate = (PQgetvalue(res, i, PQfnumber(res, "pltemplate"))[0] == 't');
 		l[i].trusted = (PQgetvalue(res, i, PQfnumber(res, "trusted"))[0] == 't');
 		l[i].callhandler = strdup(PQgetvalue(res, i, PQfnumber(res, "callhandler")));
-		l[i].inlinehandler = strdup(PQgetvalue(res, i, PQfnumber(res, "inlinehandler")));
+		l[i].inlinehandler = strdup(PQgetvalue(res, i, PQfnumber(res,
+											   "inlinehandler")));
 		l[i].validator = strdup(PQgetvalue(res, i, PQfnumber(res, "validator")));
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			l[i].comment = NULL;

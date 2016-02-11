@@ -175,7 +175,8 @@ splitACLItem(char *a)
 	ai->grantor = (char *) malloc((len + 1) * sizeof(char));
 	strncpy(ai->grantor, ptr, len + 1);
 
-	logNoise("grantee: %s ; grantor: %s ; privileges: %s", ai->grantee, ai->grantor, ai->privileges);
+	logNoise("grantee: %s ; grantor: %s ; privileges: %s", ai->grantee, ai->grantor,
+			 ai->privileges);
 
 	return ai;
 }
@@ -224,7 +225,8 @@ buildACL(char *acl)
 	 */
 	if (tmp[len - 1] != '}')	/* can't happen */
 	{
-		logWarning("mal formed ACL \"%s\" (last character is \"%c\")", tmp, tmp[len - 1]);
+		logWarning("mal formed ACL \"%s\" (last character is \"%c\")", tmp,
+				   tmp[len - 1]);
 		return NULL;
 	}
 	p[len - 1] = '\0';
@@ -270,7 +272,8 @@ buildACL(char *acl)
 						break;
 					}
 
-					if (strcmp(cur->grantee, ai->grantee) < 0 && strcmp(cur->next->grantee, ai->grantee) >= 0)
+					if (strcmp(cur->grantee, ai->grantee) < 0 &&
+							strcmp(cur->next->grantee, ai->grantee) >= 0)
 					{
 						ai->next = cur->next;
 						cur->next = ai;
@@ -372,7 +375,8 @@ diffPrivileges(char *a, char *b)
 }
 
 void
-dumpGrant(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee, char *extra)
+dumpGrant(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee,
+		  char *extra)
 {
 	char	*p;
 
@@ -427,32 +431,33 @@ dumpGrant(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee,
 	if (objecttype == PGQ_FUNCTION && extra != NULL)
 	{
 		fprintf(output, " %s.%s(%s) TO %s;",
-			formatObjectIdentifier(a.schemaname),
-			formatObjectIdentifier(a.objectname),
-			extra,
-			grantee);
+				formatObjectIdentifier(a.schemaname),
+				formatObjectIdentifier(a.objectname),
+				extra,
+				grantee);
 	}
 	else if (objecttype == PGQ_DATABASE || objecttype == PGQ_FOREIGN_DATA_WRAPPER ||
-			objecttype == PGQ_FOREIGN_SERVER || objecttype == PGQ_LANGUAGE ||
-			objecttype == PGQ_SCHEMA || objecttype == PGQ_TABLESPACE)
+			 objecttype == PGQ_FOREIGN_SERVER || objecttype == PGQ_LANGUAGE ||
+			 objecttype == PGQ_SCHEMA || objecttype == PGQ_TABLESPACE)
 	{
 		fprintf(output, " %s TO %s;",
-			formatObjectIdentifier(a.objectname),
-			grantee);
+				formatObjectIdentifier(a.objectname),
+				grantee);
 	}
 	else
 	{
 		fprintf(output, " %s.%s TO %s;",
-			formatObjectIdentifier(a.schemaname),
-			formatObjectIdentifier(a.objectname),
-			grantee);
+				formatObjectIdentifier(a.schemaname),
+				formatObjectIdentifier(a.objectname),
+				grantee);
 	}
 
 	free(p);
 }
 
 void
-dumpRevoke(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee, char *extra)
+dumpRevoke(FILE *output, int objecttype, PQLObject a, char *privs,
+		   char *grantee, char *extra)
 {
 	char	*p;
 
@@ -507,32 +512,33 @@ dumpRevoke(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee
 	if (objecttype == PGQ_FUNCTION && extra != NULL)
 	{
 		fprintf(output, " %s.%s(%s) FROM %s;",
-			formatObjectIdentifier(a.schemaname),
-			formatObjectIdentifier(a.objectname),
-			extra,
-			grantee);
+				formatObjectIdentifier(a.schemaname),
+				formatObjectIdentifier(a.objectname),
+				extra,
+				grantee);
 	}
 	else if (objecttype == PGQ_DATABASE || objecttype == PGQ_FOREIGN_DATA_WRAPPER ||
-			objecttype == PGQ_FOREIGN_SERVER || objecttype == PGQ_LANGUAGE ||
-			objecttype == PGQ_SCHEMA || objecttype == PGQ_TABLESPACE)
+			 objecttype == PGQ_FOREIGN_SERVER || objecttype == PGQ_LANGUAGE ||
+			 objecttype == PGQ_SCHEMA || objecttype == PGQ_TABLESPACE)
 	{
 		fprintf(output, " %s FROM %s;",
-			formatObjectIdentifier(a.objectname),
-			grantee);
+				formatObjectIdentifier(a.objectname),
+				grantee);
 	}
 	else
 	{
 		fprintf(output, " %s.%s FROM %s;",
-			formatObjectIdentifier(a.schemaname),
-			formatObjectIdentifier(a.objectname),
-			grantee);
+				formatObjectIdentifier(a.schemaname),
+				formatObjectIdentifier(a.objectname),
+				grantee);
 	}
 
 	free(p);
 }
 
 void
-dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject a, PQLObject b, char *acla, char *aclb, char *extra)
+dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject a, PQLObject b,
+				   char *acla, char *aclb, char *extra)
 {
 	aclList		*ala;
 	aclList		*alb;
@@ -554,7 +560,8 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject a, PQLObject b, char 
 		{
 			logDebug("grant to %s: server2 (end)", tmpb->grantee);
 
-			dumpGrant(output, objecttype, b, tmpb->privileges, tmpb->grantee, ((objecttype == PGQ_FUNCTION) ? extra : NULL));
+			dumpGrant(output, objecttype, b, tmpb->privileges, tmpb->grantee,
+					  ((objecttype == PGQ_FUNCTION) ? extra : NULL));
 			tmpb = tmpb->next;
 		}
 		/* End of aclList alb. Print REVOKE for aclList ala until its end. */
@@ -562,7 +569,8 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject a, PQLObject b, char 
 		{
 			logDebug("revoke from %s: server1 (end)", tmpa->grantee);
 
-			dumpRevoke(output, objecttype, a, tmpa->privileges, tmpa->grantee, ((objecttype == PGQ_FUNCTION) ? extra : NULL));
+			dumpRevoke(output, objecttype, a, tmpa->privileges, tmpa->grantee,
+					   ((objecttype == PGQ_FUNCTION) ? extra : NULL));
 			tmpa = tmpa->next;
 		}
 		else if (strcmp(tmpa->grantee, tmpb->grantee) == 0)
@@ -572,12 +580,14 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject a, PQLObject b, char 
 			logDebug("grant/revoke %s: server1 server2", tmpa->grantee);
 
 			privs = diffPrivileges(tmpa->privileges, tmpb->privileges);
-			dumpRevoke(output, objecttype, a, privs, tmpa->grantee, ((objecttype == PGQ_FUNCTION) ? extra : NULL));
+			dumpRevoke(output, objecttype, a, privs, tmpa->grantee,
+					   ((objecttype == PGQ_FUNCTION) ? extra : NULL));
 			if (privs != NULL)
 				free(privs);
 
 			privs = diffPrivileges(tmpb->privileges, tmpa->privileges);
-			dumpGrant(output, objecttype, b, privs, tmpb->grantee, ((objecttype == PGQ_FUNCTION) ? extra : NULL));
+			dumpGrant(output, objecttype, b, privs, tmpb->grantee,
+					  ((objecttype == PGQ_FUNCTION) ? extra : NULL));
 			if (privs != NULL)
 				free(privs);
 
@@ -588,14 +598,16 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject a, PQLObject b, char 
 		{
 			logDebug("revoke from %s: server1", tmpa->grantee);
 
-			dumpRevoke(output, objecttype, a, tmpa->privileges, tmpa->grantee, ((objecttype == PGQ_FUNCTION) ? extra : NULL));
+			dumpRevoke(output, objecttype, a, tmpa->privileges, tmpa->grantee,
+					   ((objecttype == PGQ_FUNCTION) ? extra : NULL));
 			tmpa = tmpa->next;
 		}
 		else if (strcmp(tmpa->grantee, tmpb->grantee) > 0)
 		{
 			logDebug("grant to %s: server2", tmpb->grantee);
 
-			dumpGrant(output, objecttype, b, tmpb->privileges, tmpb->grantee, ((objecttype == PGQ_FUNCTION) ? extra : NULL));
+			dumpGrant(output, objecttype, b, tmpb->privileges, tmpb->grantee,
+					  ((objecttype == PGQ_FUNCTION) ? extra : NULL));
 			tmpb = tmpb->next;
 		}
 

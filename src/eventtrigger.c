@@ -88,7 +88,8 @@ void
 dumpCreateEventTrigger(FILE *output, PQLEventTrigger e)
 {
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE EVENT TRIGGER %s ON %s", formatObjectIdentifier(e.trgname), e.event);
+	fprintf(output, "CREATE EVENT TRIGGER %s ON %s",
+			formatObjectIdentifier(e.trgname), e.event);
 
 	if (e.tags != NULL)
 		fprintf(output, "\n    WHEN TAG IN (%s)", e.tags);

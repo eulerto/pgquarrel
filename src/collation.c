@@ -24,11 +24,13 @@ getCollations(PGconn *c, int *n)
 
 	logNoise("collation: server version: %d", PQserverVersion(c));
 
-	do {
+	do
+	{
 		query = (char *) malloc(nquery * sizeof(char));
 
 		r = snprintf(query, nquery,
-				"SELECT c.oid, n.nspname, collname, pg_encoding_to_char(collencoding) AS collencoding, collcollate, collctype, pg_get_userbyid(collowner) AS collowner, obj_description(c.oid, 'pg_conversion') AS description FROM pg_collation c INNER JOIN pg_namespace n ON (c.collnamespace = n.oid) LEFT JOIN (pg_description d INNER JOIN pg_class x ON (x.oid = d.classoid AND x.relname = 'pg_conversion')) ON (d.objoid = c.oid) WHERE c.oid >= %u ORDER BY n.nspname, collname", PGQ_FIRST_USER_OID);
+					 "SELECT c.oid, n.nspname, collname, pg_encoding_to_char(collencoding) AS collencoding, collcollate, collctype, pg_get_userbyid(collowner) AS collowner, obj_description(c.oid, 'pg_conversion') AS description FROM pg_collation c INNER JOIN pg_namespace n ON (c.collnamespace = n.oid) LEFT JOIN (pg_description d INNER JOIN pg_class x ON (x.oid = d.classoid AND x.relname = 'pg_conversion')) ON (d.objoid = c.oid) WHERE c.oid >= %u ORDER BY n.nspname, collname",
+					 PGQ_FIRST_USER_OID);
 
 		if (r < nquery)
 			break;
@@ -36,7 +38,8 @@ getCollations(PGconn *c, int *n)
 		logNoise("query size: required (%u) ; initial (%u)", r, nquery);
 		nquery = r + 1;	/* make enough room for query */
 		free(query);
-	} while (true);
+	}
+	while (true);
 
 	res = PQexec(c, query);
 
@@ -147,8 +150,8 @@ dumpDropCollation(FILE *output, PQLCollation c)
 {
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP COLLATION %s.%s;",
-				formatObjectIdentifier(c.obj.schemaname),
-				formatObjectIdentifier(c.obj.objectname));
+			formatObjectIdentifier(c.obj.schemaname),
+			formatObjectIdentifier(c.obj.objectname));
 }
 
 void

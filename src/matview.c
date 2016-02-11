@@ -31,7 +31,8 @@ getMaterializedViews(PGconn *c, int *n)
 	/* check postgres version */
 	if (PQserverVersion(c) < 90300)
 	{
-		logWarning("version %d does not support materialized views", PQserverVersion(c));
+		logWarning("version %d does not support materialized views",
+				   PQserverVersion(c));
 		return NULL;
 	}
 
@@ -60,7 +61,8 @@ getMaterializedViews(PGconn *c, int *n)
 		v[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		v[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		v[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "relname")));
-		v[i].populated = (PQgetvalue(res, i, PQfnumber(res, "relispopulated"))[0] == 't');
+		v[i].populated = (PQgetvalue(res, i, PQfnumber(res,
+									 "relispopulated"))[0] == 't');
 		/* FIXME don't load it only iff view will be DROPped */
 		v[i].viewdef = strdup(PQgetvalue(res, i, PQfnumber(res, "viewdef")));
 		if (PQgetisnull(res, i, PQfnumber(res, "reloptions")))
@@ -79,13 +81,13 @@ getMaterializedViews(PGconn *c, int *n)
 
 		if (v[i].reloptions)
 			logDebug("materialized view %s.%s: reloptions: %s",
-					formatObjectIdentifier(v[i].obj.schemaname),
-					formatObjectIdentifier(v[i].obj.objectname),
-					v[i].reloptions);
+					 formatObjectIdentifier(v[i].obj.schemaname),
+					 formatObjectIdentifier(v[i].obj.objectname),
+					 v[i].reloptions);
 		else
 			logDebug("materialized view %s.%s: no reloptions",
-					formatObjectIdentifier(v[i].obj.schemaname),
-					formatObjectIdentifier(v[i].obj.objectname));
+					 formatObjectIdentifier(v[i].obj.schemaname),
+					 formatObjectIdentifier(v[i].obj.objectname));
 	}
 
 	PQclear(res);
@@ -136,7 +138,8 @@ void
 dumpCreateMaterializedView(FILE *output, PQLMaterializedView v)
 {
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE MATERIALIZED VIEW %s.%s (", formatObjectIdentifier(v.obj.schemaname),
+	fprintf(output, "CREATE MATERIALIZED VIEW %s.%s (",
+			formatObjectIdentifier(v.obj.schemaname),
 			formatObjectIdentifier(v.obj.objectname));
 
 	if (v.reloptions != NULL)
@@ -144,7 +147,7 @@ dumpCreateMaterializedView(FILE *output, PQLMaterializedView v)
 
 	fprintf(output, " AS\n%s", v.viewdef);
 
-	/* 
+	/*
 	 * create a materialized view just like a view because the content will be
 	 * refreshed above.
 	 */
@@ -152,7 +155,8 @@ dumpCreateMaterializedView(FILE *output, PQLMaterializedView v)
 	fprintf(output, ";");
 
 	fprintf(output, "\n\n");
-	fprintf(output, "REFRESH MATERIALIZED VIEW %s.%s", formatObjectIdentifier(v.obj.schemaname),
+	fprintf(output, "REFRESH MATERIALIZED VIEW %s.%s",
+			formatObjectIdentifier(v.obj.schemaname),
 			formatObjectIdentifier(v.obj.objectname));
 	fprintf(output, ";");
 
@@ -178,16 +182,17 @@ dumpCreateMaterializedView(FILE *output, PQLMaterializedView v)
 }
 
 void
-dumpAlterMaterializedView(FILE *output, PQLMaterializedView a, PQLMaterializedView b)
+dumpAlterMaterializedView(FILE *output, PQLMaterializedView a,
+						  PQLMaterializedView b)
 {
 	/* reloptions */
 	if ((a.reloptions == NULL && b.reloptions != NULL))
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER MATERIALIZED VIEW %s.%s SET (%s)",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					b.reloptions);
+				formatObjectIdentifier(b.obj.schemaname),
+				formatObjectIdentifier(b.obj.objectname),
+				b.reloptions);
 		fprintf(output, ";");
 	}
 	else if (a.reloptions != NULL && b.reloptions != NULL &&
@@ -203,9 +208,9 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView a, PQLMaterializedVi
 			resetlist = printRelOptions(rlist);
 			fprintf(output, "\n--\n");
 			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s RESET (%s)",
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
-						resetlist);
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					resetlist);
 			fprintf(output, ";");
 
 			free(resetlist);
@@ -226,9 +231,9 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView a, PQLMaterializedVi
 			setlist = printRelOptions(slist);
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s SET (%s)",
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
-						setlist);
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					setlist);
 			fprintf(output, ";");
 
 			free(setlist);
@@ -247,9 +252,9 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView a, PQLMaterializedVi
 			resetlist = printRelOptions(rlist);
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s RESET (%s)",
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
-						resetlist);
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					resetlist);
 			fprintf(output, ";");
 
 			free(resetlist);

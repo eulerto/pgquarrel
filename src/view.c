@@ -142,7 +142,7 @@ dumpCreateView(FILE *output, PQLView v)
 	/* comment */
 	if (options.comment && v.comment != NULL)
 	{
-	fprintf(output, "\n\n");
+		fprintf(output, "\n\n");
 		fprintf(output, "COMMENT ON VIEW %s.%s IS '%s';",
 				formatObjectIdentifier(v.obj.schemaname),
 				formatObjectIdentifier(v.obj.objectname),
@@ -168,26 +168,26 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER VIEW %s.%s SET (check_option=%s)",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					b.checkoption);
+				formatObjectIdentifier(b.obj.schemaname),
+				formatObjectIdentifier(b.obj.objectname),
+				b.checkoption);
 		fprintf(output, ";");
 	}
 	else if (a.checkoption != NULL && b.checkoption == NULL)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER VIEW %s.%s RESET (check_option);",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname));
+				formatObjectIdentifier(b.obj.schemaname),
+				formatObjectIdentifier(b.obj.objectname));
 	}
 	else if (a.checkoption != NULL && b.checkoption != NULL &&
-				strcmp(a.checkoption, b.checkoption) != 0)
+			 strcmp(a.checkoption, b.checkoption) != 0)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER VIEW %s.%s SET (check_option=%s)",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					b.checkoption);
+				formatObjectIdentifier(b.obj.schemaname),
+				formatObjectIdentifier(b.obj.objectname),
+				b.checkoption);
 		fprintf(output, ";");
 	}
 
@@ -196,9 +196,9 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER VIEW %s.%s SET (%s)",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					b.reloptions);
+				formatObjectIdentifier(b.obj.schemaname),
+				formatObjectIdentifier(b.obj.objectname),
+				b.reloptions);
 		fprintf(output, ";");
 	}
 	else if (a.reloptions != NULL && b.reloptions != NULL &&
@@ -214,9 +214,9 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 			resetlist = printRelOptions(rlist);
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER VIEW %s.%s RESET (%s)",
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
-						resetlist);
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					resetlist);
 			fprintf(output, ";");
 
 			free(resetlist);
@@ -237,9 +237,9 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 			setlist = printRelOptions(slist);
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER VIEW %s.%s SET (%s)",
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
-						setlist);
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					setlist);
 			fprintf(output, ";");
 
 			free(setlist);
@@ -258,9 +258,9 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 			resetlist = printRelOptions(rlist);
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER VIEW %s.%s RESET (%s)",
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
-						resetlist);
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					resetlist);
 			fprintf(output, ";");
 
 			free(resetlist);
