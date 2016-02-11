@@ -13,6 +13,7 @@ PGPATH2=/home/euler/pg945/bin
 GCOV="/usr/bin/gcov"
 LCOV="/usr/bin/lcov"
 GENHTML="/usr/bin/genhtml"
+VGCMD="/usr/bin/valgrind --leak-check=full --show-leak-kinds=all"
 
 PGPORT1=9901
 PGPORT2=9902
@@ -20,6 +21,7 @@ PGPORT2=9902
 VERBOSE="-v"
 CLEANUP=0
 COVERAGE=0
+VALGRIND=0
 
 CLUSTERPATH=/tmp
 ###############################################
@@ -75,7 +77,12 @@ echo "loading quarrel2..."
 $PGPATH2/psql -p $PGPORT2 -X -f test-server2.sql postgres > /dev/null
 
 echo "quarrel..."
-$PGQUARREL $VERBOSE -c test.ini
+if [ $VALGRIND -eq 1 ]; then
+	$VGCMD $PGQUARREL $VERBOSE -c test.ini
+	exit 0
+else
+	$PGQUARREL $VERBOSE -c test.ini
+fi
 
 echo "applying changes..."
 $PGPATH1/psql -p $PGPORT1 -X -f /tmp/test.sql quarrel1 > /dev/null
