@@ -46,7 +46,10 @@ getIndexes(PGconn *c, int *n)
 		i[k].obj.oid = strtoul(PQgetvalue(res, k, PQfnumber(res, "oid")), NULL, 10);
 		i[k].obj.schemaname = strdup(PQgetvalue(res, k, PQfnumber(res, "nspname")));
 		i[k].obj.objectname = strdup(PQgetvalue(res, k, PQfnumber(res, "relname")));
-		i[k].tbspcname = strdup(PQgetvalue(res, k, PQfnumber(res, "tablespacename")));
+		if (PQgetisnull(res, k, PQfnumber(res, "tablespacename")))
+			i[k].tbspcname = NULL;
+		else
+			i[k].tbspcname = strdup(PQgetvalue(res, k, PQfnumber(res, "tablespacename")));
 		/* FIXME don't load it only iff index will be DROPped */
 		i[k].indexdef = strdup(PQgetvalue(res, k, PQfnumber(res, "indexdef")));
 		if (PQgetisnull(res, k, PQfnumber(res, "reloptions")))
