@@ -80,7 +80,7 @@ add_custom_target("style" COMMAND
 	--align-pointer=name
 	--remove-brackets
 	--max-code-length=80
-	-break-after-logical
+	--break-after-logical
 #	--suffix=none
 	--lineend=linux
 	${CMAKE_CURRENT_SOURCE_DIR}/src/*.c
