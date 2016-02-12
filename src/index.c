@@ -132,7 +132,20 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 				formatObjectIdentifier(b.obj.objectname));
 	}
 
-	if (strcmp(a.tbspcname, b.tbspcname) != 0)
+	/*
+	 * If the new tablespace is NULL, it means it is in the default tablespace
+	 * (pg_default) so move it.
+	 */
+	if (a.tbspcname != NULL && b.tbspcname == NULL)
+	{
+		fprintf(output, "\n\n");
+		fprintf(output, "ALTER INDEX %s.%s SET TABLESPACE pg_default;",
+				formatObjectIdentifier(a.obj.schemaname),
+				formatObjectIdentifier(a.obj.objectname), b.tbspcname);
+	}
+	else if ((a.tbspcname == NULL && b.tbspcname != NULL) ||
+			 (a.tbspcname != NULL && b.tbspcname != NULL &&
+			  strcmp(a.tbspcname, b.tbspcname) != 0))
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER INDEX %s.%s SET TABLESPACE %s;",
