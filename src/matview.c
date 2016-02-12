@@ -37,7 +37,7 @@ getMaterializedViews(PGconn *c, int *n)
 	}
 
 	res = PQexec(c,
-				 "SELECT c.oid, n.nspname, c.relname, pg_get_viewdef(c.oid) AS viewdef, array_to_string(c.reloptions, ', ') AS reloptions, relispopulated, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'm' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
+				 "SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, pg_get_viewdef(c.oid) AS viewdef, array_to_string(c.reloptions, ', ') AS reloptions, relispopulated, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace ON (c.reltablespace = t.oid) WHERE relkind = 'm' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -61,6 +61,10 @@ getMaterializedViews(PGconn *c, int *n)
 		v[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		v[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		v[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "relname")));
+		if (PQgetisnull(res, i, PQfnumber(res, "tablespacename")))
+			v[i].tbspcname = NULL;
+		else
+			v[i].tbspcname = strdup(PQgetvalue(res, i, PQfnumber(res, "tablespacename")));
 		v[i].populated = (PQgetvalue(res, i, PQfnumber(res,
 									 "relispopulated"))[0] == 't');
 		/* FIXME don't load it only iff view will be DROPped */
