@@ -141,7 +141,7 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER INDEX %s.%s SET TABLESPACE pg_default;",
 				formatObjectIdentifier(a.obj.schemaname),
-				formatObjectIdentifier(a.obj.objectname), b.tbspcname);
+				formatObjectIdentifier(a.obj.objectname));
 	}
 	else if ((a.tbspcname == NULL && b.tbspcname != NULL) ||
 			 (a.tbspcname != NULL && b.tbspcname != NULL &&
