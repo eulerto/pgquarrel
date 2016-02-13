@@ -52,12 +52,18 @@ getTables(PGconn *c, int *n)
 	logNoise("table: server version: %d", PQserverVersion(c));
 
 	/* FIXME relpersistence (9.1)? */
-	if (PQserverVersion(c) >= 90100)
+	/*
+	 * XXX Using 'v' (void) to represent unsupported replica identity
+	 */
+	if (PQserverVersion(c) >= 90400)
 		res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'r' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
+					 "SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, relreplident FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'r' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
+	else if (PQserverVersion(c) >= 90100)
+		res = PQexec(c,
+					 "SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, 'v' AS relreplident FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'r' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
 	else
 		res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, 'p' AS relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'r' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
+					 "SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, 'p' AS relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, 'v' AS relreplident FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'r' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -104,6 +110,10 @@ getTables(PGconn *c, int *n)
 			t[i].acl = NULL;
 		else
 			t[i].acl = strdup(PQgetvalue(res, i, PQfnumber(res, "relacl")));
+
+		t[i].relreplident = *(PQgetvalue(res, i, PQfnumber(res, "relreplident")));
+		/* assigned iif REPLICA IDENTITY USING INDEX; see getTableAttributes() */
+		t[i].relreplidentidx = NULL;
 
 		logDebug("table %s.%s", formatObjectIdentifier(t[i].obj.schemaname),
 				 formatObjectIdentifier(t[i].obj.objectname));
@@ -445,6 +455,55 @@ getTableAttributes(PGconn *c, PQLTable *t)
 	}
 
 	PQclear(res);
+
+	/* replica identity using index */
+	if (t->relreplident == 'i')
+	{
+		do
+		{
+			query = (char *) malloc(nquery * sizeof(char));
+
+			r = snprintf(query, nquery,
+						 "SELECT c.relname AS  idxname FROM pg_index i INNER JOIN pg_class c ON (i.indexrelid = c.oid) WHERE indrelid = %u AND indisreplident",
+						 t->obj.oid);
+
+			if (r < nquery)
+				break;
+
+			logNoise("query size: required (%u) ; initial (%u)", r, nquery);
+			nquery = r + 1;	/* make enough room for query */
+			free(query);
+		}
+		while (true);
+
+		res = PQexec(c, query);
+
+		free(query);
+
+		if (PQresultStatus(res) != PGRES_TUPLES_OK)
+		{
+			logError("query failed: %s", PQresultErrorMessage(res));
+			PQclear(res);
+			PQfinish(c);
+			/* XXX leak another connection? */
+			exit(EXIT_FAILURE);
+		}
+
+		i  = PQntuples(res);
+		if (i == 1)
+		{
+			t->relreplidentidx = strdup(PQgetvalue(res, 0, PQfnumber(res,
+												   "idxname")));
+		}
+		else
+		{
+			logWarning("table %s.%s should contain one replica identity index (returned %d)",
+					   formatObjectIdentifier(t->obj.schemaname),
+					   formatObjectIdentifier(t->obj.objectname), i);
+		}
+
+		PQclear(res);
+	}
 }
 
 void
@@ -465,6 +524,8 @@ freeTables(PQLTable *t, int n)
 				free(t[i].tbspcname);
 			if (t[i].reloptions)
 				free(t[i].reloptions);
+			if (t[i].relreplidentidx)
+				free(t[i].relreplidentidx);
 			if (t[i].comment)
 				free(t[i].comment);
 			if (t[i].acl)
@@ -668,6 +729,39 @@ dumpCreateTable(FILE *output, PQLTable t)
 		fprintf(output, "\nWITH (%s)", t.reloptions);
 
 	fprintf(output, ";");
+
+	/* replica identity */
+	if (t.relreplident != 'v')		/* 'v' (void) means < 9.4 */
+	{
+
+		switch (t.relreplident)
+		{
+			case 'n':
+				fprintf(output, "\n\n");
+				fprintf(output, "ALTER TABLE ONLY %s.%s REPLICA IDENTITY NOTHING;",
+						formatObjectIdentifier(t.obj.schemaname),
+						formatObjectIdentifier(t.obj.objectname));
+				break;
+			case 'd':
+				/* print nothing. After all, it is the default */
+				break;
+			case 'f':
+				fprintf(output, "\n\n");
+				fprintf(output, "ALTER TABLE ONLY %s.%s REPLICA IDENTITY FULL;",
+						formatObjectIdentifier(t.obj.schemaname),
+						formatObjectIdentifier(t.obj.objectname));
+				break;
+			case 'i':
+				fprintf(output, "\n\n");
+				fprintf(output, "ALTER TABLE ONLY %s.%s REPLICA IDENTITY USING INDEX %s;",
+						formatObjectIdentifier(t.obj.schemaname),
+						formatObjectIdentifier(t.obj.objectname),
+						formatObjectIdentifier(t.relreplidentidx));
+				break;
+			default:
+				logWarning("replica identity %c is invalid", t.relreplident);
+		}
+	}
 
 	/* statistics target */
 	for (i = 0; i < t.nattributes; i++)
@@ -1237,6 +1331,54 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 			free(resetlist);
 			freeStringList(rlist);
 		}
+	}
+
+	/*
+	 * replica identity
+	 *
+	 * This feature is only emitted iif both servers support REPLICA IDENTITY.
+	 * Otherwise, users will be warned.
+	 */
+	if (a.relreplident != 'v' && b.relreplident != 'v')
+	{
+		if (a.relreplident != b.relreplident)
+		{
+			switch (b.relreplident)
+			{
+				case 'n':
+					fprintf(output, "\n\n");
+					fprintf(output, "ALTER TABLE ONLY %s.%s REPLICA IDENTITY NOTHING;",
+							formatObjectIdentifier(b.obj.schemaname),
+							formatObjectIdentifier(b.obj.objectname));
+					break;
+				case 'd':
+					fprintf(output, "\n\n");
+					fprintf(output, "ALTER TABLE ONLY %s.%s REPLICA IDENTITY DEFAULT;",
+							formatObjectIdentifier(b.obj.schemaname),
+							formatObjectIdentifier(b.obj.objectname));
+					fprintf(output, "DEFAULT");
+					break;
+				case 'f':
+					fprintf(output, "\n\n");
+					fprintf(output, "ALTER TABLE ONLY %s.%s REPLICA IDENTITY FULL;",
+							formatObjectIdentifier(b.obj.schemaname),
+							formatObjectIdentifier(b.obj.objectname));
+					break;
+				case 'i':
+					fprintf(output, "\n\n");
+					fprintf(output, "ALTER TABLE ONLY %s.%s REPLICA IDENTITY USING INDEX %s;",
+							formatObjectIdentifier(b.obj.schemaname),
+							formatObjectIdentifier(b.obj.objectname),
+							formatObjectIdentifier(b.relreplidentidx));
+					break;
+				default:
+					logWarning("replica identity %c is invalid", b.relreplident);
+			}
+		}
+	}
+	else
+	{
+		logWarning("ignoring replica identity because some server does not support it");
 	}
 
 	/* comment */

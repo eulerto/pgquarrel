@@ -77,3 +77,6 @@ ALTER TABLE to_table_2 ALTER COLUMN c SET STATISTICS 123;
 
 -- storage
 ALTER TABLE to_table_3 ALTER COLUMN b SET STORAGE EXTERNAL;
+
+-- replica identity
+ALTER TABLE same_table_2 REPLICA IDENTITY USING INDEX same_table_2_pkey;

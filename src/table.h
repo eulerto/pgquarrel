@@ -43,6 +43,8 @@ typedef struct PQLTable
 	int				nownedby;
 
 	char			*reloptions;
+	char			relreplident;
+	char			*relreplidentidx;
 
 	char			*comment;
 	char			*owner;
