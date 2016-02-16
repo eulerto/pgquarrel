@@ -59,6 +59,17 @@ getSequences(PGconn *c, int *n)
 		else
 			s[i].acl = strdup(PQgetvalue(res, i, PQfnumber(res, "relacl")));
 
+		/*
+		 * These values are not assigned here (see getSequenceAttributes), but
+		 * default values are essential to avoid having trouble in
+		 * freeSequences.
+		 */
+		s[i].startvalue = NULL;
+		s[i].incvalue = NULL;
+		s[i].minvalue = NULL;
+		s[i].maxvalue = NULL;
+		s[i].cache = NULL;
+
 		logDebug("sequence %s.%s", formatObjectIdentifier(s[i].obj.schemaname),
 				 formatObjectIdentifier(s[i].obj.objectname));
 	}
@@ -139,12 +150,16 @@ freeSequences(PQLSequence *s, int n)
 			if (s[i].acl)
 				free(s[i].acl);
 
-			/* attributes */
-			free(s[i].incvalue);
-			free(s[i].startvalue);
-			free(s[i].maxvalue);
-			free(s[i].minvalue);
-			free(s[i].cache);
+			if (s[i].incvalue)
+				free(s[i].incvalue);
+			if (s[i].startvalue)
+				free(s[i].startvalue);
+			if (s[i].maxvalue)
+				free(s[i].maxvalue);
+			if (s[i].minvalue)
+				free(s[i].minvalue);
+			if (s[i].cache)
+				free(s[i].cache);
 		}
 
 		free(s);

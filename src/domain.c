@@ -83,6 +83,14 @@ getDomains(PGconn *c, int *n)
 		else
 			d[i].acl = strdup(PQgetvalue(res, i, PQfnumber(res, "typacl")));
 
+		/*
+		 * These values are not assigned here (see getDomainConstraints), but
+		 * default values are essential to avoid having trouble in
+		 * freeDomains.
+		 */
+		d[i].ncheck = 0;
+		d[i].check = NULL;
+
 		logDebug("domain \"%s\".\"%s\"", d[i].obj.schemaname, d[i].obj.objectname);
 	}
 

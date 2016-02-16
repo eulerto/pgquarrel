@@ -93,9 +93,24 @@ getTables(PGconn *c, int *n)
 			t[i].tbspcname = strdup(PQgetvalue(res, i, PQfnumber(res, "tablespacename")));
 		t[i].unlogged = (PQgetvalue(res, i, PQfnumber(res,
 									"relpersistence"))[0] == 'u');
+
+		/*
+		 * These values are not assigned here (see getTableAttributes), but
+		 * default values are essential to avoid having trouble in freeTables.
+		 */
 		t[i].nattributes = 0;
+		t[i].attributes = NULL;
+		t[i].ncheck = 0;
+		t[i].check = NULL;
+		t[i].nfk = 0;
+		t[i].fk = NULL;
 		t[i].pk.conname = NULL;
 		t[i].pk.condef = NULL;
+		t[i].pk.comment = NULL;
+		t[i].seqownedby = NULL;
+		t[i].attownedby = NULL;
+		t[i].nownedby = 0;
+
 		if (PQgetisnull(res, i, PQfnumber(res, "reloptions")))
 			t[i].reloptions = NULL;
 		else
