@@ -303,13 +303,21 @@ buildACL(char *acl)
 void
 freeACL(aclList *al)
 {
-	aclItem	*ai;
+	aclItem	*ai, *tmp;
 
 	if (al == NULL)
 		return;
 
-	for (ai = al->head; ai; ai = ai->next)
+	/* use tmp because ai is freed at each iteration */
+	ai = al->head;
+	tmp = ai->next;
+	while (ai)
+	{
 		freeACLItem(ai);
+		ai = tmp;
+		if (tmp)
+			tmp = tmp->next;
+	}
 
 	free(al);
 }
@@ -369,7 +377,10 @@ diffPrivileges(char *a, char *b)
 		r = NULL;
 	}
 
-	logNoise("a: %s ; b: %s ; intersection: \"%s\"", a, b, r);
+	if (r)
+		logNoise("a: %s ; b: %s ; intersection: \"%s\"", a, b, r);
+	else
+		logNoise("a: %s ; b: %s ; intersection: nothing", a, b);
 
 	return r;
 }
@@ -548,12 +559,13 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject a, PQLObject b,
 	ala = buildACL(acla);
 	alb = buildACL(aclb);
 
-	if (ala != NULL)
+	if (ala)
 		tmpa = ala->head;
-	if (alb != NULL)
+	if (alb)
 		tmpb = alb->head;
 
-	while (ala != NULL || alb != NULL)
+	/* loop until both lists ended */
+	while (tmpa != NULL || tmpb != NULL)
 	{
 		/* End of aclList ala. Print GRANT for aclList alb until its end. */
 		if (tmpa == NULL)
@@ -582,13 +594,13 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject a, PQLObject b,
 			privs = diffPrivileges(tmpa->privileges, tmpb->privileges);
 			dumpRevoke(output, objecttype, a, privs, tmpa->grantee,
 					   ((objecttype == PGQ_FUNCTION) ? extra : NULL));
-			if (privs != NULL)
+			if (privs)
 				free(privs);
 
 			privs = diffPrivileges(tmpb->privileges, tmpa->privileges);
 			dumpGrant(output, objecttype, b, privs, tmpb->grantee,
 					  ((objecttype == PGQ_FUNCTION) ? extra : NULL));
-			if (privs != NULL)
+			if (privs)
 				free(privs);
 
 			tmpa = tmpa->next;
@@ -610,10 +622,6 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject a, PQLObject b,
 					  ((objecttype == PGQ_FUNCTION) ? extra : NULL));
 			tmpb = tmpb->next;
 		}
-
-		/* both lists ended then exit */
-		if (tmpa == NULL && tmpb == NULL)
-			break;
 	}
 
 	/* free temporary lists */
