@@ -1356,7 +1356,6 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 					fprintf(output, "ALTER TABLE ONLY %s.%s REPLICA IDENTITY DEFAULT;",
 							formatObjectIdentifier(b.obj.schemaname),
 							formatObjectIdentifier(b.obj.objectname));
-					fprintf(output, "DEFAULT");
 					break;
 				case 'f':
 					fprintf(output, "\n\n");
