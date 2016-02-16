@@ -387,13 +387,11 @@ quarrelCasts()
 	casts1 = getCasts(conn1, &ncasts1);
 	casts2 = getCasts(conn2, &ncasts2);
 
-#ifdef PGQ_DEBUG
 	for (i = 0; i < ncasts1; i++)
 		logNoise("server1: cast %s AS %s", casts1[i].source, casts1[i].target);
 
 	for (i = 0; i < ncasts2; i++)
 		logNoise("server2: cast %s AS %s", casts2[i].source, casts2[i].target);
-#endif
 
 	/*
 	 * We have two sorted lists. Let's figure out which elements are not in the
@@ -470,7 +468,6 @@ quarrelCollations()
 	collations1 = getCollations(conn1, &ncollations1);
 	collations2 = getCollations(conn2, &ncollations2);
 
-#ifdef PGQ_DEBUG
 	for (i = 0; i < ncollations1; i++)
 		logNoise("server1: %s.%s", collations1[i].obj.schemaname,
 				 collations1[i].obj.objectname);
@@ -478,7 +475,6 @@ quarrelCollations()
 	for (i = 0; i < ncollations2; i++)
 		logNoise("server2: %s.%s", collations2[i].obj.schemaname,
 				 collations2[i].obj.objectname);
-#endif
 
 	/*
 	 * We have two sorted lists. Let's figure out which elements are not in the
@@ -559,7 +555,6 @@ quarrelConversions()
 	conversions1 = getConversions(conn1, &nconversions1);
 	conversions2 = getConversions(conn2, &nconversions2);
 
-#ifdef PGQ_DEBUG
 	for (i = 0; i < nconversions1; i++)
 		logNoise("server1: %s.%s %u", conversions1[i].obj.schemaname,
 				 conversions1[i].obj.objectname, conversions1[i].obj.oid);
@@ -567,7 +562,6 @@ quarrelConversions()
 	for (i = 0; i < nconversions2; i++)
 		logNoise("server2: %s.%s %u", conversions2[i].obj.schemaname,
 				 conversions2[i].obj.objectname, conversions2[i].obj.oid);
-#endif
 
 	/*
 	 * We have two sorted lists. Let's figure out which elements are not in the
@@ -649,7 +643,6 @@ quarrelDomains()
 	domains1 = getDomains(conn1, &ndomains1);
 	domains2 = getDomains(conn2, &ndomains2);
 
-#ifdef PGQ_DEBUG
 	for (i = 0; i < ndomains1; i++)
 		logNoise("server1: %s.%s", domains1[i].obj.schemaname,
 				 domains1[i].obj.objectname);
@@ -657,7 +650,6 @@ quarrelDomains()
 	for (i = 0; i < ndomains2; i++)
 		logNoise("server2: %s.%s", domains2[i].obj.schemaname,
 				 domains2[i].obj.objectname);
-#endif
 
 	/*
 	 * We have two sorted lists. Let's figure out which elements are not in the
@@ -742,13 +734,11 @@ quarrelEventTriggers()
 	evttrgs1 = getEventTriggers(conn1, &nevttrgs1);
 	evttrgs2 = getEventTriggers(conn2, &nevttrgs2);
 
-#ifdef PGQ_DEBUG
 	for (i = 0; i < nevttrgs1; i++)
 		logNoise("server1: %s", evttrgs1[i].trgname);
 
 	for (i = 0; i < nevttrgs2; i++)
 		logNoise("server2: %s", evttrgs2[i].trgname);
-#endif
 
 	/*
 	 * We have two sorted lists. Let's figure out which elements are not in the
@@ -824,13 +814,11 @@ quarrelExtensions()
 	extensions1 = getExtensions(conn1, &nextensions1);
 	extensions2 = getExtensions(conn2, &nextensions2);
 
-#ifdef PGQ_DEBUG
 	for (i = 0; i < nextensions1; i++)
 		logNoise("server1: %s", extensions1[i].extensionname);
 
 	for (i = 0; i < nextensions2; i++)
 		logNoise("server2: %s", extensions2[i].extensionname);
-#endif
 
 	/*
 	 * We have two sorted lists. Let's figure out which elements are not in the
@@ -907,7 +895,6 @@ quarrelFunctions()
 	functions1 = getFunctions(conn1, &nfunctions1);
 	functions2 = getFunctions(conn2, &nfunctions2);
 
-#ifdef PGQ_DEBUG
 	for (i = 0; i < nfunctions1; i++)
 		logNoise("server1: %s.%s(%s) %s", functions1[i].obj.schemaname,
 				 functions1[i].obj.objectname, functions1[i].arguments,
@@ -917,7 +904,6 @@ quarrelFunctions()
 		logNoise("server2: %s.%s(%s) %s", functions2[i].obj.schemaname,
 				 functions2[i].obj.objectname, functions2[i].arguments,
 				 functions2[i].returntype);
-#endif
 
 	/*
 	 * We have two sorted lists. Let's figure out which elements are not in the
@@ -1008,7 +994,6 @@ quarrelIndexes()
 	indexes1 = getIndexes(conn1, &nindexes1);
 	indexes2 = getIndexes(conn2, &nindexes2);
 
-#ifdef PGQ_DEBUG
 	for (i = 0; i < nindexes1; i++)
 		logNoise("server1: %s.%s", indexes1[i].obj.schemaname,
 				 indexes1[i].obj.objectname);
@@ -1016,7 +1001,6 @@ quarrelIndexes()
 	for (i = 0; i < nindexes2; i++)
 		logNoise("server2: %s.%s", indexes2[i].obj.schemaname,
 				 indexes2[i].obj.objectname);
-#endif
 
 	/*
 	 * We have two sorted lists. Let's figure out which elements are not in the
@@ -1097,13 +1081,11 @@ quarrelLanguages()
 	languages1 = getLanguages(conn1, &nlanguages1);
 	languages2 = getLanguages(conn2, &nlanguages2);
 
-#ifdef PGQ_DEBUG
 	for (i = 0; i < nlanguages1; i++)
 		logNoise("server1: %s", languages1[i].languagename);
 
 	for (i = 0; i < nlanguages2; i++)
 		logNoise("server2: %s", languages2[i].languagename);
-#endif
 
 	/*
 	 * We have two sorted lists. Let's figure out which elements are not in the
@@ -1179,7 +1161,6 @@ quarrelMaterializedViews()
 	matviews1 = getMaterializedViews(conn1, &nmatviews1);
 	matviews2 = getMaterializedViews(conn2, &nmatviews2);
 
-#ifdef PGQ_DEBUG
 	for (i = 0; i < nmatviews1; i++)
 		logNoise("server1: %s.%s", matviews1[i].obj.schemaname,
 				 matviews1[i].obj.objectname);
@@ -1187,7 +1168,6 @@ quarrelMaterializedViews()
 	for (i = 0; i < nmatviews2; i++)
 		logNoise("server2: %s.%s", matviews2[i].obj.schemaname,
 				 matviews2[i].obj.objectname);
-#endif
 
 	/*
 	 * We have two sorted lists. Let's figure out which elements are not in the
@@ -1269,7 +1249,6 @@ quarrelRules()
 	rules1 = getRules(conn1, &nrules1);
 	rules2 = getRules(conn2, &nrules2);
 
-#ifdef PGQ_DEBUG
 	for (i = 0; i < nrules1; i++)
 		logNoise("server1: %s.%s", rules1[i].table.schemaname,
 				 rules1[i].table.objectname);
@@ -1277,7 +1256,6 @@ quarrelRules()
 	for (i = 0; i < nrules2; i++)
 		logNoise("server2: %s.%s", rules2[i].table.schemaname,
 				 rules2[i].table.objectname);
-#endif
 
 	/*
 	 * We have two sorted lists. Let's figure out which elements are not in the
@@ -1361,13 +1339,11 @@ quarrelSchemas()
 	schemas1 = getSchemas(conn1, &nschemas1);
 	schemas2 = getSchemas(conn2, &nschemas2);
 
-#ifdef PGQ_DEBUG
 	for (i = 0; i < nschemas1; i++)
 		logNoise("server1: %s", schemas1[i].schemaname);
 
 	for (i = 0; i < nschemas2; i++)
 		logNoise("server2: %s", schemas2[i].schemaname);
-#endif
 
 	/*
 	 * We have two sorted lists. Let's figure out which elements are not in the
@@ -1443,7 +1419,6 @@ quarrelSequences()
 	sequences1 = getSequences(conn1, &nsequences1);
 	sequences2 = getSequences(conn2, &nsequences2);
 
-#ifdef PGQ_DEBUG
 	for (i = 0; i < nsequences1; i++)
 		logNoise("server1: %s.%s", sequences1[i].obj.schemaname,
 				 sequences1[i].obj.objectname);
@@ -1451,7 +1426,6 @@ quarrelSequences()
 	for (i = 0; i < nsequences2; i++)
 		logNoise("server2: %s.%s", sequences2[i].obj.schemaname,
 				 sequences2[i].obj.objectname);
-#endif
 
 	/*
 	 * We have two sorted lists. Let's figure out which elements are not in the
@@ -1550,8 +1524,6 @@ quarrelTables()
 	for (i = 0; i < ntables2; i++)
 		logNoise("server2: %s.%s %u", tables2[i].obj.schemaname,
 				 tables2[i].obj.objectname, tables2[i].obj.oid);
-#ifdef PGQ_DEBUG
-#endif
 
 	/*
 	 * We have two sorted lists. Let's figure out which elements are not in the
@@ -1643,7 +1615,6 @@ quarrelTriggers()
 	triggers1 = getTriggers(conn1, &ntriggers1);
 	triggers2 = getTriggers(conn2, &ntriggers2);
 
-#ifdef PGQ_DEBUG
 	for (i = 0; i < ntriggers1; i++)
 		logNoise("server1: %s.%s", triggers1[i].table.schemaname,
 				 triggers1[i].table.objectname);
@@ -1651,7 +1622,6 @@ quarrelTriggers()
 	for (i = 0; i < ntriggers2; i++)
 		logNoise("server2: %s.%s", triggers2[i].table.schemaname,
 				 triggers2[i].table.objectname);
-#endif
 
 	/*
 	 * We have two sorted lists. Let's figure out which elements are not in the
@@ -1735,7 +1705,6 @@ quarrelBaseTypes()
 	types1 = getBaseTypes(conn1, &ntypes1);
 	types2 = getBaseTypes(conn2, &ntypes2);
 
-#ifdef PGQ_DEBUG
 	for (i = 0; i < ntypes1; i++)
 		logNoise("server1: %s.%s", types1[i].obj.schemaname,
 				 types1[i].obj.objectname);
@@ -1743,7 +1712,6 @@ quarrelBaseTypes()
 	for (i = 0; i < ntypes2; i++)
 		logNoise("server2: %s.%s", types2[i].obj.schemaname,
 				 types2[i].obj.objectname);
-#endif
 
 	/*
 	 * We have two sorted lists. Let's figure out which elements are not in the
@@ -1824,7 +1792,6 @@ quarrelCompositeTypes()
 	types1 = getCompositeTypes(conn1, &ntypes1);
 	types2 = getCompositeTypes(conn2, &ntypes2);
 
-#ifdef PGQ_DEBUG
 	for (i = 0; i < ntypes1; i++)
 		logNoise("server1: %s.%s", types1[i].obj.schemaname,
 				 types1[i].obj.objectname);
@@ -1832,7 +1799,6 @@ quarrelCompositeTypes()
 	for (i = 0; i < ntypes2; i++)
 		logNoise("server2: %s.%s", types2[i].obj.schemaname,
 				 types2[i].obj.objectname);
-#endif
 
 	/*
 	 * We have two sorted lists. Let's figure out which elements are not in the
@@ -1913,7 +1879,6 @@ quarrelEnumTypes()
 	types1 = getEnumTypes(conn1, &ntypes1);
 	types2 = getEnumTypes(conn2, &ntypes2);
 
-#ifdef PGQ_DEBUG
 	for (i = 0; i < ntypes1; i++)
 		logNoise("server1: %s.%s", types1[i].obj.schemaname,
 				 types1[i].obj.objectname);
@@ -1921,7 +1886,6 @@ quarrelEnumTypes()
 	for (i = 0; i < ntypes2; i++)
 		logNoise("server2: %s.%s", types2[i].obj.schemaname,
 				 types2[i].obj.objectname);
-#endif
 
 	/*
 	 * We have two sorted lists. Let's figure out which elements are not in the
@@ -2002,7 +1966,6 @@ quarrelRangeTypes()
 	types1 = getRangeTypes(conn1, &ntypes1);
 	types2 = getRangeTypes(conn2, &ntypes2);
 
-#ifdef PGQ_DEBUG
 	for (i = 0; i < ntypes1; i++)
 		logNoise("server1: %s.%s", types1[i].obj.schemaname,
 				 types1[i].obj.objectname);
@@ -2010,7 +1973,6 @@ quarrelRangeTypes()
 	for (i = 0; i < ntypes2; i++)
 		logNoise("server2: %s.%s", types2[i].obj.schemaname,
 				 types2[i].obj.objectname);
-#endif
 
 	/*
 	 * We have two sorted lists. Let's figure out which elements are not in the
@@ -2100,7 +2062,6 @@ quarrelViews()
 	views1 = getViews(conn1, &nviews1);
 	views2 = getViews(conn2, &nviews2);
 
-#ifdef PGQ_DEBUG
 	for (i = 0; i < nviews1; i++)
 		logNoise("server1: %s.%s", views1[i].obj.schemaname,
 				 views1[i].obj.objectname);
@@ -2108,7 +2069,6 @@ quarrelViews()
 	for (i = 0; i < nviews2; i++)
 		logNoise("server2: %s.%s", views2[i].obj.schemaname,
 				 views2[i].obj.objectname);
-#endif
 
 	/*
 	 * We have two sorted lists. Let's figure out which elements are not in the
