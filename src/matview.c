@@ -58,6 +58,8 @@ getMaterializedViews(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		int	len;
+
 		v[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		v[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		v[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "relname")));
@@ -67,8 +69,14 @@ getMaterializedViews(PGconn *c, int *n)
 			v[i].tbspcname = strdup(PQgetvalue(res, i, PQfnumber(res, "tablespacename")));
 		v[i].populated = (PQgetvalue(res, i, PQfnumber(res,
 									 "relispopulated"))[0] == 't');
+
 		/* FIXME don't load it only iff view will be DROPped */
-		v[i].viewdef = strdup(PQgetvalue(res, i, PQfnumber(res, "viewdef")));
+		len = PQgetlength(res, i, PQfnumber(res, "viewdef"));
+		/* allocate only len because semicolon will be stripped */
+		v[i].viewdef = (char *) malloc(len * sizeof(char));
+		strncpy(v[i].viewdef, PQgetvalue(res, i, PQfnumber(res, "viewdef")), len - 1);
+		v[i].viewdef[len - 1] = '\0';
+
 		if (PQgetisnull(res, i, PQfnumber(res, "reloptions")))
 			v[i].reloptions = NULL;
 		else
@@ -137,7 +145,7 @@ void
 dumpCreateMaterializedView(FILE *output, PQLMaterializedView v)
 {
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE MATERIALIZED VIEW %s.%s (",
+	fprintf(output, "CREATE MATERIALIZED VIEW %s.%s",
 			formatObjectIdentifier(v.obj.schemaname),
 			formatObjectIdentifier(v.obj.objectname));
 
