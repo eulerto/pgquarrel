@@ -72,6 +72,21 @@ typedef struct PQLObject
 	char	*objectname;
 } PQLObject;
 
+typedef struct PQLAttribute
+{
+	int			attnum;
+	char		*attname;
+	bool		attnotnull;
+	char		*atttypname;
+	char		*attdefexpr;
+	char		*attcollation;
+	int			attstattarget;
+	char		*attstorage;
+	bool		defstorage;
+	char		*attoptions;
+	char		*comment;
+} PQLAttribute;
+
 typedef struct PQLConstraint
 {
 	char	*conname;

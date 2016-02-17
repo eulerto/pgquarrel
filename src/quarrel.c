@@ -1184,6 +1184,8 @@ quarrelMaterializedViews()
 			logDebug("materialized view %s.%s: server2", matviews2[j].obj.schemaname,
 					 matviews2[j].obj.objectname);
 
+			getMaterializedViewAttributes(conn2, &matviews2[j]);
+
 			dumpCreateMaterializedView(fpre, matviews2[j]);
 
 			j++;
@@ -1206,6 +1208,9 @@ quarrelMaterializedViews()
 					 matviews1[i].obj.schemaname,
 					 matviews1[i].obj.objectname);
 
+			getMaterializedViewAttributes(conn1, &matviews1[i]);
+			getMaterializedViewAttributes(conn2, &matviews2[j]);
+
 			dumpAlterMaterializedView(fpre, matviews1[i], matviews2[j]);
 
 			i++;
@@ -1225,6 +1230,8 @@ quarrelMaterializedViews()
 		{
 			logDebug("materialized view %s.%s: server2", matviews2[j].obj.schemaname,
 					 matviews2[j].obj.objectname);
+
+			getMaterializedViewAttributes(conn2, &matviews2[j]);
 
 			dumpCreateMaterializedView(fpre, matviews2[j]);
 

@@ -8,9 +8,6 @@
  * TODO
  *
  * CREATE MATERIALIZED VIEW ... TABLESPACE
- * ALTER MATERIALIZED VIEW ... ALTER COLUMN SET STATISTICS
- * ALTER MATERIALIZED VIEW ... ALTER COLUMN SET STORAGE
- * ALTER MATERIALIZED VIEW ... ALTER COLUMN ... { SET | RESET }
  * ALTER MATERIALIZED VIEW ... CLUSTER ON
  * ALTER MATERIALIZED VIEW ... SET WITHOUT CLUSTER
  * ALTER MATERIALIZED VIEW ... RENAME TO
@@ -18,6 +15,13 @@
  * ALTER MATERIALIZED VIEW ... SET SCHEMA
  * ALTER MATERIALIZED VIEW ... SET TABLESPACE
  */
+
+static void dumpAlterColumnSetStatistics(FILE *output, PQLMaterializedView a,
+		int i, bool force);
+static void dumpAlterColumnSetStorage(FILE *output, PQLMaterializedView a,
+									  int i, bool force);
+static void dumpAlterColumnSetOptions(FILE *output, PQLMaterializedView a,
+									  PQLMaterializedView b, int i);
 
 PQLMaterializedView *
 getMaterializedViews(PGconn *c, int *n)
@@ -91,6 +95,14 @@ getMaterializedViews(PGconn *c, int *n)
 		logDebug("materialized view %s.%s", formatObjectIdentifier(v[i].obj.schemaname),
 				 formatObjectIdentifier(v[i].obj.objectname));
 
+		/*
+		 * These values are not assigned here (see
+		 * getMaterializedViewAttributes), but default values are essential to
+		 * avoid having trouble in freeMaterializedViews.
+		 */
+		v[i].nattributes = 0;
+		v[i].attributes = NULL;
+
 		if (v[i].reloptions)
 			logDebug("materialized view %s.%s: reloptions: %s",
 					 formatObjectIdentifier(v[i].obj.schemaname),
@@ -108,6 +120,110 @@ getMaterializedViews(PGconn *c, int *n)
 }
 
 void
+getMaterializedViewAttributes(PGconn *c, PQLMaterializedView *v)
+{
+	char		*query = NULL;
+	int			nquery = PGQQRYLEN;
+	PGresult	*res;
+	int			i;
+	int			r;
+
+	do
+	{
+		query = (char *) malloc(nquery * sizeof(char));
+
+		/* FIXME attcollation (9.1)? */
+		r = snprintf(query, nquery,
+					 "SELECT a.attnum, a.attname, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
+					 v->obj.oid);
+
+		if (r < nquery)
+			break;
+
+		logNoise("query size: required (%u) ; initial (%u)", r, nquery);
+		nquery = r + 1;	/* make enough room for query */
+		free(query);
+	}
+	while (true);
+
+	res = PQexec(c, query);
+
+	free(query);
+
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+	{
+		logError("query failed: %s", PQresultErrorMessage(res));
+		PQclear(res);
+		PQfinish(c);
+		/* XXX leak another connection? */
+		exit(EXIT_FAILURE);
+	}
+
+	v->nattributes = PQntuples(res);
+	if (v->nattributes > 0)
+		v->attributes = (PQLAttribute *) malloc(v->nattributes * sizeof(PQLAttribute));
+	else
+		v->attributes = NULL;
+
+	logDebug("number of attributes in materialized view %s.%s: %d",
+			 formatObjectIdentifier(v->obj.schemaname),
+			 formatObjectIdentifier(v->obj.objectname), v->nattributes);
+
+	for (i = 0; i < v->nattributes; i++)
+	{
+		char	storage;
+
+		v->attributes[i].attnum = strtoul(PQgetvalue(res, i, PQfnumber(res, "attnum")),
+										  NULL, 10);
+		v->attributes[i].attname = strdup(PQgetvalue(res, i, PQfnumber(res,
+										  "attname")));
+
+		/* those fields are not used in materialized views */
+		v->attributes[i].attnotnull = false;
+		v->attributes[i].atttypname = NULL;
+		v->attributes[i].attdefexpr = NULL;
+		v->attributes[i].attcollation = NULL;
+		v->attributes[i].comment = NULL;
+
+		/* statistics target */
+		v->attributes[i].attstattarget = atoi(PQgetvalue(res, i, PQfnumber(res,
+											  "attstattarget")));
+
+		/* storage */
+		storage = PQgetvalue(res, i, PQfnumber(res, "attstorage"))[0];
+		switch (storage)
+		{
+			case 'p':
+				v->attributes[i].attstorage = strdup("PLAIN");
+				break;
+			case 'e':
+				v->attributes[i].attstorage = strdup("EXTERNAL");
+				break;
+			case 'm':
+				v->attributes[i].attstorage = strdup("MAIN");
+				break;
+			case 'x':
+				v->attributes[i].attstorage = strdup("EXTENDED");
+				break;
+			default:
+				v->attributes[i].attstorage = NULL;
+				break;
+		}
+		v->attributes[i].defstorage = (PQgetvalue(res, i, PQfnumber(res,
+									   "defstorage"))[0] == 't');
+
+		/* attribute options */
+		if (PQgetisnull(res, i, PQfnumber(res, "attoptions")))
+			v->attributes[i].attoptions = NULL;
+		else
+			v->attributes[i].attoptions = strdup(PQgetvalue(res, i, PQfnumber(res,
+												 "attoptions")));
+	}
+
+	PQclear(res);
+}
+
+void
 freeMaterializedViews(PQLMaterializedView *v, int n)
 {
 	if (n > 0)
@@ -116,6 +232,8 @@ freeMaterializedViews(PQLMaterializedView *v, int n)
 
 		for (i = 0; i < n; i++)
 		{
+			int	j;
+
 			free(v[i].obj.schemaname);
 			free(v[i].obj.objectname);
 			if (v[i].tbspcname)
@@ -126,6 +244,19 @@ freeMaterializedViews(PQLMaterializedView *v, int n)
 			if (v[i].comment)
 				free(v[i].comment);
 			free(v[i].owner);
+
+			/* attributes */
+			for (j = 0; j < v[i].nattributes; j++)
+			{
+				free(v[i].attributes[j].attname);
+				if (v[i].attributes[j].attstorage)
+					free(v[i].attributes[j].attstorage);
+				if (v[i].attributes[j].attoptions)
+					free(v[i].attributes[j].attoptions);
+			}
+
+			if (v[i].attributes)
+				free(v[i].attributes);
 		}
 
 		free(v);
@@ -144,6 +275,8 @@ dumpDropMaterializedView(FILE *output, PQLMaterializedView v)
 void
 dumpCreateMaterializedView(FILE *output, PQLMaterializedView v)
 {
+	int	i;
+
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE MATERIALIZED VIEW %s.%s",
 			formatObjectIdentifier(v.obj.schemaname),
@@ -167,6 +300,13 @@ dumpCreateMaterializedView(FILE *output, PQLMaterializedView v)
 			formatObjectIdentifier(v.obj.objectname));
 	fprintf(output, ";");
 
+	/* statistics target */
+	for (i = 0; i < v.nattributes; i++)
+	{
+		dumpAlterColumnSetStatistics(output, v, i, false);
+		dumpAlterColumnSetStorage(output, v, i, false);
+	}
+
 	/* comment */
 	if (options.comment && v.comment != NULL)
 	{
@@ -188,10 +328,151 @@ dumpCreateMaterializedView(FILE *output, PQLMaterializedView v)
 	}
 }
 
+static void
+dumpAlterColumnSetStatistics(FILE *output, PQLMaterializedView a, int i,
+							 bool force)
+{
+	if (a.attributes[i].attstattarget != -1 || force)
+	{
+		fprintf(output, "\n\n");
+		fprintf(output,
+				"ALTER MATERIALIZED VIEW %s.%s ALTER COLUMN %s SET STATISTICS %d",
+				formatObjectIdentifier(a.obj.schemaname),
+				formatObjectIdentifier(a.obj.objectname),
+				a.attributes[i].attname,
+				a.attributes[i].attstattarget);
+		fprintf(output, ";");
+	}
+}
+
+static void
+dumpAlterColumnSetStorage(FILE *output, PQLMaterializedView a, int i,
+						  bool force)
+{
+	if (!a.attributes[i].defstorage || force)
+	{
+		fprintf(output, "\n\n");
+		fprintf(output, "ALTER MATERIALIZED VIEW %s.%s ALTER COLUMN %s SET STORAGE %s",
+				formatObjectIdentifier(a.obj.schemaname),
+				formatObjectIdentifier(a.obj.objectname),
+				a.attributes[i].attname,
+				a.attributes[i].attstorage);
+		fprintf(output, ";");
+	}
+}
+
+/*
+ * Set attribute options if needed
+ */
+static void
+dumpAlterColumnSetOptions(FILE *output, PQLMaterializedView a,
+						  PQLMaterializedView b, int i)
+{
+	if (a.attributes[i].attoptions == NULL && b.attributes[i].attoptions != NULL)
+	{
+		fprintf(output, "\n\n");
+		fprintf(output, "ALTER MATERIALIZED VIEW %s.%s ALTER COLUMN %s SET (%s)",
+				formatObjectIdentifier(b.obj.schemaname),
+				formatObjectIdentifier(b.obj.objectname),
+				b.attributes[i].attname,
+				b.attributes[i].attoptions);
+	}
+	else if (a.attributes[i].attoptions != NULL &&
+			 b.attributes[i].attoptions == NULL)
+	{
+		stringList	*rlist;
+
+		rlist = diffRelOptions(a.attributes[i].attoptions, b.attributes[i].attoptions,
+							   PGQ_EXCEPT);
+		if (rlist)
+		{
+			char	*resetlist;
+
+			resetlist = printRelOptions(rlist);
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s ALTER COLUMN %s RESET (%s)",
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					b.attributes[i].attname,
+					resetlist);
+			fprintf(output, ";");
+
+			free(resetlist);
+			freeStringList(rlist);
+		}
+	}
+	else if (a.attributes[i].attoptions != NULL &&
+			 b.attributes[i].attoptions != NULL &&
+			 strcmp(a.attributes[i].attoptions, b.attributes[i].attoptions) != 0)
+	{
+		stringList	*rlist, *slist;
+
+		rlist = diffRelOptions(a.attributes[i].attoptions, b.attributes[i].attoptions,
+							   PGQ_EXCEPT);
+		if (rlist)
+		{
+			char	*resetlist;
+
+			resetlist = printRelOptions(rlist);
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s ALTER COLUMN %s RESET (%s)",
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					b.attributes[i].attname,
+					resetlist);
+			fprintf(output, ";");
+
+			free(resetlist);
+			freeStringList(rlist);
+		}
+
+		/*
+		 * FIXME we used to use diffRelOptions with PGQ_INTERSECT kind but it
+		 * is buggy. Instead, we use all options from b. It is not wrong, but
+		 * it would be nice to remove unnecessary options (e.g. same
+		 * option/value).
+		 */
+		slist = buildRelOptions(b.attributes[i].attoptions);
+		if (slist)
+		{
+			char	*setlist;
+
+			setlist = printRelOptions(slist);
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s ALTER COLUMN %s SET (%s)",
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					b.attributes[i].attname,
+					setlist);
+			fprintf(output, ";");
+
+			free(setlist);
+			freeStringList(slist);
+		}
+	}
+}
+
 void
 dumpAlterMaterializedView(FILE *output, PQLMaterializedView a,
 						  PQLMaterializedView b)
 {
+	int i;
+
+	/* the attributes are sorted by name */
+	for (i = 0; i < a.nattributes; i++)
+	{
+		/* do attribute options change? */
+		dumpAlterColumnSetOptions(output, a, b, i);
+
+		/* column statistics changed */
+		if (a.attributes[i].attstattarget != b.attributes[i].attstattarget)
+			dumpAlterColumnSetStatistics(output, b, i, true);
+
+		/* storage changed */
+		if (a.attributes[i].defstorage != b.attributes[i].defstorage)
+			dumpAlterColumnSetStorage(output, b, i, true);
+	}
+
 	/* reloptions */
 	if ((a.reloptions == NULL && b.reloptions != NULL))
 	{

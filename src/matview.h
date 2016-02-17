@@ -14,9 +14,14 @@ typedef struct PQLMaterializedView
 	char			*reloptions;
 	char			*comment;
 	char			*owner;
+
+	/* not used during CREATE */
+	PQLAttribute	*attributes;
+	int				nattributes;
 } PQLMaterializedView;
 
 PQLMaterializedView *getMaterializedViews(PGconn *c, int *n);
+void getMaterializedViewAttributes(PGconn *c, PQLMaterializedView *v);
 
 void dumpDropMaterializedView(FILE *output, PQLMaterializedView v);
 void dumpCreateMaterializedView(FILE *output, PQLMaterializedView v);

@@ -4,21 +4,6 @@
 #include "common.h"
 #include "privileges.h"
 
-typedef struct PQLAttribute
-{
-	int			attnum;
-	char		*attname;
-	bool		attnotnull;
-	char		*atttypname;
-	char		*attdefexpr;
-	char		*attcollation;
-	int			attstattarget;
-	char		*attstorage;
-	bool		defstorage;
-	char		*attoptions;
-	char		*comment;
-} PQLAttribute;
-
 typedef struct PQLTable
 {
 	PQLObject		obj;
