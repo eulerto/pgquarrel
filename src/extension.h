@@ -5,6 +5,7 @@
 
 typedef struct PQLExtension
 {
+	Oid		oid;
 	char	*extensionname;
 	char	*schemaname;
 	char	*version;

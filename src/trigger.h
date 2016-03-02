@@ -5,6 +5,7 @@
 
 typedef struct PQLTrigger
 {
+	Oid				oid;
 	char			*trgname;
 	PQLObject		table;
 	char			*trgdef;

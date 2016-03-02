@@ -6,6 +6,7 @@
 
 typedef struct PQLSchema
 {
+	Oid		oid;
 	char	*schemaname;
 	char	*comment;
 	char	*owner;

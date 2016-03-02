@@ -17,7 +17,7 @@ getTriggers(PGconn *c, int *n)
 	logNoise("trigger: server version: %d", PQserverVersion(c));
 
 	res = PQexec(c,
-				 "SELECT t.tgname AS trgname, n.nspname AS nspname, c.relname AS relname, pg_get_triggerdef(t.oid, false) AS trgdef, obj_description(t.oid, 'pg_rewrite') AS description FROM pg_trigger t INNER JOIN pg_class c ON (t.tgrelid = c.oid) INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE NOT tgisinternal");
+				 "SELECT t.oid, t.tgname AS trgname, n.nspname AS nspname, c.relname AS relname, pg_get_triggerdef(t.oid, false) AS trgdef, obj_description(t.oid, 'pg_rewrite') AS description FROM pg_trigger t INNER JOIN pg_class c ON (t.tgrelid = c.oid) INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE NOT tgisinternal");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -38,6 +38,7 @@ getTriggers(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		t[i].oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		t[i].trgname = strdup(PQgetvalue(res, i, PQfnumber(res, "tgname")));
 		t[i].table.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		t[i].table.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "relname")));

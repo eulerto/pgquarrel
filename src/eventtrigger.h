@@ -5,6 +5,7 @@
 
 typedef struct PQLEventTrigger
 {
+	Oid		oid;
 	char	*trgname;
 	char	*event;
 	char	*tags;

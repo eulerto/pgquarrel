@@ -5,6 +5,7 @@
 
 typedef struct PQLRule
 {
+	Oid			oid;
 	char		*rulename;
 	PQLObject	table;
 	char		*ruledef;

@@ -21,7 +21,7 @@ getSchemas(PGconn *c, int *n)
 	logNoise("schema: server version: %d", PQserverVersion(c));
 
 	res = PQexec(c,
-				 "SELECT nspname, obj_description(n.oid, 'pg_namespace') AS description, pg_get_userbyid(nspowner) AS nspowner, nspacl FROM pg_namespace n WHERE nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname");
+				 "SELECT n.oid, nspname, obj_description(n.oid, 'pg_namespace') AS description, pg_get_userbyid(nspowner) AS nspowner, nspacl FROM pg_namespace n WHERE nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -42,6 +42,7 @@ getSchemas(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		s[i].oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		s[i].schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			s[i].comment = NULL;

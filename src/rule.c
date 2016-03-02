@@ -17,7 +17,7 @@ getRules(PGconn *c, int *n)
 	logNoise("rule: server version: %d", PQserverVersion(c));
 
 	res = PQexec(c,
-				 "SELECT n.nspname AS schemaname, c.relname AS tablename, r.rulename, pg_get_ruledef(r.oid) AS definition, obj_description(r.oid, 'pg_rewrite') AS description FROM pg_rewrite r INNER JOIN pg_class c ON (c.oid = r.ev_class) INNER JOIN pg_namespace n ON (n.oid = c.relnamespace) WHERE r.rulename <> '_RETURN'::name AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, c.relname, r.rulename");
+				 "SELECT r.oid, n.nspname AS schemaname, c.relname AS tablename, r.rulename, pg_get_ruledef(r.oid) AS definition, obj_description(r.oid, 'pg_rewrite') AS description FROM pg_rewrite r INNER JOIN pg_class c ON (c.oid = r.ev_class) INNER JOIN pg_namespace n ON (n.oid = c.relnamespace) WHERE r.rulename <> '_RETURN'::name AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, c.relname, r.rulename");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -38,6 +38,7 @@ getRules(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		r[i].oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		r[i].table.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res,
 									   "schemaname")));
 		r[i].table.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "tablename")));

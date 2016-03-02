@@ -17,7 +17,7 @@ getEventTriggers(PGconn *c, int *n)
 	logNoise("event trigger: server version: %d", PQserverVersion(c));
 
 	res = PQexec(c,
-				 "SELECT e.evtname, e.evtevent, p.proname AS funcname, e.evtenabled, e.evttags, obj_description(e.oid, 'pg_event_trigger') AS description, pg_get_userbyid(e.evtowner) AS evtowner FROM pg_event_trigger e INNER JOIN pg_proc p ON (evtfoid = p.oid) ORDER BY evtname");
+				 "SELECT e.oid, e.evtname, e.evtevent, p.proname AS funcname, e.evtenabled, e.evttags, obj_description(e.oid, 'pg_event_trigger') AS description, pg_get_userbyid(e.evtowner) AS evtowner FROM pg_event_trigger e INNER JOIN pg_proc p ON (evtfoid = p.oid) ORDER BY evtname");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -38,6 +38,7 @@ getEventTriggers(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		e[i].oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		e[i].trgname = strdup(PQgetvalue(res, i, PQfnumber(res, "evtname")));
 		e[i].event = strdup(PQgetvalue(res, i, PQfnumber(res, "evtevent")));
 		if (PQgetisnull(res, i, PQfnumber(res, "evttags")))

@@ -6,6 +6,7 @@
 
 typedef struct PQLLanguage
 {
+	Oid		oid;
 	char	*languagename;
 	bool	pltemplate;
 	bool	trusted;

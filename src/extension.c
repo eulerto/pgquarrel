@@ -23,7 +23,7 @@ getExtensions(PGconn *c, int *n)
 	logNoise("extension: server version: %d", PQserverVersion(c));
 
 	res = PQexec(c,
-				 "SELECT extname AS extensionname, nspname, extversion AS version, extrelocatable, description FROM pg_extension e LEFT JOIN pg_namespace n ON (e.extnamespace = n.oid) LEFT JOIN (pg_description d INNER JOIN pg_class x ON (x.oid = d.classoid AND x.relname = 'pg_extension')) ON (d.objoid = e.oid) ORDER BY extname");
+				 "SELECT e.oid, extname AS extensionname, nspname, extversion AS version, extrelocatable, description FROM pg_extension e LEFT JOIN pg_namespace n ON (e.extnamespace = n.oid) LEFT JOIN (pg_description d INNER JOIN pg_class x ON (x.oid = d.classoid AND x.relname = 'pg_extension')) ON (d.objoid = e.oid) ORDER BY extname");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -44,6 +44,7 @@ getExtensions(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		e[i].oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		e[i].extensionname = strdup(PQgetvalue(res, i, PQfnumber(res,
 											   "extensionname")));
 		e[i].schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
