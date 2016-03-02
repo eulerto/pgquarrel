@@ -23,10 +23,15 @@ typedef struct PQLFunction
 	char			*comment;
 	char			*owner;
 	char			*acl;
+
+	/* security labels */
+	PQLSecLabel		*seclabels;
+	int				nseclabels;
 } PQLFunction;
 
 PQLFunction *getFunctions(PGconn *c, int *n);
 int compareFunctions(PQLFunction a, PQLFunction b);
+void getFunctionSecurityLabels(PGconn *c, PQLFunction *f);
 
 void dumpDropFunction(FILE *output, PQLFunction f);
 void dumpCreateFunction(FILE *output, PQLFunction f, bool orreplace);

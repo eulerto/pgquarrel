@@ -13,9 +13,14 @@ typedef struct PQLView
 	char			*reloptions;
 	char			*comment;
 	char			*owner;
+
+	/* security labels */
+	PQLSecLabel		*seclabels;
+	int				nseclabels;
 } PQLView;
 
 PQLView *getViews(PGconn *c, int *n);
+void getViewSecurityLabels(PGconn *c, PQLView *v);
 
 void dumpDropView(FILE *output, PQLView v);
 void dumpCreateView(FILE *output, PQLView v);

@@ -73,6 +73,14 @@ getViews(PGconn *c, int *n)
 
 		v[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "relowner")));
 
+		/*
+		 * Security labels are not assigned here (see getViewSecurityLabels),
+		 * but default values are essential to avoid having trouble in
+		 * freeViews.
+		 */
+		v[i].nseclabels = 0;
+		v[i].seclabels = NULL;
+
 		logDebug("view %s.%s", formatObjectIdentifier(v[i].obj.schemaname),
 				 formatObjectIdentifier(v[i].obj.objectname));
 	}
@@ -80,6 +88,51 @@ getViews(PGconn *c, int *n)
 	PQclear(res);
 
 	return v;
+}
+
+void
+getViewSecurityLabels(PGconn *c, PQLView *v)
+{
+	char		query[200];
+	PGresult	*res;
+	int			i;
+
+	if (PG_VERSION_NUM < 90100)
+	{
+		logWarning("ignoring security labels because server does not support it");
+		return;
+	}
+
+	snprintf(query, 200, "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_class' AND s.objoid = %u ORDER BY provider", v->obj.oid);
+
+	res = PQexec(c, query);
+
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+	{
+		logError("query failed: %s", PQresultErrorMessage(res));
+		PQclear(res);
+		PQfinish(c);
+		/* XXX leak another connection? */
+		exit(EXIT_FAILURE);
+	}
+
+	v->nseclabels = PQntuples(res);
+	if (v->nseclabels > 0)
+		v->seclabels = (PQLSecLabel *) malloc(v->nseclabels * sizeof(PQLSecLabel));
+	else
+		v->seclabels = NULL;
+
+	logDebug("number of security labels in view %s.%s: %d",
+			 formatObjectIdentifier(v->obj.schemaname),
+			 formatObjectIdentifier(v->obj.objectname), v->nseclabels);
+
+	for (i = 0; i < v->nseclabels; i++)
+	{
+		v->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res, "provider")));
+		v->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
+	}
+
+	PQclear(res);
 }
 
 void
@@ -91,6 +144,8 @@ freeViews(PQLView *v, int n)
 
 		for (i = 0; i < n; i++)
 		{
+			int	j;
+
 			free(v[i].obj.schemaname);
 			free(v[i].obj.objectname);
 			free(v[i].viewdef);
@@ -101,6 +156,16 @@ freeViews(PQLView *v, int n)
 			if (v[i].comment)
 				free(v[i].comment);
 			free(v[i].owner);
+
+			/* security labels */
+			for (j = 0; j < v[i].nseclabels; j++)
+			{
+				free(v[i].seclabels[j].provider);
+				free(v[i].seclabels[j].label);
+			}
+
+			if (v[i].seclabels)
+				free(v[i].seclabels);
 		}
 
 		free(v);
@@ -142,6 +207,22 @@ dumpCreateView(FILE *output, PQLView v)
 				formatObjectIdentifier(v.obj.schemaname),
 				formatObjectIdentifier(v.obj.objectname),
 				v.comment);
+	}
+
+	/* security labels */
+	if (options.securitylabels && v.nseclabels > 0)
+	{
+		int	i;
+
+		for (i = 0; i < v.nseclabels; i++)
+		{
+			fprintf(output, "\n\n");
+			fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS '%s';",
+					v.seclabels[i].provider,
+					formatObjectIdentifier(v.obj.schemaname),
+					formatObjectIdentifier(v.obj.objectname),
+					v.seclabels[i].label);
+		}
 	}
 
 	/* owner */
@@ -282,6 +363,99 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 			fprintf(output, "COMMENT ON VIEW %s.%s IS NULL;",
 					formatObjectIdentifier(b.obj.schemaname),
 					formatObjectIdentifier(b.obj.objectname));
+		}
+	}
+
+	/* security labels */
+	if (options.securitylabels)
+	{
+		if (a.seclabels == NULL && b.seclabels != NULL)
+		{
+			int	i;
+
+			for (i = 0; i < b.nseclabels; i++)
+			{
+				fprintf(output, "\n\n");
+				fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS '%s';",
+						b.seclabels[i].provider,
+						formatObjectIdentifier(b.obj.schemaname),
+						formatObjectIdentifier(b.obj.objectname),
+						b.seclabels[i].label);
+			}
+		}
+		else if (a.seclabels != NULL && b.seclabels == NULL)
+		{
+			int	i;
+
+			for (i = 0; i < a.nseclabels; i++)
+			{
+				fprintf(output, "\n\n");
+				fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS NULL;",
+						a.seclabels[i].provider,
+						formatObjectIdentifier(a.obj.schemaname),
+						formatObjectIdentifier(a.obj.objectname));
+			}
+		}
+		else if (a.seclabels != NULL && b.seclabels != NULL)
+		{
+			int	i, j;
+
+			i = j = 0;
+			while (i < a.nseclabels || j < b.nseclabels)
+			{
+				if (i == a.nseclabels)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS '%s';",
+							b.seclabels[j].provider,
+							formatObjectIdentifier(b.obj.schemaname),
+							formatObjectIdentifier(b.obj.objectname),
+							b.seclabels[j].label);
+					j++;
+				}
+				else if (j == b.nseclabels)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS NULL;",
+							a.seclabels[i].provider,
+							formatObjectIdentifier(a.obj.schemaname),
+							formatObjectIdentifier(a.obj.objectname));
+					i++;
+				}
+				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
+				{
+					if (strcmp(a.seclabels[i].label, b.seclabels[j].label) != 0)
+					{
+						fprintf(output, "\n\n");
+						fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS '%s';",
+								b.seclabels[j].provider,
+								formatObjectIdentifier(b.obj.schemaname),
+								formatObjectIdentifier(b.obj.objectname),
+								b.seclabels[j].label);
+					}
+					i++;
+					j++;
+				}
+				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) < 0)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS NULL;",
+							a.seclabels[i].provider,
+							formatObjectIdentifier(a.obj.schemaname),
+							formatObjectIdentifier(a.obj.objectname));
+					i++;
+				}
+				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS '%s';",
+							b.seclabels[j].provider,
+							formatObjectIdentifier(b.obj.schemaname),
+							formatObjectIdentifier(b.obj.objectname),
+							b.seclabels[j].label);
+					j++;
+				}
+			}
 		}
 	}
 

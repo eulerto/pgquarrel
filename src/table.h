@@ -34,6 +34,10 @@ typedef struct PQLTable
 	char			*comment;
 	char			*owner;
 	char			*acl;
+
+	/* security labels */
+	PQLSecLabel		*seclabels;
+	int				nseclabels;
 } PQLTable;
 
 PQLTable *getTables(PGconn *c, int *n);
@@ -42,6 +46,7 @@ void getOwnedBySequences(PGconn *c, PQLTable *t);
 void getCheckConstraints(PGconn *c, PQLTable *t, int n);
 void getFKConstraints(PGconn *c, PQLTable *t, int n);
 void getPKConstraints(PGconn *c, PQLTable *t, int n);
+void getTableSecurityLabels(PGconn *c, PQLTable *t);
 
 void dumpDropTable(FILE *output, PQLTable t);
 void dumpCreateTable(FILE *output, PQLTable t);

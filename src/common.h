@@ -49,6 +49,7 @@ typedef struct QuarrelOptions
 	bool			comment;
 	bool			owner;
 	bool			privileges;
+	bool			securitylabels;
 
 	/* From */
 	char			*fhost;
@@ -64,6 +65,12 @@ typedef struct QuarrelOptions
 	char			*tpassword;
 	char			*tdbname;
 } QuarrelOptions;
+
+typedef struct PQLSecLabel
+{
+	char	*provider;
+	char	*label;
+} PQLSecLabel;
 
 typedef struct PQLObject
 {
@@ -85,6 +92,10 @@ typedef struct PQLAttribute
 	bool		defstorage;
 	char		*attoptions;
 	char		*comment;
+
+	/* security labels */
+	PQLSecLabel	*seclabels;
+	int			nseclabels;
 } PQLAttribute;
 
 typedef struct PQLConstraint

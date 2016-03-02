@@ -17,6 +17,7 @@
  * revoke: partial
  * rule: partial
  * schema: partial
+ * security label: partial
  * sequence: partial
  * table: partial
  * trigger: partial
@@ -29,7 +30,6 @@
  * foreign table
  * server
  * user mapping
- * security label
  * text search { configuration | dictionary | parser | template }
  * aggregate
  * collation
@@ -243,6 +243,12 @@ loadConfig(const char *cf, QuarrelOptions *options)
 		else
 			options->comment = parseBoolean("comment", mini_file_get_value(config,
 											"general", "comment"));
+
+		if (mini_file_get_value(config, "general", "securitylabels") == NULL)
+			options->securitylabels = false;		/* default */
+		else
+			options->securitylabels = parseBoolean("securitylabels", mini_file_get_value(config,
+											"general", "securitylabels"));
 
 		if (mini_file_get_value(config, "general", "owner") == NULL)
 			options->owner = false;		/* default */
@@ -667,6 +673,8 @@ quarrelDomains()
 					 domains2[j].obj.objectname);
 
 			getDomainConstraints(conn2, &domains2[j]);
+			getDomainSecurityLabels(conn2, &domains2[j]);
+
 			dumpCreateDomain(fpre, domains2[j]);
 
 			j++;
@@ -690,6 +698,9 @@ quarrelDomains()
 
 			getDomainConstraints(conn1, &domains1[i]);
 			getDomainConstraints(conn2, &domains2[j]);
+			getDomainSecurityLabels(conn1, &domains1[i]);
+			getDomainSecurityLabels(conn2, &domains2[j]);
+
 			dumpAlterDomain(fpre, domains1[i], domains2[j]);
 
 			i++;
@@ -711,6 +722,8 @@ quarrelDomains()
 					 domains2[j].obj.objectname);
 
 			getDomainConstraints(conn2, &domains2[j]);
+			getDomainSecurityLabels(conn2, &domains2[j]);
+
 			dumpCreateDomain(fpre, domains2[j]);
 
 			j++;
@@ -754,6 +767,8 @@ quarrelEventTriggers()
 		{
 			logDebug("event trigger %s: server2", evttrgs2[j].trgname);
 
+			getEventTriggerSecurityLabels(conn2, &evttrgs2[j]);
+
 			dumpCreateEventTrigger(fpre, evttrgs2[j]);
 
 			j++;
@@ -773,6 +788,9 @@ quarrelEventTriggers()
 		{
 			logDebug("event trigger %s: server1 server2", evttrgs1[i].trgname);
 
+			getEventTriggerSecurityLabels(conn1, &evttrgs1[i]);
+			getEventTriggerSecurityLabels(conn2, &evttrgs2[j]);
+
 			dumpAlterEventTrigger(fpre, evttrgs1[i], evttrgs2[j]);
 
 			i++;
@@ -790,6 +808,8 @@ quarrelEventTriggers()
 		else if (strcmp(evttrgs1[i].trgname, evttrgs2[j].trgname) > 0)
 		{
 			logDebug("event trigger %s: server2", evttrgs2[j].trgname);
+
+			getEventTriggerSecurityLabels(conn2, &evttrgs2[j]);
 
 			dumpCreateEventTrigger(fpre, evttrgs2[j]);
 
@@ -920,6 +940,8 @@ quarrelFunctions()
 			logDebug("function %s.%s(%s): server2", functions2[j].obj.schemaname,
 					 functions2[j].obj.objectname, functions2[j].arguments);
 
+			getFunctionSecurityLabels(conn2, &functions2[j]);
+
 			dumpCreateFunction(fpre, functions2[j], false);
 
 			j++;
@@ -940,6 +962,9 @@ quarrelFunctions()
 		{
 			logDebug("function %s.%s(%s): server1 server2", functions1[i].obj.schemaname,
 					 functions1[i].obj.objectname, functions1[i].arguments);
+
+			getFunctionSecurityLabels(conn1, &functions1[i]);
+			getFunctionSecurityLabels(conn2, &functions2[j]);
 
 			/*
 			 * When we change return type we have to recreate the function
@@ -970,6 +995,8 @@ quarrelFunctions()
 		{
 			logDebug("function %s.%s(%s): server2", functions2[j].obj.schemaname,
 					 functions2[j].obj.objectname, functions2[j].arguments);
+
+			getFunctionSecurityLabels(conn2, &functions2[j]);
 
 			dumpCreateFunction(fpre, functions2[j], false);
 
@@ -1101,6 +1128,8 @@ quarrelLanguages()
 		{
 			logDebug("language %s: server2", languages2[j].languagename);
 
+			getLanguageSecurityLabels(conn2, &languages2[j]);
+
 			dumpCreateLanguage(fpre, languages2[j]);
 
 			j++;
@@ -1120,6 +1149,9 @@ quarrelLanguages()
 		{
 			logDebug("language %s: server1 server2", languages1[i].languagename);
 
+			getLanguageSecurityLabels(conn1, &languages1[i]);
+			getLanguageSecurityLabels(conn2, &languages2[j]);
+
 			dumpAlterLanguage(fpre, languages1[i], languages2[j]);
 
 			i++;
@@ -1137,6 +1169,8 @@ quarrelLanguages()
 		else if (strcmp(languages1[i].languagename, languages2[j].languagename) > 0)
 		{
 			logDebug("language %s: server2", languages2[j].languagename);
+
+			getLanguageSecurityLabels(conn2, &languages2[j]);
 
 			dumpCreateLanguage(fpre, languages2[j]);
 
@@ -1185,6 +1219,7 @@ quarrelMaterializedViews()
 					 matviews2[j].obj.objectname);
 
 			getMaterializedViewAttributes(conn2, &matviews2[j]);
+			getMaterializedViewSecurityLabels(conn2, &matviews2[j]);
 
 			dumpCreateMaterializedView(fpre, matviews2[j]);
 
@@ -1210,6 +1245,8 @@ quarrelMaterializedViews()
 
 			getMaterializedViewAttributes(conn1, &matviews1[i]);
 			getMaterializedViewAttributes(conn2, &matviews2[j]);
+			getMaterializedViewSecurityLabels(conn1, &matviews1[i]);
+			getMaterializedViewSecurityLabels(conn2, &matviews2[j]);
 
 			dumpAlterMaterializedView(fpre, matviews1[i], matviews2[j]);
 
@@ -1232,6 +1269,7 @@ quarrelMaterializedViews()
 					 matviews2[j].obj.objectname);
 
 			getMaterializedViewAttributes(conn2, &matviews2[j]);
+			getMaterializedViewSecurityLabels(conn2, &matviews2[j]);
 
 			dumpCreateMaterializedView(fpre, matviews2[j]);
 
@@ -1366,6 +1404,8 @@ quarrelSchemas()
 		{
 			logDebug("schema %s: server2", schemas2[j].schemaname);
 
+			getSchemaSecurityLabels(conn2, &schemas2[j]);
+
 			dumpCreateSchema(fpre, schemas2[j]);
 
 			j++;
@@ -1385,6 +1425,9 @@ quarrelSchemas()
 		{
 			logDebug("schema %s: server1 server2", schemas1[i].schemaname);
 
+			getSchemaSecurityLabels(conn1, &schemas1[i]);
+			getSchemaSecurityLabels(conn2, &schemas2[j]);
+
 			dumpAlterSchema(fpre, schemas1[i], schemas2[j]);
 
 			i++;
@@ -1402,6 +1445,8 @@ quarrelSchemas()
 		else if (strcmp(schemas1[i].schemaname, schemas2[j].schemaname) > 0)
 		{
 			logDebug("schema %s: server2", schemas2[j].schemaname);
+
+			getSchemaSecurityLabels(conn2, &schemas2[j]);
 
 			dumpCreateSchema(fpre, schemas2[j]);
 
@@ -1450,6 +1495,8 @@ quarrelSequences()
 					 sequences2[j].obj.objectname);
 
 			getSequenceAttributes(conn2, &sequences2[j]);
+			getSequenceSecurityLabels(conn2, &sequences2[j]);
+
 			dumpCreateSequence(fpre, sequences2[j]);
 
 			j++;
@@ -1473,6 +1520,9 @@ quarrelSequences()
 
 			getSequenceAttributes(conn1, &sequences1[i]);
 			getSequenceAttributes(conn2, &sequences2[j]);
+			getSequenceSecurityLabels(conn1, &sequences1[i]);
+			getSequenceSecurityLabels(conn2, &sequences2[j]);
+
 			dumpAlterSequence(fpre, sequences1[i], sequences2[j]);
 
 			i++;
@@ -1494,6 +1544,8 @@ quarrelSequences()
 					 sequences2[j].obj.objectname);
 
 			getSequenceAttributes(conn2, &sequences2[j]);
+			getSequenceSecurityLabels(conn2, &sequences2[j]);
+
 			dumpCreateSequence(fpre, sequences2[j]);
 
 			j++;
@@ -1549,6 +1601,7 @@ quarrelTables()
 
 			getTableAttributes(conn2, &tables2[j]);
 			getOwnedBySequences(conn2, &tables2[j]);
+			getTableSecurityLabels(conn2, &tables2[j]);
 
 			dumpCreateTable(fpre, tables2[j]);
 
@@ -1575,6 +1628,8 @@ quarrelTables()
 			getTableAttributes(conn2, &tables2[j]);
 			getOwnedBySequences(conn1, &tables1[i]);
 			getOwnedBySequences(conn2, &tables2[j]);
+			getTableSecurityLabels(conn1, &tables1[i]);
+			getTableSecurityLabels(conn2, &tables2[j]);
 
 			dumpAlterTable(fpre, tables1[i], tables2[j]);
 
@@ -1598,6 +1653,7 @@ quarrelTables()
 
 			getTableAttributes(conn2, &tables2[j]);
 			getOwnedBySequences(conn2, &tables2[j]);
+			getTableSecurityLabels(conn2, &tables2[j]);
 
 			dumpCreateTable(fpre, tables2[j]);
 
@@ -1735,6 +1791,8 @@ quarrelBaseTypes()
 			logDebug("type %s.%s: server2", types2[j].obj.schemaname,
 					 types2[j].obj.objectname);
 
+			getBaseTypeSecurityLabels(conn2, &types2[j]);
+
 			dumpCreateBaseType(fpre, types2[j]);
 
 			j++;
@@ -1756,6 +1814,9 @@ quarrelBaseTypes()
 			logDebug("type %s.%s: server1 server2", types1[i].obj.schemaname,
 					 types1[i].obj.objectname);
 
+			getBaseTypeSecurityLabels(conn1, &types1[i]);
+			getBaseTypeSecurityLabels(conn2, &types2[j]);
+
 			dumpAlterBaseType(fpre, types1[i], types2[j]);
 
 			i++;
@@ -1775,6 +1836,8 @@ quarrelBaseTypes()
 		{
 			logDebug("type %s.%s: server2", types2[j].obj.schemaname,
 					 types2[j].obj.objectname);
+
+			getBaseTypeSecurityLabels(conn2, &types2[j]);
 
 			dumpCreateBaseType(fpre, types2[j]);
 
@@ -1822,6 +1885,8 @@ quarrelCompositeTypes()
 			logDebug("type %s.%s: server2", types2[j].obj.schemaname,
 					 types2[j].obj.objectname);
 
+			getCompositeTypeSecurityLabels(conn2, &types2[j]);
+
 			dumpCreateCompositeType(fpre, types2[j]);
 
 			j++;
@@ -1843,6 +1908,9 @@ quarrelCompositeTypes()
 			logDebug("type %s.%s: server1 server2", types1[i].obj.schemaname,
 					 types1[i].obj.objectname);
 
+			getCompositeTypeSecurityLabels(conn1, &types1[i]);
+			getCompositeTypeSecurityLabels(conn2, &types2[j]);
+
 			dumpAlterCompositeType(fpre, types1[i], types2[j]);
 
 			i++;
@@ -1862,6 +1930,8 @@ quarrelCompositeTypes()
 		{
 			logDebug("type %s.%s: server2", types2[j].obj.schemaname,
 					 types2[j].obj.objectname);
+
+			getCompositeTypeSecurityLabels(conn2, &types2[j]);
 
 			dumpCreateCompositeType(fpre, types2[j]);
 
@@ -1909,6 +1979,8 @@ quarrelEnumTypes()
 			logDebug("type %s.%s: server2", types2[j].obj.schemaname,
 					 types2[j].obj.objectname);
 
+			getEnumTypeSecurityLabels(conn2, &types2[j]);
+
 			dumpCreateEnumType(fpre, types2[j]);
 
 			j++;
@@ -1930,6 +2002,9 @@ quarrelEnumTypes()
 			logDebug("type %s.%s: server1 server2", types1[i].obj.schemaname,
 					 types1[i].obj.objectname);
 
+			getEnumTypeSecurityLabels(conn1, &types1[i]);
+			getEnumTypeSecurityLabels(conn2, &types2[j]);
+
 			dumpAlterEnumType(fpre, types1[i], types2[j]);
 
 			i++;
@@ -1949,6 +2024,8 @@ quarrelEnumTypes()
 		{
 			logDebug("type %s.%s: server2", types2[j].obj.schemaname,
 					 types2[j].obj.objectname);
+
+			getEnumTypeSecurityLabels(conn2, &types2[j]);
 
 			dumpCreateEnumType(fpre, types2[j]);
 
@@ -1996,6 +2073,8 @@ quarrelRangeTypes()
 			logDebug("type %s.%s: server2", types2[j].obj.schemaname,
 					 types2[j].obj.objectname);
 
+			getRangeTypeSecurityLabels(conn2, &types2[j]);
+
 			dumpCreateRangeType(fpre, types2[j]);
 
 			j++;
@@ -2017,6 +2096,9 @@ quarrelRangeTypes()
 			logDebug("type %s.%s: server1 server2", types1[i].obj.schemaname,
 					 types1[i].obj.objectname);
 
+			getRangeTypeSecurityLabels(conn1, &types1[i]);
+			getRangeTypeSecurityLabels(conn2, &types2[j]);
+
 			dumpAlterRangeType(fpre, types1[i], types2[j]);
 
 			i++;
@@ -2036,6 +2118,8 @@ quarrelRangeTypes()
 		{
 			logDebug("type %s.%s: server2", types2[j].obj.schemaname,
 					 types2[j].obj.objectname);
+
+			getRangeTypeSecurityLabels(conn2, &types2[j]);
 
 			dumpCreateRangeType(fpre, types2[j]);
 
@@ -2092,6 +2176,8 @@ quarrelViews()
 			logDebug("view %s.%s: server2", views2[j].obj.schemaname,
 					 views2[j].obj.objectname);
 
+			getViewSecurityLabels(conn2, &views2[j]);
+
 			dumpCreateView(fpre, views2[j]);
 
 			j++;
@@ -2113,6 +2199,9 @@ quarrelViews()
 			logDebug("view %s.%s: server1 server2", views1[i].obj.schemaname,
 					 views1[i].obj.objectname);
 
+			getViewSecurityLabels(conn1, &views1[i]);
+			getViewSecurityLabels(conn2, &views2[j]);
+
 			dumpAlterView(fpre, views1[i], views2[j]);
 
 			i++;
@@ -2132,6 +2221,8 @@ quarrelViews()
 		{
 			logDebug("view %s.%s: server2", views2[j].obj.schemaname,
 					 views2[j].obj.objectname);
+
+			getViewSecurityLabels(conn2, &views2[j]);
 
 			dumpCreateView(fpre, views2[j]);
 

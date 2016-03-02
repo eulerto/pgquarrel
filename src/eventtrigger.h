@@ -13,9 +13,14 @@ typedef struct PQLEventTrigger
 	char	enabled;
 	char	*comment;
 	char	*owner;
+
+	/* security labels */
+	PQLSecLabel	*seclabels;
+	int			nseclabels;
 } PQLEventTrigger;
 
 PQLEventTrigger *getEventTriggers(PGconn *c, int *n);
+void getEventTriggerSecurityLabels(PGconn *c, PQLEventTrigger *e);
 
 void dumpDropEventTrigger(FILE *output, PQLEventTrigger e);
 void dumpCreateEventTrigger(FILE *output, PQLEventTrigger e);

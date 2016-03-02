@@ -148,6 +148,11 @@ Features
 		<td></td>
 	</tr>
 	<tr>
+		<td>SECURITY LABEL</td>
+		<td>partial</td>
+		<td></td>
+	</tr>
+	<tr>
 		<td>FOREIGN DATA WRAPPER</td>
 		<td>not implemented</td>
 		<td></td>
@@ -164,11 +169,6 @@ Features
 	</tr>
 	<tr>
 		<td>USER MAPPING</td>
-		<td>not implemented</td>
-		<td></td>
-	</tr>
-	<tr>
-		<td>SECURITY LABEL</td>
 		<td>not implemented</td>
 		<td></td>
 	</tr>

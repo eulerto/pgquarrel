@@ -70,6 +70,14 @@ getSequences(PGconn *c, int *n)
 		s[i].maxvalue = NULL;
 		s[i].cache = NULL;
 
+		/*
+		 * Security labels are not assigned here (see
+		 * getSequenceSecurityLabels), but default values are essential to
+		 * avoid having trouble in freeSequences.
+		 */
+		s[i].nseclabels = 0;
+		s[i].seclabels = NULL;
+
 		logDebug("sequence %s.%s", formatObjectIdentifier(s[i].obj.schemaname),
 				 formatObjectIdentifier(s[i].obj.objectname));
 	}
@@ -134,6 +142,51 @@ getSequenceAttributes(PGconn *c, PQLSequence *s)
 }
 
 void
+getSequenceSecurityLabels(PGconn *c, PQLSequence *s)
+{
+	char		query[200];
+	PGresult	*res;
+	int			i;
+
+	if (PG_VERSION_NUM < 90100)
+	{
+		logWarning("ignoring security labels because server does not support it");
+		return;
+	}
+
+	snprintf(query, 200, "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_class' AND s.objoid = %u ORDER BY provider", s->obj.oid);
+
+	res = PQexec(c, query);
+
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+	{
+		logError("query failed: %s", PQresultErrorMessage(res));
+		PQclear(res);
+		PQfinish(c);
+		/* XXX leak another connection? */
+		exit(EXIT_FAILURE);
+	}
+
+	s->nseclabels = PQntuples(res);
+	if (s->nseclabels > 0)
+		s->seclabels = (PQLSecLabel *) malloc(s->nseclabels * sizeof(PQLSecLabel));
+	else
+		s->seclabels = NULL;
+
+	logDebug("number of security labels in sequence %s.%s: %d",
+			 formatObjectIdentifier(s->obj.schemaname),
+			 formatObjectIdentifier(s->obj.objectname), s->nseclabels);
+
+	for (i = 0; i < s->nseclabels; i++)
+	{
+		s->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res, "provider")));
+		s->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
+	}
+
+	PQclear(res);
+}
+
+void
 freeSequences(PQLSequence *s, int n)
 {
 	if (n > 0)
@@ -142,6 +195,8 @@ freeSequences(PQLSequence *s, int n)
 
 		for (i = 0; i < n; i++)
 		{
+			int	j;
+
 			free(s[i].obj.schemaname);
 			free(s[i].obj.objectname);
 			if (s[i].comment)
@@ -160,6 +215,16 @@ freeSequences(PQLSequence *s, int n)
 				free(s[i].minvalue);
 			if (s[i].cache)
 				free(s[i].cache);
+
+			/* security labels */
+			for (j = 0; j < s[i].nseclabels; j++)
+			{
+				free(s[i].seclabels[j].provider);
+				free(s[i].seclabels[j].label);
+			}
+
+			if (s[i].seclabels)
+				free(s[i].seclabels);
 		}
 
 		free(s);
@@ -217,6 +282,22 @@ dumpCreateSequence(FILE *output, PQLSequence s)
 				formatObjectIdentifier(s.obj.schemaname),
 				formatObjectIdentifier(s.obj.objectname),
 				s.comment);
+	}
+
+	/* security labels */
+	if (options.securitylabels && s.nseclabels > 0)
+	{
+		int	i;
+
+		for (i = 0; i < s.nseclabels; i++)
+		{
+			fprintf(output, "\n\n");
+			fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
+					s.seclabels[i].provider,
+					formatObjectIdentifier(s.obj.schemaname),
+					formatObjectIdentifier(s.obj.objectname),
+					s.seclabels[i].label);
+		}
 	}
 
 	/* owner */
@@ -349,6 +430,99 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 			fprintf(output, "COMMENT ON SEQUENCE %s.%s IS NULL;",
 					formatObjectIdentifier(b.obj.schemaname),
 					formatObjectIdentifier(b.obj.objectname));
+		}
+	}
+
+	/* security labels */
+	if (options.securitylabels)
+	{
+		if (a.seclabels == NULL && b.seclabels != NULL)
+		{
+			int	i;
+
+			for (i = 0; i < b.nseclabels; i++)
+			{
+				fprintf(output, "\n\n");
+				fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
+						b.seclabels[i].provider,
+						formatObjectIdentifier(b.obj.schemaname),
+						formatObjectIdentifier(b.obj.objectname),
+						b.seclabels[i].label);
+			}
+		}
+		else if (a.seclabels != NULL && b.seclabels == NULL)
+		{
+			int	i;
+
+			for (i = 0; i < a.nseclabels; i++)
+			{
+				fprintf(output, "\n\n");
+				fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS NULL;",
+						a.seclabels[i].provider,
+						formatObjectIdentifier(a.obj.schemaname),
+						formatObjectIdentifier(a.obj.objectname));
+			}
+		}
+		else if (a.seclabels != NULL && b.seclabels != NULL)
+		{
+			int	i, j;
+
+			i = j = 0;
+			while (i < a.nseclabels || j < b.nseclabels)
+			{
+				if (i == a.nseclabels)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
+							b.seclabels[j].provider,
+							formatObjectIdentifier(b.obj.schemaname),
+							formatObjectIdentifier(b.obj.objectname),
+							b.seclabels[j].label);
+					j++;
+				}
+				else if (j == b.nseclabels)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS NULL;",
+							a.seclabels[i].provider,
+							formatObjectIdentifier(a.obj.schemaname),
+							formatObjectIdentifier(a.obj.objectname));
+					i++;
+				}
+				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
+				{
+					if (strcmp(a.seclabels[i].label, b.seclabels[j].label) != 0)
+					{
+						fprintf(output, "\n\n");
+						fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
+								b.seclabels[j].provider,
+								formatObjectIdentifier(b.obj.schemaname),
+								formatObjectIdentifier(b.obj.objectname),
+								b.seclabels[j].label);
+					}
+					i++;
+					j++;
+				}
+				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) < 0)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS NULL;",
+							a.seclabels[i].provider,
+							formatObjectIdentifier(a.obj.schemaname),
+							formatObjectIdentifier(a.obj.objectname));
+					i++;
+				}
+				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
+							b.seclabels[j].provider,
+							formatObjectIdentifier(b.obj.schemaname),
+							formatObjectIdentifier(b.obj.objectname),
+							b.seclabels[j].label);
+					j++;
+				}
+			}
 		}
 	}
 

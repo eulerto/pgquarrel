@@ -77,6 +77,14 @@ getFunctions(PGconn *c, int *n)
 		else
 			f[i].acl = strdup(PQgetvalue(res, i, PQfnumber(res, "proacl")));
 
+		/*
+		 * Security labels are not assigned here (see getFunctionSecurityLabels),
+		 * but default values are essential to avoid having trouble in
+		 * freeFunctions.
+		 */
+		f[i].nseclabels = 0;
+		f[i].seclabels = NULL;
+
 		logDebug("function %s.%s(%s)", formatObjectIdentifier(f[i].obj.schemaname),
 				 formatObjectIdentifier(f[i].obj.objectname), f[i].arguments);
 	}
@@ -107,6 +115,53 @@ compareFunctions(PQLFunction a, PQLFunction b)
 }
 
 void
+getFunctionSecurityLabels(PGconn *c, PQLFunction *f)
+{
+	char		query[200];
+	PGresult	*res;
+	int			i;
+
+	if (PG_VERSION_NUM < 90100)
+	{
+		logWarning("ignoring security labels because server does not support it");
+		return;
+	}
+
+	snprintf(query, 200, "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_proc' AND s.objoid = %u ORDER BY provider", f->obj.oid);
+
+	res = PQexec(c, query);
+
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+	{
+		logError("query failed: %s", PQresultErrorMessage(res));
+		PQclear(res);
+		PQfinish(c);
+		/* XXX leak another connection? */
+		exit(EXIT_FAILURE);
+	}
+
+	f->nseclabels = PQntuples(res);
+	if (f->nseclabels > 0)
+		f->seclabels = (PQLSecLabel *) malloc(f->nseclabels * sizeof(PQLSecLabel));
+	else
+		f->seclabels = NULL;
+
+	logDebug("number of security labels in function %s.%s(%s): %d",
+			 formatObjectIdentifier(f->obj.schemaname),
+			 formatObjectIdentifier(f->obj.objectname),
+			 f->arguments,
+			 f->nseclabels);
+
+	for (i = 0; i < f->nseclabels; i++)
+	{
+		f->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res, "provider")));
+		f->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
+	}
+
+	PQclear(res);
+}
+
+void
 freeFunctions(PQLFunction *f, int n)
 {
 	if (n > 0)
@@ -115,6 +170,8 @@ freeFunctions(PQLFunction *f, int n)
 
 		for (i = 0; i < n; i++)
 		{
+			int	j;
+
 			free(f[i].obj.schemaname);
 			free(f[i].obj.objectname);
 			free(f[i].arguments);
@@ -130,6 +187,16 @@ freeFunctions(PQLFunction *f, int n)
 			free(f[i].owner);
 			if (f[i].acl)
 				free(f[i].acl);
+
+			/* security labels */
+			for (j = 0; j < f[i].nseclabels; j++)
+			{
+				free(f[i].seclabels[j].provider);
+				free(f[i].seclabels[j].label);
+			}
+
+			if (f[i].seclabels)
+				free(f[i].seclabels);
 		}
 
 		free(f);
@@ -224,6 +291,23 @@ dumpCreateFunction(FILE *output, PQLFunction f, bool orreplace)
 				formatObjectIdentifier(f.obj.objectname),
 				f.arguments,
 				f.comment);
+	}
+
+	/* security labels */
+	if (options.securitylabels && f.nseclabels > 0)
+	{
+		int	i;
+
+		for (i = 0; i < f.nseclabels; i++)
+		{
+			fprintf(output, "\n\n");
+			fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
+					f.seclabels[i].provider,
+					formatObjectIdentifier(f.obj.schemaname),
+					formatObjectIdentifier(f.obj.objectname),
+					f.arguments,
+					f.seclabels[i].label);
+		}
 	}
 
 	/* owner */
@@ -488,6 +572,106 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 					formatObjectIdentifier(b.obj.schemaname),
 					formatObjectIdentifier(b.obj.objectname),
 					b.arguments);
+		}
+	}
+
+	/* security labels */
+	if (options.securitylabels)
+	{
+		if (a.seclabels == NULL && b.seclabels != NULL)
+		{
+			int	i;
+
+			for (i = 0; i < b.nseclabels; i++)
+			{
+				fprintf(output, "\n\n");
+				fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
+						b.seclabels[i].provider,
+						formatObjectIdentifier(b.obj.schemaname),
+						formatObjectIdentifier(b.obj.objectname),
+						b.arguments,
+						b.seclabels[i].label);
+			}
+		}
+		else if (a.seclabels != NULL && b.seclabels == NULL)
+		{
+			int	i;
+
+			for (i = 0; i < a.nseclabels; i++)
+			{
+				fprintf(output, "\n\n");
+				fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS NULL;",
+						a.seclabels[i].provider,
+						formatObjectIdentifier(a.obj.schemaname),
+						formatObjectIdentifier(a.obj.objectname),
+						a.arguments);
+			}
+		}
+		else if (a.seclabels != NULL && b.seclabels != NULL)
+		{
+			int	i, j;
+
+			i = j = 0;
+			while (i < a.nseclabels || j < b.nseclabels)
+			{
+				if (i == a.nseclabels)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
+							b.seclabels[j].provider,
+							formatObjectIdentifier(b.obj.schemaname),
+							formatObjectIdentifier(b.obj.objectname),
+							b.arguments,
+							b.seclabels[j].label);
+					j++;
+				}
+				else if (j == b.nseclabels)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS NULL;",
+							a.seclabels[i].provider,
+							formatObjectIdentifier(a.obj.schemaname),
+							formatObjectIdentifier(a.obj.objectname),
+							a.arguments);
+					i++;
+				}
+				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
+				{
+					if (strcmp(a.seclabels[i].label, b.seclabels[j].label) != 0)
+					{
+						fprintf(output, "\n\n");
+						fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
+								b.seclabels[j].provider,
+								formatObjectIdentifier(b.obj.schemaname),
+								formatObjectIdentifier(b.obj.objectname),
+								b.arguments,
+								b.seclabels[j].label);
+					}
+					i++;
+					j++;
+				}
+				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) < 0)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS NULL;",
+							a.seclabels[i].provider,
+							formatObjectIdentifier(a.obj.schemaname),
+							formatObjectIdentifier(a.obj.objectname),
+							a.arguments);
+					i++;
+				}
+				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
+							b.seclabels[j].provider,
+							formatObjectIdentifier(b.obj.schemaname),
+							formatObjectIdentifier(b.obj.objectname),
+							b.arguments,
+							b.seclabels[j].label);
+					j++;
+				}
+			}
 		}
 	}
 

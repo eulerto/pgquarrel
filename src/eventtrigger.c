@@ -54,12 +54,64 @@ getEventTriggers(PGconn *c, int *n)
 
 		e[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "evtowner")));
 
+		/*
+		 * Security labels are not assigned here (see
+		 * getEventTriggerSecurityLabels), but default values are essential to
+		 * avoid having trouble in freeEventTriggers.
+		 */
+		e[i].nseclabels = 0;
+		e[i].seclabels = NULL;
+
 		logDebug("event trigger %s", formatObjectIdentifier(e[i].trgname));
 	}
 
 	PQclear(res);
 
 	return e;
+}
+
+void
+getEventTriggerSecurityLabels(PGconn *c, PQLEventTrigger *e)
+{
+	char		query[200];
+	PGresult	*res;
+	int			i;
+
+	if (PG_VERSION_NUM < 90100)
+	{
+		logWarning("ignoring security labels because server does not support it");
+		return;
+	}
+
+	snprintf(query, 200, "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_event_trigger' AND s.objoid = %u ORDER BY provider", e->oid);
+
+	res = PQexec(c, query);
+
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+	{
+		logError("query failed: %s", PQresultErrorMessage(res));
+		PQclear(res);
+		PQfinish(c);
+		/* XXX leak another connection? */
+		exit(EXIT_FAILURE);
+	}
+
+	e->nseclabels = PQntuples(res);
+	if (e->nseclabels > 0)
+		e->seclabels = (PQLSecLabel *) malloc(e->nseclabels * sizeof(PQLSecLabel));
+	else
+		e->seclabels = NULL;
+
+	logDebug("number of security labels in event trigger %s: %d",
+			 formatObjectIdentifier(e->trgname), e->nseclabels);
+
+	for (i = 0; i < e->nseclabels; i++)
+	{
+		e->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res, "provider")));
+		e->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
+	}
+
+	PQclear(res);
 }
 
 void
@@ -71,6 +123,8 @@ freeEventTriggers(PQLEventTrigger *e, int n)
 
 		for (i = 0; i < n; i++)
 		{
+			int	j;
+
 			free(e[i].trgname);
 			free(e[i].event);
 			if (e[i].tags)
@@ -79,6 +133,16 @@ freeEventTriggers(PQLEventTrigger *e, int n)
 			if (e[i].comment)
 				free(e[i].comment);
 			free(e[i].owner);
+
+			/* security labels */
+			for (j = 0; j < e[i].nseclabels; j++)
+			{
+				free(e[i].seclabels[j].provider);
+				free(e[i].seclabels[j].label);
+			}
+
+			if (e[i].seclabels)
+				free(e[i].seclabels);
 		}
 
 		free(e);
@@ -130,6 +194,21 @@ dumpCreateEventTrigger(FILE *output, PQLEventTrigger e)
 		fprintf(output, "COMMENT ON EVENT TRIGGER %s IS '%s';",
 				formatObjectIdentifier(e.trgname),
 				e.comment);
+	}
+
+	/* security labels */
+	if (options.securitylabels && e.nseclabels > 0)
+	{
+		int	i;
+
+		for (i = 0; i < e.nseclabels; i++)
+		{
+			fprintf(output, "\n\n");
+			fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS '%s';",
+					e.seclabels[i].provider,
+					formatObjectIdentifier(e.trgname),
+					e.seclabels[i].label);
+		}
 	}
 
 	/* owner */
@@ -199,6 +278,92 @@ dumpAlterEventTrigger(FILE *output, PQLEventTrigger a, PQLEventTrigger b)
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON EVENT TRIGGER %s IS NULL;",
 					formatObjectIdentifier(b.trgname));
+		}
+	}
+
+	/* security labels */
+	if (options.securitylabels)
+	{
+		if (a.seclabels == NULL && b.seclabels != NULL)
+		{
+			int	i;
+
+			for (i = 0; i < b.nseclabels; i++)
+			{
+				fprintf(output, "\n\n");
+				fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS '%s';",
+						b.seclabels[i].provider,
+						formatObjectIdentifier(b.trgname),
+						b.seclabels[i].label);
+			}
+		}
+		else if (a.seclabels != NULL && b.seclabels == NULL)
+		{
+			int	i;
+
+			for (i = 0; i < a.nseclabels; i++)
+			{
+				fprintf(output, "\n\n");
+				fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS NULL;",
+						a.seclabels[i].provider,
+						formatObjectIdentifier(a.trgname));
+			}
+		}
+		else if (a.seclabels != NULL && b.seclabels != NULL)
+		{
+			int	i, j;
+
+			i = j = 0;
+			while (i < a.nseclabels || j < b.nseclabels)
+			{
+				if (i == a.nseclabels)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS '%s';",
+							b.seclabels[j].provider,
+							formatObjectIdentifier(b.trgname),
+							b.seclabels[j].label);
+					j++;
+				}
+				else if (j == b.nseclabels)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS NULL;",
+							a.seclabels[i].provider,
+							formatObjectIdentifier(a.trgname));
+					i++;
+				}
+				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
+				{
+					if (strcmp(a.seclabels[i].label, b.seclabels[j].label) != 0)
+					{
+						fprintf(output, "\n\n");
+						fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS '%s';",
+								b.seclabels[j].provider,
+								formatObjectIdentifier(b.trgname),
+								b.seclabels[j].label);
+					}
+					i++;
+					j++;
+				}
+				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) < 0)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS NULL;",
+							a.seclabels[i].provider,
+							formatObjectIdentifier(a.trgname));
+					i++;
+				}
+				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS '%s';",
+							b.seclabels[j].provider,
+							formatObjectIdentifier(b.trgname),
+							b.seclabels[j].label);
+					j++;
+				}
+			}
 		}
 	}
 

@@ -130,6 +130,14 @@ getTables(PGconn *c, int *n)
 		/* assigned iif REPLICA IDENTITY USING INDEX; see getTableAttributes() */
 		t[i].relreplidentidx = NULL;
 
+		/*
+		 * Security labels are not assigned here (see getTableSecurityLabels),
+		 * but default values are essential to avoid having trouble in
+		 * freeTables.
+		 */
+		t[i].nseclabels = 0;
+		t[i].seclabels = NULL;
+
 		logDebug("table %s.%s", formatObjectIdentifier(t[i].obj.schemaname),
 				 formatObjectIdentifier(t[i].obj.objectname));
 	}
@@ -455,6 +463,14 @@ getTableAttributes(PGconn *c, PQLTable *t)
 			t->attributes[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res,
 											  "description")));
 
+		/*
+		 * Security labels are not assigned here (see getTableSecurityLabels),
+		 * but default values are essential to avoid having trouble in
+		 * freeTables.
+		 */
+		t->attributes[i].nseclabels = 0;
+		t->attributes[i].seclabels = NULL;
+
 		if (t->attributes[i].attdefexpr != NULL)
 			logDebug("table: %s.%s ; attribute %s; type: %s ; default: %s ; storage: %s",
 					 formatObjectIdentifier(t->obj.schemaname),
@@ -522,6 +538,90 @@ getTableAttributes(PGconn *c, PQLTable *t)
 }
 
 void
+getTableSecurityLabels(PGconn *c, PQLTable *t)
+{
+	char		query[200];
+	PGresult	*res;
+	int			i;
+
+	if (PG_VERSION_NUM < 90100)
+	{
+		logWarning("ignoring security labels because server does not support it");
+		return;
+	}
+
+	snprintf(query, 200, "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_class' AND s.objoid = %u ORDER BY provider", t->obj.oid);
+
+	res = PQexec(c, query);
+
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+	{
+		logError("query failed: %s", PQresultErrorMessage(res));
+		PQclear(res);
+		PQfinish(c);
+		/* XXX leak another connection? */
+		exit(EXIT_FAILURE);
+	}
+
+	t->nseclabels = PQntuples(res);
+	if (t->nseclabels > 0)
+		t->seclabels = (PQLSecLabel *) malloc(t->nseclabels * sizeof(PQLSecLabel));
+	else
+		t->seclabels = NULL;
+
+	logDebug("number of security labels in table %s.%s: %d",
+			 formatObjectIdentifier(t->obj.schemaname),
+			 formatObjectIdentifier(t->obj.objectname), t->nseclabels);
+
+	for (i = 0; i < t->nseclabels; i++)
+	{
+		t->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res, "provider")));
+		t->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
+	}
+
+	PQclear(res);
+
+	/* attributes */
+	for (i = 0; i < t->nattributes; i++)
+	{
+		int		j;
+
+		snprintf(query, 200, "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_attribute' AND s.objoid = %u AND s.objsubid = %u ORDER BY provider", t->obj.oid, t->attributes[i].attnum);
+
+		res = PQexec(c, query);
+
+		if (PQresultStatus(res) != PGRES_TUPLES_OK)
+		{
+			logError("query failed: %s", PQresultErrorMessage(res));
+			PQclear(res);
+			PQfinish(c);
+			/* XXX leak another connection? */
+			exit(EXIT_FAILURE);
+		}
+
+		t->attributes[i].nseclabels = PQntuples(res);
+		if (t->attributes[i].nseclabels > 0)
+			t->attributes[i].seclabels = (PQLSecLabel *) malloc(t->attributes[i].nseclabels * sizeof(PQLSecLabel));
+		else
+			t->attributes[i].seclabels = NULL;
+
+		logDebug("number of security labels in table %s.%s attribute %s: %d",
+				 formatObjectIdentifier(t->obj.schemaname),
+				 formatObjectIdentifier(t->obj.objectname),
+				 t->attributes[i].attname,
+				 t->attributes[i].nseclabels);
+
+		for (j = 0; j < t->attributes[i].nseclabels; j++)
+		{
+			t->attributes[i].seclabels[j].provider = strdup(PQgetvalue(res, j, PQfnumber(res, "provider")));
+			t->attributes[i].seclabels[j].label = strdup(PQgetvalue(res, j, PQfnumber(res, "label")));
+		}
+
+		PQclear(res);
+	}
+}
+
+void
 freeTables(PQLTable *t, int n)
 {
 	if (n > 0)
@@ -546,9 +646,21 @@ freeTables(PQLTable *t, int n)
 			if (t[i].acl)
 				free(t[i].acl);
 
+			/* security labels */
+			for (j = 0; j < t[i].nseclabels; j++)
+			{
+				free(t[i].seclabels[j].provider);
+				free(t[i].seclabels[j].label);
+			}
+
+			if (t[i].seclabels)
+				free(t[i].seclabels);
+
 			/* attributes */
 			for (j = 0; j < t[i].nattributes; j++)
 			{
+				int	k;
+
 				free(t[i].attributes[j].attname);
 				free(t[i].attributes[j].atttypname);
 				if (t[i].attributes[j].attdefexpr)
@@ -561,6 +673,16 @@ freeTables(PQLTable *t, int n)
 					free(t[i].attributes[j].attoptions);
 				if (t[i].attributes[j].comment)
 					free(t[i].attributes[j].comment);
+
+				/* security labels */
+				for (k = 0; k < t[i].attributes[j].nseclabels; k++)
+				{
+					free(t[i].attributes[j].seclabels[k].provider);
+					free(t[i].attributes[j].seclabels[k].label);
+				}
+
+				if (t[i].attributes[j].seclabels)
+					free(t[i].attributes[j].seclabels);
 			}
 
 			/* check constraints */
@@ -900,6 +1022,40 @@ dumpCreateTable(FILE *output, PQLTable t)
 		}
 	}
 
+	/* security labels */
+	if (options.securitylabels && t.nseclabels > 0)
+	{
+		for (i = 0; i < t.nseclabels; i++)
+		{
+			fprintf(output, "\n\n");
+			fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS '%s';",
+					t.seclabels[i].provider,
+					formatObjectIdentifier(t.obj.schemaname),
+					formatObjectIdentifier(t.obj.objectname),
+					t.seclabels[i].label);
+		}
+
+		/* attributes */
+		for (i = 0; i < t.nattributes; i++)
+		{
+			if (t.attributes[i].nseclabels > 0)
+			{
+				int	j;
+
+				for (j = 0; j < t.attributes[i].nseclabels; j++)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
+							t.attributes[i].seclabels[j].provider,
+							formatObjectIdentifier(t.obj.schemaname),
+							formatObjectIdentifier(t.obj.objectname),
+							t.attributes[i].attname,
+							t.attributes[i].seclabels[j].label);
+				}
+			}
+		}
+	}
+
 	/* owner */
 	if (options.owner)
 	{
@@ -959,6 +1115,23 @@ dumpAddColumn(FILE *output, PQLTable t, int i)
 				formatObjectIdentifier(t.obj.objectname),
 				formatObjectIdentifier(t.attributes[i].attname),
 				t.attributes[i].comment);
+	}
+
+	/* security labels */
+	if (options.securitylabels && t.attributes[i].nseclabels > 0)
+	{
+		int	j;
+
+		for (j = 0; j < t.attributes[i].nseclabels; j++)
+		{
+			fprintf(output, "\n\n");
+			fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
+					t.attributes[i].seclabels[j].provider,
+					formatObjectIdentifier(t.obj.schemaname),
+					formatObjectIdentifier(t.obj.objectname),
+					formatObjectIdentifier(t.attributes[i].attname),
+					t.attributes[i].seclabels[j].label);
+		}
 	}
 }
 
@@ -1045,6 +1218,106 @@ dumpAlterColumn(FILE *output, PQLTable a, int i, PQLTable b, int j)
 					formatObjectIdentifier(b.obj.schemaname),
 					formatObjectIdentifier(b.obj.objectname),
 					formatObjectIdentifier(b.attributes[j].attname));
+		}
+	}
+
+	/* security labels */
+	if (options.securitylabels)
+	{
+		if (a.attributes[i].seclabels == NULL && b.attributes[j].seclabels != NULL)
+		{
+			int	k;
+
+			for (k = 0; k < b.attributes[j].nseclabels; k++)
+			{
+				fprintf(output, "\n\n");
+				fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
+						b.attributes[j].seclabels[k].provider,
+						formatObjectIdentifier(b.obj.schemaname),
+						formatObjectIdentifier(b.obj.objectname),
+						formatObjectIdentifier(b.attributes[j].attname),
+						b.attributes[j].seclabels[k].label);
+			}
+		}
+		else if (a.attributes[i].seclabels != NULL && b.attributes[j].seclabels == NULL)
+		{
+			int	k;
+
+			for (k = 0; k < a.nseclabels; k++)
+			{
+				fprintf(output, "\n\n");
+				fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS NULL;",
+						a.attributes[i].seclabels[k].provider,
+						formatObjectIdentifier(a.obj.schemaname),
+						formatObjectIdentifier(a.obj.objectname),
+						formatObjectIdentifier(a.attributes[i].attname));
+			}
+		}
+		else if (a.attributes[i].seclabels != NULL && b.attributes[j].seclabels != NULL)
+		{
+			int	k, l;
+
+			k = l = 0;
+			while (k < a.attributes[i].nseclabels || l < b.attributes[j].nseclabels)
+			{
+				if (k == a.attributes[i].nseclabels)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
+							b.attributes[j].seclabels[l].provider,
+							formatObjectIdentifier(b.obj.schemaname),
+							formatObjectIdentifier(b.obj.objectname),
+							formatObjectIdentifier(b.attributes[j].attname),
+							b.attributes[j].seclabels[l].label);
+					l++;
+				}
+				else if (l == b.attributes[j].nseclabels)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS NULL;",
+							a.attributes[i].seclabels[k].provider,
+							formatObjectIdentifier(a.obj.schemaname),
+							formatObjectIdentifier(a.obj.objectname),
+							formatObjectIdentifier(a.attributes[i].attname));
+					k++;
+				}
+				else if (strcmp(a.attributes[i].seclabels[k].provider, b.attributes[j].seclabels[l].provider) == 0)
+				{
+					if (strcmp(a.attributes[i].seclabels[k].label, b.attributes[j].seclabels[l].label) != 0)
+					{
+						fprintf(output, "\n\n");
+						fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
+								b.attributes[j].seclabels[l].provider,
+								formatObjectIdentifier(b.obj.schemaname),
+								formatObjectIdentifier(b.obj.objectname),
+								formatObjectIdentifier(b.attributes[j].attname),
+								b.attributes[j].seclabels[l].label);
+					}
+					k++;
+					l++;
+				}
+				else if (strcmp(a.attributes[i].seclabels[k].provider, b.attributes[j].seclabels[l].provider) < 0)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS NULL;",
+							a.attributes[i].seclabels[k].provider,
+							formatObjectIdentifier(a.obj.schemaname),
+							formatObjectIdentifier(a.obj.objectname),
+							formatObjectIdentifier(a.attributes[i].attname));
+					k++;
+				}
+				else if (strcmp(a.attributes[i].seclabels[k].provider, b.attributes[j].seclabels[l].provider) > 0)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
+							b.attributes[j].seclabels[l].provider,
+							formatObjectIdentifier(b.obj.schemaname),
+							formatObjectIdentifier(b.obj.objectname),
+							formatObjectIdentifier(b.attributes[j].attname),
+							b.attributes[j].seclabels[l].label);
+					l++;
+				}
+			}
 		}
 	}
 }
@@ -1414,6 +1687,93 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 			fprintf(output, "COMMENT ON TABLE %s.%s IS NULL;",
 					formatObjectIdentifier(b.obj.schemaname),
 					formatObjectIdentifier(b.obj.objectname));
+		}
+	}
+
+	/* security labels */
+	if (options.securitylabels)
+	{
+		if (a.seclabels == NULL && b.seclabels != NULL)
+		{
+			for (i = 0; i < b.nseclabels; i++)
+			{
+				fprintf(output, "\n\n");
+				fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS '%s';",
+						b.seclabels[i].provider,
+						formatObjectIdentifier(b.obj.schemaname),
+						formatObjectIdentifier(b.obj.objectname),
+						b.seclabels[i].label);
+			}
+		}
+		else if (a.seclabels != NULL && b.seclabels == NULL)
+		{
+			for (i = 0; i < a.nseclabels; i++)
+			{
+				fprintf(output, "\n\n");
+				fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS NULL;",
+						a.seclabels[i].provider,
+						formatObjectIdentifier(a.obj.schemaname),
+						formatObjectIdentifier(a.obj.objectname));
+			}
+		}
+		else if (a.seclabels != NULL && b.seclabels != NULL)
+		{
+			i = j = 0;
+			while (i < a.nseclabels || j < b.nseclabels)
+			{
+				if (i == a.nseclabels)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS '%s';",
+							b.seclabels[j].provider,
+							formatObjectIdentifier(b.obj.schemaname),
+							formatObjectIdentifier(b.obj.objectname),
+							b.seclabels[j].label);
+					j++;
+				}
+				else if (j == b.nseclabels)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS NULL;",
+							a.seclabels[i].provider,
+							formatObjectIdentifier(a.obj.schemaname),
+							formatObjectIdentifier(a.obj.objectname));
+					i++;
+				}
+				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
+				{
+					if (strcmp(a.seclabels[i].label, b.seclabels[j].label) != 0)
+					{
+						fprintf(output, "\n\n");
+						fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS '%s';",
+								b.seclabels[j].provider,
+								formatObjectIdentifier(b.obj.schemaname),
+								formatObjectIdentifier(b.obj.objectname),
+								b.seclabels[j].label);
+					}
+					i++;
+					j++;
+				}
+				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) < 0)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS NULL;",
+							a.seclabels[i].provider,
+							formatObjectIdentifier(a.obj.schemaname),
+							formatObjectIdentifier(a.obj.objectname));
+					i++;
+				}
+				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS '%s';",
+							b.seclabels[j].provider,
+							formatObjectIdentifier(b.obj.schemaname),
+							formatObjectIdentifier(b.obj.objectname),
+							b.seclabels[j].label);
+					j++;
+				}
+			}
 		}
 	}
 

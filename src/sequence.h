@@ -21,11 +21,16 @@ typedef struct PQLSequence
 	char			*comment;
 	char			*owner;
 	char			*acl;
+
+	/* security labels */
+	PQLSecLabel		*seclabels;
+	int				nseclabels;
 } PQLSequence;
 
 
 PQLSequence *getSequences(PGconn *c, int *n);
 void getSequenceAttributes(PGconn *c, PQLSequence *s);
+void getSequenceSecurityLabels(PGconn *c, PQLSequence *s);
 
 void dumpDropSequence(FILE *output, PQLSequence s);
 void dumpCreateSequence(FILE *output, PQLSequence s);

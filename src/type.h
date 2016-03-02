@@ -26,6 +26,10 @@ typedef struct PQLBaseType
 	char		*comment;
 	char		*owner;
 	char		*acl;
+
+	/* security labels */
+	PQLSecLabel	*seclabels;
+	int			nseclabels;
 } PQLBaseType;
 
 /* TODO column comment */
@@ -45,6 +49,10 @@ typedef struct PQLCompositeType
 	char					*comment;
 	char					*owner;
 	char					*acl;
+
+	/* security labels */
+	PQLSecLabel				*seclabels;
+	int						nseclabels;
 } PQLCompositeType;
 
 typedef struct PQLEnumType
@@ -55,6 +63,10 @@ typedef struct PQLEnumType
 	char		*comment;
 	char		*owner;
 	char		*acl;
+
+	/* security labels */
+	PQLSecLabel	*seclabels;
+	int			nseclabels;
 } PQLEnumType;
 
 typedef struct PQLRangeType
@@ -71,12 +83,21 @@ typedef struct PQLRangeType
 	char		*comment;
 	char		*owner;
 	char		*acl;
+
+	/* security labels */
+	PQLSecLabel	*seclabels;
+	int			nseclabels;
 } PQLRangeType;
 
 PQLBaseType *getBaseTypes(PGconn *c, int *n);
 PQLCompositeType *getCompositeTypes(PGconn *c, int *n);
 PQLEnumType *getEnumTypes(PGconn *c, int *n);
 PQLRangeType *getRangeTypes(PGconn *c, int *n);
+
+void getBaseTypeSecurityLabels(PGconn *c, PQLBaseType *t);
+void getCompositeTypeSecurityLabels(PGconn *c, PQLCompositeType *t);
+void getEnumTypeSecurityLabels(PGconn *c, PQLEnumType *t);
+void getRangeTypeSecurityLabels(PGconn *c, PQLRangeType *t);
 
 void dumpDropBaseType(FILE *output, PQLBaseType t);
 void dumpDropCompositeType(FILE *output, PQLCompositeType t);

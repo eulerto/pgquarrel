@@ -91,6 +91,14 @@ getDomains(PGconn *c, int *n)
 		d[i].ncheck = 0;
 		d[i].check = NULL;
 
+		/*
+		 * Security labels are not assigned here (see getDomainSecurityLabels),
+		 * but default values are essential to avoid having trouble in
+		 * freeDomains.
+		 */
+		d[i].nseclabels = 0;
+		d[i].seclabels = NULL;
+
 		logDebug("domain \"%s\".\"%s\"", d[i].obj.schemaname, d[i].obj.objectname);
 	}
 
@@ -165,6 +173,55 @@ getDomainConstraints(PGconn *c, PQLDomain *d)
 }
 
 void
+getDomainSecurityLabels(PGconn *c, PQLDomain *d)
+{
+	char		query[200];
+	PGresult	*res;
+	int			i;
+
+	if (PG_VERSION_NUM < 90100)
+	{
+		logWarning("ignoring security labels because server does not support it");
+		return;
+	}
+
+	/*
+	 * Don't bother to check the kind of type because can't be duplicated oids
+	 * in the same catalog.
+	 */
+	snprintf(query, 200, "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_type' AND s.objoid = %u ORDER BY provider", d->obj.oid);
+
+	res = PQexec(c, query);
+
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+	{
+		logError("query failed: %s", PQresultErrorMessage(res));
+		PQclear(res);
+		PQfinish(c);
+		/* XXX leak another connection? */
+		exit(EXIT_FAILURE);
+	}
+
+	d->nseclabels = PQntuples(res);
+	if (d->nseclabels > 0)
+		d->seclabels = (PQLSecLabel *) malloc(d->nseclabels * sizeof(PQLSecLabel));
+	else
+		d->seclabels = NULL;
+
+	logDebug("number of security labels in domain %s.%s: %d",
+			 formatObjectIdentifier(d->obj.schemaname),
+			 formatObjectIdentifier(d->obj.objectname), d->nseclabels);
+
+	for (i = 0; i < d->nseclabels; i++)
+	{
+		d->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res, "provider")));
+		d->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
+	}
+
+	PQclear(res);
+}
+
+void
 freeDomains(PQLDomain *d, int n)
 {
 	if (n > 0)
@@ -196,6 +253,16 @@ freeDomains(PQLDomain *d, int n)
 
 			if (d[i].check)
 				free(d[i].check);
+
+			/* security labels */
+			for (j = 0; j < d[i].nseclabels; j++)
+			{
+				free(d[i].seclabels[j].provider);
+				free(d[i].seclabels[j].label);
+			}
+
+			if (d[i].seclabels)
+				free(d[i].seclabels);
 		}
 
 		free(d);
@@ -240,6 +307,20 @@ dumpCreateDomain(FILE *output, PQLDomain d)
 				formatObjectIdentifier(d.obj.schemaname),
 				formatObjectIdentifier(d.obj.objectname),
 				d.comment);
+	}
+
+	/* security labels */
+	if (options.securitylabels && d.nseclabels > 0)
+	{
+		for (i = 0; i < d.nseclabels; i++)
+		{
+			fprintf(output, "\n\n");
+			fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
+					d.seclabels[i].provider,
+					formatObjectIdentifier(d.obj.schemaname),
+					formatObjectIdentifier(d.obj.objectname),
+					d.seclabels[i].label);
+		}
 	}
 
 	/* owner */
@@ -318,6 +399,99 @@ dumpAlterDomain(FILE *output, PQLDomain a, PQLDomain b)
 			fprintf(output, "COMMENT ON DOMAIN %s.%s IS NULL;",
 					formatObjectIdentifier(b.obj.schemaname),
 					formatObjectIdentifier(b.obj.objectname));
+		}
+	}
+
+	/* security labels */
+	if (options.securitylabels)
+	{
+		if (a.seclabels == NULL && b.seclabels != NULL)
+		{
+			int	i;
+
+			for (i = 0; i < b.nseclabels; i++)
+			{
+				fprintf(output, "\n\n");
+				fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
+						b.seclabels[i].provider,
+						formatObjectIdentifier(b.obj.schemaname),
+						formatObjectIdentifier(b.obj.objectname),
+						b.seclabels[i].label);
+			}
+		}
+		else if (a.seclabels != NULL && b.seclabels == NULL)
+		{
+			int	i;
+
+			for (i = 0; i < a.nseclabels; i++)
+			{
+				fprintf(output, "\n\n");
+				fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS NULL;",
+						a.seclabels[i].provider,
+						formatObjectIdentifier(a.obj.schemaname),
+						formatObjectIdentifier(a.obj.objectname));
+			}
+		}
+		else if (a.seclabels != NULL && b.seclabels != NULL)
+		{
+			int	i, j;
+
+			i = j = 0;
+			while (i < a.nseclabels || j < b.nseclabels)
+			{
+				if (i == a.nseclabels)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
+							b.seclabels[j].provider,
+							formatObjectIdentifier(b.obj.schemaname),
+							formatObjectIdentifier(b.obj.objectname),
+							b.seclabels[j].label);
+					j++;
+				}
+				else if (j == b.nseclabels)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS NULL;",
+							a.seclabels[i].provider,
+							formatObjectIdentifier(a.obj.schemaname),
+							formatObjectIdentifier(a.obj.objectname));
+					i++;
+				}
+				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
+				{
+					if (strcmp(a.seclabels[i].label, b.seclabels[j].label) != 0)
+					{
+						fprintf(output, "\n\n");
+						fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
+								b.seclabels[j].provider,
+								formatObjectIdentifier(b.obj.schemaname),
+								formatObjectIdentifier(b.obj.objectname),
+								b.seclabels[j].label);
+					}
+					i++;
+					j++;
+				}
+				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) < 0)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS NULL;",
+							a.seclabels[i].provider,
+							formatObjectIdentifier(a.obj.schemaname),
+							formatObjectIdentifier(a.obj.objectname));
+					i++;
+				}
+				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
+							b.seclabels[j].provider,
+							formatObjectIdentifier(b.obj.schemaname),
+							formatObjectIdentifier(b.obj.objectname),
+							b.seclabels[j].label);
+					j++;
+				}
+			}
 		}
 	}
 

@@ -61,12 +61,65 @@ getLanguages(PGconn *c, int *n)
 		else
 			l[i].acl = strdup(PQgetvalue(res, i, PQfnumber(res, "lanacl")));
 
+		/*
+		 * Security labels are not assigned here (see
+		 * getLanguageSecurityLabels), but default values are essential to
+		 * avoid having trouble in freeLanguages.
+		 */
+		l[i].nseclabels = 0;
+		l[i].seclabels = NULL;
+
 		logDebug("language %s", formatObjectIdentifier(l[i].languagename));
 	}
 
 	PQclear(res);
 
 	return l;
+}
+
+void
+getLanguageSecurityLabels(PGconn *c, PQLLanguage *l)
+{
+	char		query[200];
+	PGresult	*res;
+	int			i;
+
+	if (PG_VERSION_NUM < 90100)
+	{
+		logWarning("ignoring security labels because server does not support it");
+		return;
+	}
+
+	snprintf(query, 200, "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_language' AND s.objoid = %u ORDER BY provider", l->oid);
+
+	res = PQexec(c, query);
+
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+	{
+		logError("query failed: %s", PQresultErrorMessage(res));
+		PQclear(res);
+		PQfinish(c);
+		/* XXX leak another connection? */
+		exit(EXIT_FAILURE);
+	}
+
+	l->nseclabels = PQntuples(res);
+	if (l->nseclabels > 0)
+		l->seclabels = (PQLSecLabel *) malloc(l->nseclabels * sizeof(PQLSecLabel));
+	else
+		l->seclabels = NULL;
+
+	logDebug("number of security labels in language %s: %d",
+			 formatObjectIdentifier(l->languagename),
+			 l->nseclabels);
+
+	for (i = 0; i < l->nseclabels; i++)
+	{
+		l->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res, "provider")));
+		l->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
+	}
+
+	PQclear(res);
 }
 
 void
@@ -78,6 +131,8 @@ freeLanguages(PQLLanguage *l, int n)
 
 		for (i = 0; i < n; i++)
 		{
+			int	j;
+
 			free(l[i].languagename);
 			free(l[i].callhandler);
 			free(l[i].inlinehandler);
@@ -87,6 +142,16 @@ freeLanguages(PQLLanguage *l, int n)
 			free(l[i].owner);
 			if (l[i].acl)
 				free(l[i].acl);
+
+			/* security labels */
+			for (j = 0; j < l[i].nseclabels; j++)
+			{
+				free(l[i].seclabels[j].provider);
+				free(l[i].seclabels[j].label);
+			}
+
+			if (l[i].seclabels)
+				free(l[i].seclabels);
 		}
 
 		free(l);
@@ -126,6 +191,21 @@ dumpCreateLanguage(FILE *output, PQLLanguage l)
 		fprintf(output, "\n\n");
 		fprintf(output, "COMMENT ON LANGUAGE %s IS '%s';",
 				formatObjectIdentifier(l.languagename), l.comment);
+	}
+
+	/* security labels */
+	if (options.securitylabels && l.nseclabels > 0)
+	{
+		int	i;
+
+		for (i = 0; i < l.nseclabels; i++)
+		{
+			fprintf(output, "\n\n");
+			fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS '%s';",
+					l.seclabels[i].provider,
+					formatObjectIdentifier(l.languagename),
+					l.seclabels[i].label);
+		}
 	}
 
 	/* owner */
@@ -177,6 +257,92 @@ dumpAlterLanguage(FILE *output, PQLLanguage a, PQLLanguage b)
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON LANGUAGE %s IS NULL;",
 					formatObjectIdentifier(b.languagename));
+		}
+	}
+
+	/* security labels */
+	if (options.securitylabels)
+	{
+		if (a.seclabels == NULL && b.seclabels != NULL)
+		{
+			int	i;
+
+			for (i = 0; i < b.nseclabels; i++)
+			{
+				fprintf(output, "\n\n");
+				fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS '%s';",
+						b.seclabels[i].provider,
+						formatObjectIdentifier(b.languagename),
+						b.seclabels[i].label);
+			}
+		}
+		else if (a.seclabels != NULL && b.seclabels == NULL)
+		{
+			int	i;
+
+			for (i = 0; i < a.nseclabels; i++)
+			{
+				fprintf(output, "\n\n");
+				fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS NULL;",
+						a.seclabels[i].provider,
+						formatObjectIdentifier(a.languagename));
+			}
+		}
+		else if (a.seclabels != NULL && b.seclabels != NULL)
+		{
+			int	i, j;
+
+			i = j = 0;
+			while (i < a.nseclabels || j < b.nseclabels)
+			{
+				if (i == a.nseclabels)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS '%s';",
+							b.seclabels[j].provider,
+							formatObjectIdentifier(b.languagename),
+							b.seclabels[j].label);
+					j++;
+				}
+				else if (j == b.nseclabels)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS NULL;",
+							a.seclabels[i].provider,
+							formatObjectIdentifier(a.languagename));
+					i++;
+				}
+				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
+				{
+					if (strcmp(a.seclabels[i].label, b.seclabels[j].label) != 0)
+					{
+						fprintf(output, "\n\n");
+						fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS '%s';",
+								b.seclabels[j].provider,
+								formatObjectIdentifier(b.languagename),
+								b.seclabels[j].label);
+					}
+					i++;
+					j++;
+				}
+				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) < 0)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS NULL;",
+							a.seclabels[i].provider,
+							formatObjectIdentifier(a.languagename));
+					i++;
+				}
+				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
+				{
+					fprintf(output, "\n\n");
+					fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS '%s';",
+							b.seclabels[j].provider,
+							formatObjectIdentifier(b.languagename),
+							b.seclabels[j].label);
+					j++;
+				}
+			}
 		}
 	}
 
