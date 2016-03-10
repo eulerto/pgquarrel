@@ -16,6 +16,8 @@ add_executable(pgquarrel
 	src/eventtrigger.h
 	src/extension.c
 	src/extension.h
+	src/fdw.c
+	src/fdw.h
 	src/function.c
 	src/function.h
 	src/index.c
@@ -34,12 +36,16 @@ add_executable(pgquarrel
 	src/schema.h
 	src/sequence.c
 	src/sequence.h
+	src/server.c
+	src/server.h
 	src/table.c
 	src/table.h
 	src/trigger.c
 	src/trigger.h
 	src/type.c
 	src/type.h
+	src/usermapping.c
+	src/usermapping.h
 	src/view.c
 	src/view.h
 )
