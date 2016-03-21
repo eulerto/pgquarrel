@@ -154,7 +154,7 @@ Features
 	</tr>
 	<tr>
 		<td>FOREIGN DATA WRAPPER</td>
-		<td>not implemented</td>
+		<td>complete</td>
 		<td></td>
 	</tr>
 	<tr>
@@ -164,12 +164,12 @@ Features
 	</tr>
 	<tr>
 		<td>SERVER</td>
-		<td>not implemented</td>
+		<td>complete</td>
 		<td></td>
 	</tr>
 	<tr>
 		<td>USER MAPPING</td>
-		<td>not implemented</td>
+		<td>complete</td>
 		<td></td>
 	</tr>
 	<tr>
