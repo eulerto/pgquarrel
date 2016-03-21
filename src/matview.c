@@ -448,7 +448,7 @@ dumpAlterColumnSetOptions(FILE *output, PQLMaterializedView a,
 	if (a.attributes[i].attoptions == NULL && b.attributes[i].attoptions != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER MATERIALIZED VIEW %s.%s ALTER COLUMN %s SET (%s)",
+		fprintf(output, "ALTER MATERIALIZED VIEW %s.%s ALTER COLUMN %s SET (%s);",
 				formatObjectIdentifier(b.obj.schemaname),
 				formatObjectIdentifier(b.obj.objectname),
 				b.attributes[i].attname,
@@ -459,20 +459,20 @@ dumpAlterColumnSetOptions(FILE *output, PQLMaterializedView a,
 	{
 		stringList	*rlist;
 
-		rlist = diffRelOptions(a.attributes[i].attoptions, b.attributes[i].attoptions,
-							   PGQ_EXCEPT);
+		/* reset all options */
+		rlist = setOperationOptions(a.attributes[i].attoptions, b.attributes[i].attoptions,
+							   PGQ_SETDIFFERENCE, false, true);
 		if (rlist)
 		{
 			char	*resetlist;
 
-			resetlist = printRelOptions(rlist);
+			resetlist = printOptions(rlist);
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s ALTER COLUMN %s RESET (%s)",
+			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s ALTER COLUMN %s RESET (%s);",
 					formatObjectIdentifier(b.obj.schemaname),
 					formatObjectIdentifier(b.obj.objectname),
 					b.attributes[i].attname,
 					resetlist);
-			fprintf(output, ";");
 
 			free(resetlist);
 			freeStringList(rlist);
@@ -482,46 +482,63 @@ dumpAlterColumnSetOptions(FILE *output, PQLMaterializedView a,
 			 b.attributes[i].attoptions != NULL &&
 			 strcmp(a.attributes[i].attoptions, b.attributes[i].attoptions) != 0)
 	{
-		stringList	*rlist, *slist;
+		stringList	*rlist, *ilist, *slist;
 
-		rlist = diffRelOptions(a.attributes[i].attoptions, b.attributes[i].attoptions,
-							   PGQ_EXCEPT);
+		/* reset options that are only presented in the first set */
+		rlist = setOperationOptions(a.attributes[i].attoptions, b.attributes[i].attoptions,
+							   PGQ_SETDIFFERENCE, false, true);
 		if (rlist)
 		{
 			char	*resetlist;
 
-			resetlist = printRelOptions(rlist);
+			resetlist = printOptions(rlist);
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s ALTER COLUMN %s RESET (%s)",
+			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s ALTER COLUMN %s RESET (%s);",
 					formatObjectIdentifier(b.obj.schemaname),
 					formatObjectIdentifier(b.obj.objectname),
 					b.attributes[i].attname,
 					resetlist);
-			fprintf(output, ";");
 
 			free(resetlist);
 			freeStringList(rlist);
 		}
 
 		/*
-		 * FIXME we used to use diffRelOptions with PGQ_INTERSECT kind but it
-		 * is buggy. Instead, we use all options from b. It is not wrong, but
-		 * it would be nice to remove unnecessary options (e.g. same
-		 * option/value).
+		 * Include intersection between option sets. However, exclude
+		 * options that don't change.
 		 */
-		slist = buildRelOptions(b.attributes[i].attoptions);
-		if (slist)
+		ilist = setOperationOptions(a.attributes[i].attoptions, b.attributes[i].attoptions, PGQ_INTERSECT, true, true);
+		if (ilist)
 		{
 			char	*setlist;
 
-			setlist = printRelOptions(slist);
+			setlist = printOptions(ilist);
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s ALTER COLUMN %s SET (%s)",
+			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s ALTER COLUMN %s SET (%s);",
 					formatObjectIdentifier(b.obj.schemaname),
 					formatObjectIdentifier(b.obj.objectname),
 					b.attributes[i].attname,
 					setlist);
-			fprintf(output, ";");
+
+			free(setlist);
+			freeStringList(ilist);
+		}
+
+		/*
+		 * Set options that are only presented in the second set.
+		 */
+		slist = setOperationOptions(b.attributes[i].attoptions, a.attributes[i].attoptions, PGQ_SETDIFFERENCE, true, true);
+		if (slist)
+		{
+			char	*setlist;
+
+			setlist = printOptions(slist);
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s ALTER COLUMN %s SET (%s);",
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					b.attributes[i].attname,
+					setlist);
 
 			free(setlist);
 			freeStringList(slist);
@@ -551,79 +568,93 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView a,
 	}
 
 	/* reloptions */
-	if ((a.reloptions == NULL && b.reloptions != NULL))
+	if (a.reloptions == NULL && b.reloptions != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER MATERIALIZED VIEW %s.%s SET (%s)",
+		fprintf(output, "ALTER MATERIALIZED VIEW %s.%s SET (%s);",
 				formatObjectIdentifier(b.obj.schemaname),
 				formatObjectIdentifier(b.obj.objectname),
 				b.reloptions);
-		fprintf(output, ";");
 	}
-	else if (a.reloptions != NULL && b.reloptions != NULL &&
-			 strcmp(a.reloptions, b.reloptions) != 0)
+	else if (a.reloptions != NULL && b.reloptions == NULL)
 	{
-		stringList	*rlist, *slist;
+		stringList	*rlist;
 
-		rlist = diffRelOptions(a.reloptions, b.reloptions, PGQ_EXCEPT);
+		rlist = setOperationOptions(a.reloptions, b.reloptions, PGQ_SETDIFFERENCE, false, true);
 		if (rlist)
 		{
 			char	*resetlist;
 
-			resetlist = printRelOptions(rlist);
-			fprintf(output, "\n--\n");
-			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s RESET (%s)",
+			resetlist = printOptions(rlist);
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s RESET (%s);",
 					formatObjectIdentifier(b.obj.schemaname),
 					formatObjectIdentifier(b.obj.objectname),
 					resetlist);
-			fprintf(output, ";");
+
+			free(resetlist);
+			freeStringList(rlist);
+		}
+	}
+	else if (a.reloptions != NULL && b.reloptions != NULL &&
+			 strcmp(a.reloptions, b.reloptions) != 0)
+	{
+		stringList	*rlist, *ilist, *slist;
+
+		/* reset options that are only presented in the first set */
+		rlist = setOperationOptions(a.reloptions, b.reloptions, PGQ_SETDIFFERENCE, false, true);
+		if (rlist)
+		{
+			char	*resetlist;
+
+			resetlist = printOptions(rlist);
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s RESET (%s);",
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					resetlist);
 
 			free(resetlist);
 			freeStringList(rlist);
 		}
 
 		/*
-		 * FIXME we used to use diffRelOptions with PGQ_INTERSECT kind but it
-		 * is buggy. Instead, we use all options from b. It is not wrong, but
-		 * it would be nice to remove unnecessary options (e.g. same
-		 * option/value).
+		 * Include intersection between option sets. However, exclude options
+		 * that don't change.
 		 */
-		slist = buildRelOptions(b.reloptions);
+		ilist = setOperationOptions(a.reloptions, b.reloptions, PGQ_INTERSECT, true, true);
+		if (ilist)
+		{
+			char	*setlist;
+
+			setlist = printOptions(ilist);
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s SET (%s);",
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					setlist);
+
+			free(setlist);
+			freeStringList(ilist);
+		}
+
+		/*
+		 * Set options that are only presented in the second set.
+		 */
+		slist = setOperationOptions(b.reloptions, a.reloptions, PGQ_SETDIFFERENCE, true, true);
 		if (slist)
 		{
 			char	*setlist;
 
-			setlist = printRelOptions(slist);
+			setlist = printOptions(slist);
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s SET (%s)",
+			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s SET (%s);",
 					formatObjectIdentifier(b.obj.schemaname),
 					formatObjectIdentifier(b.obj.objectname),
 					setlist);
-			fprintf(output, ";");
 
 			free(setlist);
 			freeStringList(slist);
-		}
-	}
-	else if (a.reloptions != NULL && b.reloptions == NULL)
-	{
-		stringList	*rlist;
-
-		rlist = diffRelOptions(a.reloptions, b.reloptions, PGQ_EXCEPT);
-		if (rlist)
-		{
-			char	*resetlist;
-
-			resetlist = printRelOptions(rlist);
-			fprintf(output, "\n\n");
-			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s RESET (%s)",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					resetlist);
-			fprintf(output, ";");
-
-			free(resetlist);
-			freeStringList(rlist);
 		}
 	}
 

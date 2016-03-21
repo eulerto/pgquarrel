@@ -27,9 +27,9 @@ static const char *logLevelTag[] =
 
 
 static stringListCell *intersectWithSortedLists(stringListCell *a,
-		stringListCell *b);
-static stringListCell *exceptWithSortedLists(stringListCell *a,
-		stringListCell *b);
+		stringListCell *b, bool withvalue, bool changed);
+static stringListCell *setDifferenceWithSortedLists(stringListCell *a,
+		stringListCell *b, bool withvalue);
 
 void
 logGeneric(enum PQLLogLevel level, const char *fmt, ...)
@@ -274,10 +274,10 @@ freeStringList(stringList *sl)
 
 /*
  * Build an ordered linked list from a comma-separated string. If there is no
- * reloptions return NULL.
+ * options return NULL.
  */
 stringList *
-buildRelOptions(char *options)
+buildStringList(char *options)
 {
 	stringList		*sl;
 	stringListCell	*x;
@@ -286,7 +286,6 @@ buildRelOptions(char *options)
 
 	char			*item;
 	char			*nextitem;
-	int				len;
 
 	sl = (stringList *) malloc(sizeof(stringList));
 	sl->head = sl->tail = NULL;
@@ -294,11 +293,9 @@ buildRelOptions(char *options)
 	/* no options, bail out */
 	if (options == NULL)
 	{
-		logDebug("reloptions is empty");
+		logDebug("options is empty");
 		return sl;
 	}
-
-	len = strlen(options);
 
 	tmp = strdup(options);
 	p = tmp;
@@ -319,7 +316,7 @@ buildRelOptions(char *options)
 		sc->value = strdup(item);
 		sc->next = NULL;
 
-		logNoise("reloption item: \"%s\"", item);
+		logNoise("option: \"%s\"", item);
 
 		/* add stringListCell to stringList in order */
 		if (sl->tail)
@@ -363,7 +360,7 @@ buildRelOptions(char *options)
 
 	/* check the order */
 	for (x = sl->head; x; x = x->next)
-		logNoise("reloption in order: \"%s\"", x->value);
+		logNoise("options in order: \"%s\"", x->value);
 
 	free(tmp);
 
@@ -379,7 +376,7 @@ buildRelOptions(char *options)
  * TODO all elements from B except those whose option/value is the same as in A.
  */
 static stringListCell *
-intersectWithSortedLists(stringListCell *a, stringListCell *b)
+intersectWithSortedLists(stringListCell *a, stringListCell *b, bool withvalue, bool changed)
 {
 	stringListCell	*t;
 	char			*c, *d;
@@ -396,29 +393,32 @@ intersectWithSortedLists(stringListCell *a, stringListCell *b)
 	d = strtok(tmpb, "=");
 
 	/*
-	 * if same option and value, call recursively incrementing both lists. We
-	 * don't want to include reloption that doesn't change the value.
-	 * */
-	if (strcmp(a->value, b->value) == 0)
-		return intersectWithSortedLists(a->next, b->next);
+	 * If same option and value, call recursively incrementing both lists. We
+	 * don't want to include option that doesn't change the value unless
+	 * 'changed' is false.
+	 */
+	if (changed && strcmp(a->value, b->value) == 0)
+		return intersectWithSortedLists(a->next, b->next, withvalue, changed);
 
 	/* advance "smaller" string list and call recursively */
 	if (strcmp(c, d) < 0)
-		return intersectWithSortedLists(a->next, b);
+		return intersectWithSortedLists(a->next, b, withvalue, changed);
 
 	if (strcmp(c, d) > 0)
-		return intersectWithSortedLists(a, b->next);
+		return intersectWithSortedLists(a, b->next, withvalue, changed);
 
 	/*
-	 * executed only if both options are equal. If we are here, that is because
-	 * the value changed (see comment a few lines above); in this case, we want
-	 * to apply this change.
-	 * */
+	 * If both options/values are equal, add it only if 'changed' is false.
+	 * Same option and different values, add it.
+	 */
 	t = (stringListCell *) malloc(sizeof(stringListCell));
-	t->value = strdup(a->value);
+	if (withvalue)
+		t->value = strdup(b->value);
+	else
+		t->value = strdup(d);
 
 	/* advance both string lists and call recursively */
-	t->next = intersectWithSortedLists(a->next, b->next);
+	t->next = intersectWithSortedLists(a->next, b->next, withvalue, changed);
 
 	return t;
 }
@@ -430,7 +430,7 @@ intersectWithSortedLists(stringListCell *a, stringListCell *b)
  * TODO cleanup tmpa and tmpb memory
  */
 static stringListCell *
-exceptWithSortedLists(stringListCell *a, stringListCell *b)
+setDifferenceWithSortedLists(stringListCell *a, stringListCell *b, bool withvalue)
 {
 	stringListCell	*t;
 	char			*c, *d;
@@ -445,13 +445,20 @@ exceptWithSortedLists(stringListCell *a, stringListCell *b)
 	{
 		t = (stringListCell *) malloc(sizeof(stringListCell));
 
-		/* use a temporary variable because strtok() "destroy" the original string */
-		tmpa = strdup(a->value);
-		c = strtok(tmpa, "=");
-		t->value = strdup(c);
-		free(tmpa);
+		if (withvalue)
+		{
+			t->value = strdup(a->value);
+		}
+		else
+		{
+			/* use a temporary variable because strtok() "destroy" the original string */
+			tmpa = strdup(a->value);
+			c = strtok(tmpa, "=");
+			t->value = strdup(c);
+			free(tmpa);
+		}
 
-		t->next = exceptWithSortedLists(a->next, b);
+		t->next = setDifferenceWithSortedLists(a->next, b, withvalue);
 
 		return t;
 	}
@@ -469,7 +476,7 @@ exceptWithSortedLists(stringListCell *a, stringListCell *b)
 		free(tmpa);
 		free(tmpb);
 
-		return exceptWithSortedLists(a, b->next);
+		return setDifferenceWithSortedLists(a, b->next, withvalue);
 	}
 
 	/* advance both string lists and call recursively */
@@ -479,51 +486,53 @@ exceptWithSortedLists(stringListCell *a, stringListCell *b)
 		free(tmpa);
 		free(tmpb);
 
-		return exceptWithSortedLists(a->next, b->next);
+		return setDifferenceWithSortedLists(a->next, b->next, withvalue);
 	}
 
 	/* executed only if A value is not in B */
 	t = (stringListCell *) malloc(sizeof(stringListCell));
-	t->value = strdup(c);
+	if (withvalue)
+		t->value = strdup(a->value);
+	else
+		t->value = strdup(c);
 
 	/* avoid leaking temporary variables */
 	free(tmpa);
 	free(tmpb);
 
-	t->next = exceptWithSortedLists(a->next, b);
+	t->next = setDifferenceWithSortedLists(a->next, b, withvalue);
 
 	return t;
 }
 
 /*
  * Return a linked list that contains elements according to specified set
- * operation (kind). If there aren't options, return NULL.
- * TODO is there a use case for PGQ_INTERSECT? If not, remove it.
+ * operation (setop). If there aren't options, return NULL.
  */
 stringList *
-diffRelOptions(char *a, char *b, int kind)
+setOperationOptions(char *a, char *b, int setop, bool withvalue, bool changed)
 {
 	stringList		*first, *second;
 	stringList		*ret = NULL;
 	stringListCell	*headitem = NULL;
 
-	logNoise("reloptions: set operation %d", kind);
+	logNoise("options: set operation %d", setop);
 
 	/* if a is NULL, there is neither intersection nor complement (except) */
 	if (a == NULL)
 		return NULL;
 
 	/* if b is NULL, there isn't intersection */
-	if (kind == PGQ_INTERSECT && b == NULL)
+	if (setop == PGQ_INTERSECT && b == NULL)
 		return NULL;
 
-	first = buildRelOptions(a);
-	second = buildRelOptions(b);
+	first = buildStringList(a);
+	second = buildStringList(b);
 
-	if (kind == PGQ_INTERSECT)
-		headitem = intersectWithSortedLists(first->head, second->head);
-	else if (kind == PGQ_EXCEPT)
-		headitem = exceptWithSortedLists(first->head, second->head);
+	if (setop == PGQ_INTERSECT)
+		headitem = intersectWithSortedLists(first->head, second->head, withvalue, changed);
+	else if (setop == PGQ_SETDIFFERENCE)
+		headitem = setDifferenceWithSortedLists(first->head, second->head, withvalue);
 	else
 		logError("set operation not supported");
 
@@ -558,7 +567,7 @@ diffRelOptions(char *a, char *b, int kind)
  * NULL if linked list is NULL.
  */
 char *
-printRelOptions(stringList *sl)
+printOptions(stringList *sl)
 {
 	char			*list = NULL;
 	stringListCell	*p;
@@ -606,7 +615,7 @@ printRelOptions(stringList *sl)
 	}
 
 	if (list)
-		logNoise("reloptions: %s", list);
+		logNoise("options: %s", list);
 
 	return list;
 }

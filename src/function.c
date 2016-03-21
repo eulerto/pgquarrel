@@ -258,7 +258,7 @@ dumpCreateFunction(FILE *output, PQLFunction f, bool orreplace)
 		stringList		*sl;
 		stringListCell	*cell;
 
-		sl = buildRelOptions(f.configparams);
+		sl = buildStringList(f.configparams);
 		for (cell = sl->head; cell; cell = cell->next)
 		{
 			char	*str;
@@ -461,7 +461,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 		}
 		printalter = false;
 
-		sl = buildRelOptions(b.configparams);
+		sl = buildStringList(b.configparams);
 		if (sl)
 		{
 			stringListCell	*cell;
@@ -490,7 +490,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 	else if (a.configparams != NULL && b.configparams != NULL &&
 			 strcmp(a.configparams, b.configparams) != 0)
 	{
-		stringList	*rlist, *slist;
+		stringList	*rlist, *ilist, *slist;
 
 		if (printalter)
 		{
@@ -501,7 +501,10 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 		}
 		printalter = false;
 
-		rlist = diffRelOptions(a.configparams, b.configparams, PGQ_EXCEPT);
+		/*
+		 * Reset options that are only presented in the first set.
+		 */
+		rlist = setOperationOptions(a.configparams, b.configparams, PGQ_SETDIFFERENCE, false, true);
 		if (rlist)
 		{
 			stringListCell	*cell;
@@ -513,12 +516,39 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 		}
 
 		/*
-		 * FIXME we used to use diffRelOptions with PGQ_INTERSECT kind but it
-		 * is buggy. Instead, we use all options from b. It is not wrong, but
-		 * it would be nice to remove unnecessary options (e.g. same
-		 * option/value).
+		 * Include intersection between parameter sets. However, exclude
+		 * options that don't change.
 		 */
-		slist = buildRelOptions(b.configparams);
+		ilist = setOperationOptions(a.configparams, b.configparams, PGQ_INTERSECT, true, true);
+		if (ilist)
+		{
+			stringListCell	*cell;
+
+			for (cell = ilist->head; cell; cell = cell->next)
+			{
+				char	*str;
+
+				str = strchr(cell->value, '=');
+				if (str == NULL)
+					continue;
+				*str++ = '\0';
+
+				fprintf(output, " SET %s TO ", cell->value);
+
+				if (strcasecmp(cell->value, "DateStyle") == 0 ||
+						strcasecmp(cell->value, "search_path") == 0)
+					fprintf(output, "%s", str);
+				else
+					fprintf(output, "'%s'", str);
+			}
+
+			freeStringList(ilist);
+		}
+
+		/*
+		 * Set options that are only presented in the second set.
+		 */
+		slist = setOperationOptions(b.configparams, a.configparams, PGQ_SETDIFFERENCE, true, true);
 		if (slist)
 		{
 			stringListCell	*cell;

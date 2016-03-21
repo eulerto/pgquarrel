@@ -161,70 +161,86 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 				formatObjectIdentifier(a.obj.schemaname),
 				formatObjectIdentifier(a.obj.objectname), b.reloptions);
 	}
-	else if (a.reloptions != NULL && b.reloptions != NULL &&
-			 strcmp(a.reloptions, b.reloptions) != 0)
+	else if (a.reloptions != NULL && b.reloptions == NULL)
 	{
-		stringList	*rlist, *slist;
+		stringList	*rlist;
 
-		rlist = diffRelOptions(a.reloptions, b.reloptions, PGQ_EXCEPT);
+		/* reset all options */
+		rlist = setOperationOptions(a.reloptions, b.reloptions, PGQ_SETDIFFERENCE, false, true);
 		if (rlist)
 		{
 			char	*resetlist;
 
-			resetlist = printRelOptions(rlist);
+			resetlist = printOptions(rlist);
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER INDEX %s.%s RESET (%s)",
+			fprintf(output, "ALTER INDEX %s.%s RESET (%s);",
 					formatObjectIdentifier(b.obj.schemaname),
 					formatObjectIdentifier(b.obj.objectname),
 					resetlist);
-			fprintf(output, ";");
+
+			free(resetlist);
+			freeStringList(rlist);
+		}
+	}
+	else if (a.reloptions != NULL && b.reloptions != NULL &&
+			 strcmp(a.reloptions, b.reloptions) != 0)
+	{
+		stringList	*rlist, *ilist, *slist;
+
+		/* reset options that are only presented in the first set */
+		rlist = setOperationOptions(a.reloptions, b.reloptions, PGQ_SETDIFFERENCE, false, true);
+		if (rlist)
+		{
+			char	*resetlist;
+
+			resetlist = printOptions(rlist);
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER INDEX %s.%s RESET (%s);",
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					resetlist);
 
 			free(resetlist);
 			freeStringList(rlist);
 		}
 
 		/*
-		 * FIXME we used to use diffRelOptions with PGQ_INTERSECT kind but it
-		 * is buggy. Instead, we use all options from b. It is not wrong, but
-		 * it would be nice to remove unnecessary options (e.g. same
-		 * option/value).
+		 * Include intersection between option sets. However, exclude options
+		 * that don't change.
 		 */
-		slist = buildRelOptions(b.reloptions);
+		ilist = setOperationOptions(a.reloptions, b.reloptions, PGQ_INTERSECT, true, true);
+		if (ilist)
+		{
+			char	*setlist;
+
+			setlist = printOptions(ilist);
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER INDEX %s.%s SET (%s);",
+					formatObjectIdentifier(b.obj.schemaname),
+					formatObjectIdentifier(b.obj.objectname),
+					setlist);
+
+			free(setlist);
+			freeStringList(ilist);
+		}
+
+		/*
+		 * Set options that are only presented in the second set.
+		 */
+		slist = setOperationOptions(b.reloptions, a.reloptions, PGQ_SETDIFFERENCE, true, true);
 		if (slist)
 		{
 			char	*setlist;
 
-			setlist = printRelOptions(slist);
+			setlist = printOptions(slist);
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER INDEX %s.%s SET (%s)",
+			fprintf(output, "ALTER INDEX %s.%s SET (%s);",
 					formatObjectIdentifier(b.obj.schemaname),
 					formatObjectIdentifier(b.obj.objectname),
 					setlist);
-			fprintf(output, ";");
 
 			free(setlist);
 			freeStringList(slist);
-		}
-	}
-	else if (a.reloptions != NULL && b.reloptions == NULL)
-	{
-		stringList	*rlist;
-
-		rlist = diffRelOptions(a.reloptions, b.reloptions, PGQ_EXCEPT);
-		if (rlist)
-		{
-			char	*resetlist;
-
-			resetlist = printRelOptions(rlist);
-			fprintf(output, "\n\n");
-			fprintf(output, "ALTER INDEX %s.%s RESET (%s)",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					resetlist);
-			fprintf(output, ";");
-
-			free(resetlist);
-			freeStringList(rlist);
 		}
 	}
 

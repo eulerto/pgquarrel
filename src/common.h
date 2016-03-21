@@ -118,7 +118,7 @@ enum PQLLogLevel
 enum PQLSetOperation
 {
 	PGQ_INTERSECT = 0,
-	PGQ_EXCEPT = 1
+	PGQ_SETDIFFERENCE = 1
 };
 
 extern enum PQLLogLevel loglevel;
@@ -146,9 +146,9 @@ int compareNamesAndRelations(PQLObject a, PQLObject b, char *aname,
 const char *formatObjectIdentifier(char *s);
 void logGeneric(enum PQLLogLevel level, const char *fmt, ...);
 
-stringList *buildRelOptions(char *options);
-stringList *diffRelOptions(char *a, char *b, int kind);
-char *printRelOptions(stringList *sl);
+stringList *buildStringList(char *options);
+stringList *setOperationOptions(char *a, char *b, int kind, bool withvalue, bool changed);
+char *printOptions(stringList *sl);
 
 void appendStringList(stringList *sl, const char *s);
 void appendAllStringList(stringList *sl, char *s, const char *d);
