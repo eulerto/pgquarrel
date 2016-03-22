@@ -15,7 +15,7 @@ getUserMappings(PGconn *c, int *n)
 
 	logNoise("user mapping: server version: %d", PQserverVersion(c));
 
-	res = PQexec(c, "SELECT u.oid, u.umuser AS useroid, CASE WHEN umuser = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(u.umuser) END AS username, s.srvname AS servername, array_to_string(u.umoptions, ', ') AS options FROM pg_user_mapping u INNER JOIN pg_foreign_server s ON (u.umserver = s.oid) ORDER BY username");
+	res = PQexec(c, "SELECT u.oid, u.umuser AS useroid, CASE WHEN umuser = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(u.umuser) END AS username, s.srvname AS servername, array_to_string(u.umoptions, ', ') AS options FROM pg_user_mapping u INNER JOIN pg_foreign_server s ON (u.umserver = s.oid) ORDER BY username, servername");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
