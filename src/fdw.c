@@ -16,7 +16,7 @@ getForeignDataWrappers(PGconn *c, int *n)
 
 	logNoise("fdw: server version: %d", PQserverVersion(c));
 
-	res = PQexec(c, "SELECT f.oid, f.fdwname, f.fdwhandler, f.fdwvalidator, m.nspname AS handlernspname, h.oid AS handleroid, h.proname AS handlername, n.nspname AS validatornspname, v.oid AS validatoroid, v.proname AS validatorname, array_to_string(f.fdwoptions, ', ') AS options, obj_description(f.oid, 'pg_foreign_data_wrapper') AS description, pg_get_userbyid(f.fdwowner) AS fdwowner, f.fdwacl FROM pg_foreign_data_wrapper f LEFT JOIN pg_proc h ON (h.oid = f.fdwhandler) INNER JOIN pg_namespace m ON (m.oid = h.pronamespace) LEFT JOIN pg_proc v ON (v.oid = f.fdwvalidator) INNER JOIN pg_namespace n ON (n.oid = v.pronamespace) ORDER BY fdwname");
+	res = PQexec(c, "SELECT f.oid, f.fdwname, f.fdwhandler, f.fdwvalidator, m.nspname AS handlernspname, h.oid AS handleroid, h.proname AS handlername, n.nspname AS validatornspname, v.oid AS validatoroid, v.proname AS validatorname, array_to_string(f.fdwoptions, ', ') AS options, obj_description(f.oid, 'pg_foreign_data_wrapper') AS description, pg_get_userbyid(f.fdwowner) AS fdwowner, f.fdwacl FROM pg_foreign_data_wrapper f LEFT JOIN (pg_proc h INNER JOIN pg_namespace m ON (m.oid = h.pronamespace)) ON (h.oid = f.fdwhandler) LEFT JOIN (pg_proc v INNER JOIN pg_namespace n ON (n.oid = v.pronamespace)) ON (v.oid = f.fdwvalidator) ORDER BY fdwname");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -40,7 +40,7 @@ getForeignDataWrappers(PGconn *c, int *n)
 		f[i].oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		f[i].fdwname = strdup(PQgetvalue(res, i, PQfnumber(res, "fdwname")));
 		/* handler */
-		if (strcmp(PQgetvalue(res, i, PQfnumber(res, "fdwhandler")), "0") == 0)
+		if (strcmp(PQgetvalue(res, i, PQfnumber(res, "fdwhandler")), "0") != 0)
 		{
 			f[i].handler.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "handleroid")), NULL, 10);
 			f[i].handler.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "handlernspname")));
@@ -52,7 +52,7 @@ getForeignDataWrappers(PGconn *c, int *n)
 			f[i].handler.objectname = NULL;
 		}
 		/* validator */
-		if (strcmp(PQgetvalue(res, i, PQfnumber(res, "fdwvalidator")), "0") == 0)
+		if (strcmp(PQgetvalue(res, i, PQfnumber(res, "fdwvalidator")), "0") != 0)
 		{
 			f[i].validator.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "validatoroid")), NULL, 10);
 			f[i].validator.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "validatornspname")));
