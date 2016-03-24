@@ -9,6 +9,7 @@
  * domain: partial
  * event trigger: complete
  * extension: partial
+ * foreign data wrapper: complete
  * function: partial
  * grant: partial
  * index: partial
@@ -19,17 +20,16 @@
  * schema: partial
  * security label: partial
  * sequence: partial
+ * server: complete
  * table: partial
  * trigger: partial
  * type: partial
+ * user mapping: complete
  * view: partial
  *
  *  UNSUPPORTED
  * ~~~~~~~~~~~~~
- * foreign data wrapper
  * foreign table
- * server
- * user mapping
  * text search { configuration | dictionary | parser | template }
  * aggregate
  * collation
@@ -57,6 +57,7 @@
 #include "domain.h"
 #include "eventtrigger.h"
 #include "extension.h"
+#include "fdw.h"
 #include "function.h"
 #include "index.h"
 #include "language.h"
@@ -64,9 +65,11 @@
 #include "rule.h"
 #include "schema.h"
 #include "sequence.h"
+#include "server.h"
 #include "table.h"
 #include "trigger.h"
 #include "type.h"
+#include "usermapping.h"
 #include "view.h"
 
 #include "mini-parser.h"
@@ -84,7 +87,7 @@ QuarrelOptions		options;
 PQLStatistic		qstat = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-							 0, 0, 0, 0
+							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 					  };
 
 FILE				*fout;			/* output file */
@@ -112,6 +115,8 @@ static void quarrelConversions();
 static void quarrelDomains();
 static void quarrelEventTriggers();
 static void quarrelExtensions();
+static void quarrelForeignDataWrappers();
+static void quarrelForeignServers();
 static void quarrelFunctions();
 static void quarrelIndexes();
 static void quarrelLanguages();
@@ -126,6 +131,7 @@ static void quarrelCompositeTypes();
 static void quarrelEnumTypes();
 static void quarrelRangeTypes();
 static void quarrelTypes();
+static void quarrelUserMappings();
 static void quarrelViews();
 
 static int
@@ -901,6 +907,168 @@ quarrelExtensions()
 
 	freeExtensions(extensions1, nextensions1);
 	freeExtensions(extensions2, nextensions2);
+}
+
+static void
+quarrelForeignDataWrappers()
+{
+	PQLForeignDataWrapper		*fdws1 = NULL;		/* from */
+	PQLForeignDataWrapper		*fdws2 = NULL;		/* to */
+	int			nfdws1 = 0;		/* # of fdws */
+	int			nfdws2 = 0;
+	int			i, j;
+
+	fdws1 = getForeignDataWrappers(conn1, &nfdws1);
+	fdws2 = getForeignDataWrappers(conn2, &nfdws2);
+
+	for (i = 0; i < nfdws1; i++)
+		logNoise("server1: %s", fdws1[i].fdwname);
+
+	for (i = 0; i < nfdws2; i++)
+		logNoise("server2: %s", fdws2[i].fdwname);
+
+	/*
+	 * We have two sorted lists. Let's figure out which elements are not in the
+	 * other list.
+	 * We have two sorted lists. The strategy is transverse both lists only once
+	 * to figure out fdws not presented in the other list.
+	 */
+	i = j = 0;
+	while (i < nfdws1 || j < nfdws2)
+	{
+		/* End of fdws1 list. Print fdws2 list until its end. */
+		if (i == nfdws1)
+		{
+			logDebug("fdw %s: server2", fdws2[j].fdwname);
+
+			dumpCreateForeignDataWrapper(fpre, fdws2[j]);
+
+			j++;
+			qstat.fdwadded++;
+		}
+		/* End of fdws2 list. Print fdws1 list until its end. */
+		else if (j == nfdws2)
+		{
+			logDebug("fdw %s: server1", fdws1[i].fdwname);
+
+			dumpDropForeignDataWrapper(fpost, fdws1[i]);
+
+			i++;
+			qstat.fdwremoved++;
+		}
+		else if (strcmp(fdws1[i].fdwname,
+						fdws2[j].fdwname) == 0)
+		{
+			logDebug("fdw %s: server1 server2", fdws1[i].fdwname);
+
+			dumpAlterForeignDataWrapper(fpre, fdws1[i], fdws2[j]);
+
+			i++;
+			j++;
+		}
+		else if (strcmp(fdws1[i].fdwname, fdws2[j].fdwname) < 0)
+		{
+			logDebug("fdw %s: server1", fdws1[i].fdwname);
+
+			dumpDropForeignDataWrapper(fpost, fdws1[i]);
+
+			i++;
+			qstat.fdwremoved++;
+		}
+		else if (strcmp(fdws1[i].fdwname, fdws2[j].fdwname) > 0)
+		{
+			logDebug("fdw %s: server2", fdws2[j].fdwname);
+
+			dumpCreateForeignDataWrapper(fpre, fdws2[j]);
+
+			j++;
+			qstat.fdwadded++;
+		}
+	}
+
+	freeForeignDataWrappers(fdws1, nfdws1);
+	freeForeignDataWrappers(fdws2, nfdws2);
+}
+
+static void
+quarrelForeignServers()
+{
+	PQLForeignServer	*servers1 = NULL;		/* from */
+	PQLForeignServer	*servers2 = NULL;		/* to */
+	int			nservers1 = 0;		/* # of servers */
+	int			nservers2 = 0;
+	int			i, j;
+
+	servers1 = getForeignServers(conn1, &nservers1);
+	servers2 = getForeignServers(conn2, &nservers2);
+
+	for (i = 0; i < nservers1; i++)
+		logNoise("server1: %s", servers1[i].servername);
+
+	for (i = 0; i < nservers2; i++)
+		logNoise("server2: %s", servers2[i].servername);
+
+	/*
+	 * We have two sorted lists. Let's figure out which elements are not in the
+	 * other list.
+	 * We have two sorted lists. The strategy is transverse both lists only once
+	 * to figure out servers not presented in the other list.
+	 */
+	i = j = 0;
+	while (i < nservers1 || j < nservers2)
+	{
+		/* End of servers1 list. Print servers2 list until its end. */
+		if (i == nservers1)
+		{
+			logDebug("server %s: server2", servers2[j].servername);
+
+			dumpCreateForeignServer(fpre, servers2[j]);
+
+			j++;
+			qstat.serveradded++;
+		}
+		/* End of servers2 list. Print servers1 list until its end. */
+		else if (j == nservers2)
+		{
+			logDebug("server %s: server1", servers1[i].servername);
+
+			dumpDropForeignServer(fpost, servers1[i]);
+
+			i++;
+			qstat.serverremoved++;
+		}
+		else if (strcmp(servers1[i].servername,
+						servers2[j].servername) == 0)
+		{
+			logDebug("server %s: server1 server2", servers1[i].servername);
+
+			dumpAlterForeignServer(fpre, servers1[i], servers2[j]);
+
+			i++;
+			j++;
+		}
+		else if (strcmp(servers1[i].servername, servers2[j].servername) < 0)
+		{
+			logDebug("server %s: server1", servers1[i].servername);
+
+			dumpDropForeignServer(fpost, servers1[i]);
+
+			i++;
+			qstat.serverremoved++;
+		}
+		else if (strcmp(servers1[i].servername, servers2[j].servername) > 0)
+		{
+			logDebug("server %s: server2", servers2[j].servername);
+
+			dumpCreateForeignServer(fpre, servers2[j]);
+
+			j++;
+			qstat.serveradded++;
+		}
+	}
+
+	freeForeignServers(servers1, nservers1);
+	freeForeignServers(servers2, nservers2);
 }
 
 static void
@@ -2142,6 +2310,86 @@ quarrelTypes()
 }
 
 static void
+quarrelUserMappings()
+{
+	PQLUserMapping		*usermappings1 = NULL;		/* from */
+	PQLUserMapping		*usermappings2 = NULL;		/* to */
+	int			nusermappings1 = 0;		/* # of user mappings */
+	int			nusermappings2 = 0;
+	int			i, j;
+
+	usermappings1 = getUserMappings(conn1, &nusermappings1);
+	usermappings2 = getUserMappings(conn2, &nusermappings2);
+
+	for (i = 0; i < nusermappings1; i++)
+		logNoise("server1: user(%s) server(%s)", usermappings1[i].user, usermappings1[i].server);
+
+	for (i = 0; i < nusermappings2; i++)
+		logNoise("server2: user(%s) server(%s)", usermappings2[i].user, usermappings2[i].server);
+
+	/*
+	 * We have two sorted lists. Let's figure out which elements are not in the
+	 * other list.
+	 * We have two sorted lists. The strategy is transverse both lists only once
+	 * to figure out usermappings not presented in the other list.
+	 */
+	i = j = 0;
+	while (i < nusermappings1 || j < nusermappings2)
+	{
+		/* End of usermappings1 list. Print usermappings2 list until its end. */
+		if (i == nusermappings1)
+		{
+			logDebug("user mapping user(%s) server(%s): server2", usermappings2[j].user, usermappings2[j].server);
+
+			dumpCreateUserMapping(fpre, usermappings2[j]);
+
+			j++;
+			qstat.usermappingadded++;
+		}
+		/* End of usermappings2 list. Print usermappings1 list until its end. */
+		else if (j == nusermappings2)
+		{
+			logDebug("user mapping user(%s) server(%s): server1", usermappings1[i].user, usermappings1[i].server);
+
+			dumpDropUserMapping(fpost, usermappings1[i]);
+
+			i++;
+			qstat.usermappingremoved++;
+		}
+		else if (compareUserMappings(usermappings1[i], usermappings2[j]) == 0)
+		{
+			logDebug("user mapping user(%s) server(%s): server1 server2", usermappings1[i].user, usermappings1[i].server);
+
+			dumpAlterUserMapping(fpre, usermappings1[i], usermappings2[j]);
+
+			i++;
+			j++;
+		}
+		else if (compareUserMappings(usermappings1[i], usermappings2[j]) < 0)
+		{
+			logDebug("user mapping user(%s) server(%s): server1", usermappings1[i].user, usermappings1[i].server);
+
+			dumpDropUserMapping(fpost, usermappings1[i]);
+
+			i++;
+			qstat.usermappingremoved++;
+		}
+		else if (compareUserMappings(usermappings1[i], usermappings2[j]) > 0)
+		{
+			logDebug("user mapping user(%s) server(%s): server2", usermappings2[j].user, usermappings2[j].server);
+
+			dumpCreateUserMapping(fpre, usermappings2[j]);
+
+			j++;
+			qstat.usermappingadded++;
+		}
+	}
+
+	freeUserMappings(usermappings1, nusermappings1);
+	freeUserMappings(usermappings2, nusermappings2);
+}
+
+static void
 quarrelViews()
 {
 	PQLView	*views1 = NULL;	/* from */
@@ -2523,6 +2771,10 @@ int main(int argc, char *argv[])
 	 * at the beginning (in a pre-defined order) and DROP commands at the end
 	 * (in a reverse order -- to solve dependency problems).
 	 */
+
+	quarrelForeignDataWrappers();
+	quarrelForeignServers();
+	quarrelUserMappings();
 
 	quarrelLanguages();
 	quarrelSchemas();

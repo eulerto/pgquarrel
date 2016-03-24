@@ -6,6 +6,20 @@
  * ALTER USER MAPPING
  */
 
+int
+compareUserMappings(PQLUserMapping a, PQLUserMapping b)
+{
+	int		c;
+
+	c = strcmp(a.user, b.user);
+
+	/* compare server names iif user names are equal */
+	if (c == 0)
+		c = strcmp(a.server, b.server);
+
+	return c;
+}
+
 PQLUserMapping *
 getUserMappings(PGconn *c, int *n)
 {

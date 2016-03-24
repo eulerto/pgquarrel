@@ -32,6 +32,8 @@ typedef struct PQLStatistic
 	int		evttrgremoved;
 	int		extensionadded;
 	int		extensionremoved;
+	int		fdwadded;
+	int		fdwremoved;
 	int		functionadded;
 	int		functionremoved;
 	int		indexadded;
@@ -46,12 +48,16 @@ typedef struct PQLStatistic
 	int		schemaremoved;
 	int		seqadded;
 	int		seqremoved;
+	int		serveradded;
+	int		serverremoved;
 	int		tableadded;
 	int		tableremoved;
 	int		trgadded;
 	int		trgremoved;
 	int		typeadded;
 	int		typeremoved;
+	int		usermappingadded;
+	int		usermappingremoved;
 	int		viewadded;
 	int		viewremoved;
 } PQLStatistic;

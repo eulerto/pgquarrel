@@ -19,6 +19,7 @@ void dumpCreateUserMapping(FILE *output, PQLUserMapping s);
 void dumpAlterUserMapping(FILE *output, PQLUserMapping a,
 							   PQLUserMapping b);
 
+int compareUserMappings(PQLUserMapping a, PQLUserMapping b);
 void freeUserMappings(PQLUserMapping *s, int n);
 
 #endif	/* USER_MAPPING_H */

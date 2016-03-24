@@ -10,6 +10,10 @@ CREATE ROLE same_role_3;
 
 \c quarrel2
 
+-- fdw tests
+CREATE EXTENSION postgres_fdw;
+CREATE EXTENSION file_fdw;
+
 \i dellstore.sql
 
 \i to-table.sql
@@ -37,3 +41,9 @@ CREATE ROLE same_role_3;
 \i to-view.sql
 
 \i to-matview.sql
+
+\i to-fdw.sql
+
+\i to-server.sql
+
+--\i to-user-mapping.sql
