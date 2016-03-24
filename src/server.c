@@ -292,7 +292,7 @@ dumpAlterForeignServer(FILE *output, PQLForeignServer a, PQLForeignServer b)
 			{
 				if (first)
 				{
-					fprintf(output, " DROP %s", cell->value);
+					fprintf(output, "DROP %s", cell->value);
 					first = false;
 				}
 				else
@@ -325,7 +325,7 @@ dumpAlterForeignServer(FILE *output, PQLForeignServer a, PQLForeignServer b)
 
 				if (first)
 				{
-					fprintf(output, " SET %s '%s'", cell->value, str);
+					fprintf(output, "SET %s '%s'", cell->value, str);
 					first = false;
 				}
 				else
