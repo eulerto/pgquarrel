@@ -3,6 +3,7 @@
  *
  *  SUPPORTED
  * ~~~~~~~~~~~
+ * aggregate: partial
  * cast: complete
  * comment: partial
  * conversion: partial
@@ -31,7 +32,6 @@
  * ~~~~~~~~~~~~~
  * foreign table
  * text search { configuration | dictionary | parser | template }
- * aggregate
  * collation
  *
  * operator
@@ -51,6 +51,7 @@
 #include "quarrel.h"
 #include "common.h"
 
+#include "aggregate.h"
 #include "cast.h"
 #include "collation.h"
 #include "conversion.h"
@@ -87,7 +88,8 @@ QuarrelOptions		options;
 PQLStatistic		qstat = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+							 0, 0
 					  };
 
 FILE				*fout;			/* output file */
@@ -109,6 +111,7 @@ static FILE *openTempFile(char *p);
 static void closeTempFile(FILE *fp, char *p);
 static bool isEmptyFile(char *p);
 
+static void quarrelAggregates();
 static void quarrelCasts();
 static void quarrelCollations();
 static void quarrelConversions();
@@ -384,6 +387,100 @@ connectDatabase(const char *host, const char *port, const char *user,
 	}
 
 	return conn;
+}
+
+static void
+quarrelAggregates()
+{
+	PQLAggregate	*aggregates1 = NULL;	/* from */
+	PQLAggregate	*aggregates2 = NULL;	/* to */
+	int				naggregates1 = 0;		/* # of aggregates */
+	int				naggregates2 = 0;
+	int				i, j;
+
+	aggregates1 = getAggregates(conn1, &naggregates1);
+	aggregates2 = getAggregates(conn2, &naggregates2);
+
+	for (i = 0; i < naggregates1; i++)
+		logNoise("server1: %s.%s(%s)", aggregates1[i].obj.schemaname,
+				 aggregates1[i].obj.objectname, aggregates1[i].arguments);
+
+	for (i = 0; i < naggregates2; i++)
+		logNoise("server2: %s.%s(%s)", aggregates2[i].obj.schemaname,
+				 aggregates2[i].obj.objectname, aggregates2[i].arguments);
+
+	/*
+	 * We have two sorted lists. Let's figure out which elements are not in the
+	 * other list.
+	 * We have two sorted lists. The strategy is transverse both lists only once
+	 * to figure out relations not presented in the other list.
+	 */
+	i = j = 0;
+	while (i < naggregates1 || j < naggregates2)
+	{
+		/* End of aggregates1 list. Print aggregates2 list until its end. */
+		if (i == naggregates1)
+		{
+			logDebug("aggregate %s.%s(%s): server2", aggregates2[j].obj.schemaname,
+					 aggregates2[j].obj.objectname, aggregates2[j].arguments);
+
+			getAggregateSecurityLabels(conn2, &aggregates2[j]);
+
+			dumpCreateAggregate(fpre, aggregates2[j]);
+
+			j++;
+			qstat.aggadded++;
+		}
+		/* End of aggregates2 list. Print aggregates1 list until its end. */
+		else if (j == naggregates2)
+		{
+			logDebug("aggregate %s.%s(%s): server1", aggregates1[i].obj.schemaname,
+					 aggregates1[i].obj.objectname, aggregates1[i].arguments);
+
+			dumpDropAggregate(fpost, aggregates1[i]);
+
+			i++;
+			qstat.aggremoved++;
+		}
+		else if (compareAggregates(aggregates1[i], aggregates2[j]) == 0)
+		{
+			logDebug("aggregate %s.%s(%s): server1 server2", aggregates1[i].obj.schemaname,
+					 aggregates1[i].obj.objectname, aggregates1[i].arguments);
+
+			getAggregateSecurityLabels(conn1, &aggregates1[i]);
+			getAggregateSecurityLabels(conn2, &aggregates2[j]);
+
+			dumpAlterAggregate(fpre, aggregates1[i], aggregates2[j]);
+
+			i++;
+			j++;
+		}
+		else if (compareAggregates(aggregates1[i], aggregates2[j]) < 0)
+		{
+			logDebug("aggregate %s.%s(%s): server1", aggregates1[i].obj.schemaname,
+					 aggregates1[i].obj.objectname, aggregates1[i].arguments);
+
+			dumpDropAggregate(fpost, aggregates1[i]);
+
+			i++;
+			qstat.aggremoved++;
+		}
+		else if (compareAggregates(aggregates1[i], aggregates2[j]) > 0)
+		{
+			logDebug("aggregate %s.%s(%s): server2", aggregates2[j].obj.schemaname,
+					 aggregates2[j].obj.objectname, aggregates2[j].arguments);
+
+			getAggregateSecurityLabels(conn2, &aggregates2[j]);
+
+			dumpCreateAggregate(fpre, aggregates2[j]);
+
+			j++;
+			qstat.aggadded++;
+		}
+	}
+
+	freeAggregates(aggregates1, naggregates1);
+	freeAggregates(aggregates2, naggregates2);
 }
 
 static void
@@ -2789,6 +2886,7 @@ int main(int argc, char *argv[])
 	quarrelTables();
 	quarrelIndexes();
 	quarrelFunctions();
+	quarrelAggregates();
 	quarrelViews();
 	quarrelMaterializedViews();
 	quarrelTriggers();

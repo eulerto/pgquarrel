@@ -52,6 +52,11 @@ Features
 		<th>Comments</th>
 	</tr>
 	<tr>
+		<td>AGGREGATE</td>
+		<td>partial</td>
+		<td></td>
+	</tr>
+	<tr>
 		<td>CAST</td>
 		<td>complete</td>
 		<td></td>
@@ -189,11 +194,6 @@ Features
 	</tr>
 	<tr>
 		<td>TEXT SEARCH TEMPLATE</td>
-		<td>not implemented</td>
-		<td></td>
-	</tr>
-	<tr>
-		<td>AGGREGATE</td>
 		<td>not implemented</td>
 		<td></td>
 	</tr>

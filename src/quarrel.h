@@ -20,6 +20,8 @@
 
 typedef struct PQLStatistic
 {
+	int		aggadded;
+	int		aggremoved;
 	int		castadded;
 	int		castremoved;
 	int		collationadded;
