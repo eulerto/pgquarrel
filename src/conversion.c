@@ -29,7 +29,7 @@ getConversions(PGconn *c, int *n)
 		query = (char *) malloc(nquery * sizeof(char));
 
 		r = snprintf(query, nquery,
-					 "SELECT c.oid, n.nspname as conschema, c.conname, pg_encoding_to_char(conforencoding) AS conforencoding, pg_encoding_to_char(contoencoding) AS contoencoding, conproc, condefault, obj_description(c.oid, 'pg_conversion') AS description, pg_get_userbyid(c.conowner) AS conowner FROM pg_conversion c LEFT JOIN pg_namespace n ON (c.connamespace = n.oid) LEFT JOIN (pg_description d INNER JOIN pg_class x ON (x.oid = d.classoid AND x.relname = 'pg_conversion')) ON (d.objoid = c.oid) WHERE c.oid >= %u ORDER BY n.nspname, c.conname",
+					 "SELECT c.oid, quote_ident(n.nspname) AS conschema, quote_ident(c.conname) AS conname, pg_encoding_to_char(conforencoding) AS conforencoding, pg_encoding_to_char(contoencoding) AS contoencoding, conproc, condefault, obj_description(c.oid, 'pg_conversion') AS description, pg_get_userbyid(c.conowner) AS conowner FROM pg_conversion c LEFT JOIN pg_namespace n ON (c.connamespace = n.oid) LEFT JOIN (pg_description d INNER JOIN pg_class x ON (x.oid = d.classoid AND x.relname = 'pg_conversion')) ON (d.objoid = c.oid) WHERE c.oid >= %u ORDER BY n.nspname, c.conname",
 					 PGQ_FIRST_USER_OID);
 
 		if (r < nquery)
@@ -117,8 +117,8 @@ dumpCreateConversion(FILE *output, PQLConversion c)
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE%s CONVERSION %s.%s FOR '%s' TO '%s' FROM %s",
 			((c.convdefault) ? " DEFAULT" : ""),
-			formatObjectIdentifier(c.obj.schemaname),
-			formatObjectIdentifier(c.obj.objectname),
+			c.obj.schemaname,
+			c.obj.objectname,
 			c.forencoding,
 			c.toencoding,
 			c.funcname);
@@ -129,8 +129,8 @@ dumpCreateConversion(FILE *output, PQLConversion c)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER CONVERSION %s.%s OWNER TO %s;",
-				formatObjectIdentifier(c.obj.schemaname),
-				formatObjectIdentifier(c.obj.objectname),
+				c.obj.schemaname,
+				c.obj.objectname,
 				c.owner);
 	}
 }
@@ -140,8 +140,8 @@ dumpDropConversion(FILE *output, PQLConversion c)
 {
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP CONVERSION %s.%s;",
-			formatObjectIdentifier(c.obj.schemaname),
-			formatObjectIdentifier(c.obj.objectname));
+			c.obj.schemaname,
+			c.obj.objectname);
 }
 
 void
@@ -154,8 +154,8 @@ dumpAlterConversion(FILE *output, PQLConversion a, PQLConversion b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER CONVERSION %s.%s OWNER TO %s;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
+					b.obj.schemaname,
+					b.obj.objectname,
 					b.owner);
 		}
 	}
@@ -169,16 +169,16 @@ dumpAlterConversion(FILE *output, PQLConversion a, PQLConversion b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON CONVERSION %s.%s IS '%s';",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
+					b.obj.schemaname,
+					b.obj.objectname,
 					b.comment);
 		}
 		else if (a.comment != NULL && b.comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON CONVERSION %s.%s IS NULL;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname));
+					b.obj.schemaname,
+					b.obj.objectname);
 		}
 	}
 }

@@ -30,12 +30,12 @@ getDomains(PGconn *c, int *n)
 	{
 		/* typcollation is new in 9.1 */
 		res = PQexec(c,
-					 "SELECT t.oid, n.nspname, t.typname, format_type(t.typbasetype, t.typtypmod) as domaindef, t.typnotnull, CASE WHEN t.typcollation <> u.typcollation THEN '\"' || p.nspname || '\".\"' || l.collname || '\"' ELSE NULL END AS typcollation, pg_get_expr(t.typdefaultbin, 'pg_type'::regclass) AS typdefault, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, t.typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) LEFT JOIN pg_type u ON (t.typbasetype = u.oid) LEFT JOIN pg_collation l ON (t.typcollation = l.oid) LEFT JOIN pg_namespace p ON (l.collnamespace = p.oid) WHERE t.typtype = 'd' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, t.typname");
+					 "SELECT t.oid, quote_ident(n.nspname) AS nspname, quote_ident(t.typname) AS typname, format_type(t.typbasetype, t.typtypmod) as domaindef, t.typnotnull, CASE WHEN t.typcollation <> u.typcollation THEN '\"' || p.nspname || '\".\"' || l.collname || '\"' ELSE NULL END AS typcollation, pg_get_expr(t.typdefaultbin, 'pg_type'::regclass) AS typdefault, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, t.typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) LEFT JOIN pg_type u ON (t.typbasetype = u.oid) LEFT JOIN pg_collation l ON (t.typcollation = l.oid) LEFT JOIN pg_namespace p ON (l.collnamespace = p.oid) WHERE t.typtype = 'd' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, t.typname");
 	}
 	else
 	{
 		res = PQexec(c,
-					 "SELECT t.oid, n.nspname, t.typname, format_type(t.typbasetype, t.typtypmod) as domaindef, t.typnotnull, NULL AS typcollation, pg_get_expr(t.typdefaultbin, 'pg_type'::regclass) AS typdefault, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, t.typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'd' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, t.typname");
+					 "SELECT t.oid, quote_ident(n.nspname) AS nspname, quote_ident(t.typname) AS typname, format_type(t.typbasetype, t.typtypmod) as domaindef, t.typnotnull, NULL AS typcollation, pg_get_expr(t.typdefaultbin, 'pg_type'::regclass) AS typdefault, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, t.typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'd' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, t.typname");
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -158,8 +158,8 @@ getDomainConstraints(PGconn *c, PQLDomain *d)
 		d->check = NULL;
 
 	logDebug("number of check constraints in domain %s.%s: %d",
-			 formatObjectIdentifier(d->obj.schemaname),
-			 formatObjectIdentifier(d->obj.objectname), d->ncheck);
+			 d->obj.schemaname,
+			 d->obj.objectname, d->ncheck);
 
 	for (i = 0; i < d->ncheck; i++)
 	{
@@ -209,8 +209,8 @@ getDomainSecurityLabels(PGconn *c, PQLDomain *d)
 		d->seclabels = NULL;
 
 	logDebug("number of security labels in domain %s.%s: %d",
-			 formatObjectIdentifier(d->obj.schemaname),
-			 formatObjectIdentifier(d->obj.objectname), d->nseclabels);
+			 d->obj.schemaname,
+			 d->obj.objectname, d->nseclabels);
 
 	for (i = 0; i < d->nseclabels; i++)
 	{
@@ -276,8 +276,8 @@ dumpCreateDomain(FILE *output, PQLDomain d)
 
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE DOMAIN %s.%s AS %s",
-			formatObjectIdentifier(d.obj.schemaname),
-			formatObjectIdentifier(d.obj.objectname),
+			d.obj.schemaname,
+			d.obj.objectname,
 			d.domaindef);
 
 	if (d.collation != NULL)
@@ -304,8 +304,8 @@ dumpCreateDomain(FILE *output, PQLDomain d)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "COMMENT ON DOMAIN %s.%s IS '%s';",
-				formatObjectIdentifier(d.obj.schemaname),
-				formatObjectIdentifier(d.obj.objectname),
+				d.obj.schemaname,
+				d.obj.objectname,
 				d.comment);
 	}
 
@@ -317,8 +317,8 @@ dumpCreateDomain(FILE *output, PQLDomain d)
 			fprintf(output, "\n\n");
 			fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
 					d.seclabels[i].provider,
-					formatObjectIdentifier(d.obj.schemaname),
-					formatObjectIdentifier(d.obj.objectname),
+					d.obj.schemaname,
+					d.obj.objectname,
 					d.seclabels[i].label);
 		}
 	}
@@ -328,8 +328,8 @@ dumpCreateDomain(FILE *output, PQLDomain d)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER DOMAIN %s.%s OWNER TO %s;",
-				formatObjectIdentifier(d.obj.schemaname),
-				formatObjectIdentifier(d.obj.objectname),
+				d.obj.schemaname,
+				d.obj.objectname,
 				d.owner);
 	}
 
@@ -355,8 +355,8 @@ dumpAlterDomain(FILE *output, PQLDomain a, PQLDomain b)
 			 strcmp(a.ddefault, b.ddefault) != 0))
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER DOMAIN %s.%s", formatObjectIdentifier(b.obj.schemaname),
-				formatObjectIdentifier(b.obj.objectname));
+		fprintf(output, "ALTER DOMAIN %s.%s", b.obj.schemaname,
+				b.obj.objectname);
 
 		if (b.ddefault != NULL)
 			fprintf(output, " SET DEFAULT %s", b.ddefault);
@@ -369,8 +369,8 @@ dumpAlterDomain(FILE *output, PQLDomain a, PQLDomain b)
 	if (a.notnull != b.notnull)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER DOMAIN %s.%s", formatObjectIdentifier(b.obj.schemaname),
-				formatObjectIdentifier(b.obj.objectname));
+		fprintf(output, "ALTER DOMAIN %s.%s", b.obj.schemaname,
+				b.obj.objectname);
 
 		if (b.notnull)
 			fprintf(output, " SET NOT NULL");
@@ -389,16 +389,16 @@ dumpAlterDomain(FILE *output, PQLDomain a, PQLDomain b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON DOMAIN %s.%s IS '%s';",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
+					b.obj.schemaname,
+					b.obj.objectname,
 					b.comment);
 		}
 		else if (a.comment != NULL && b.comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON DOMAIN %s.%s IS NULL;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname));
+					b.obj.schemaname,
+					b.obj.objectname);
 		}
 	}
 
@@ -414,8 +414,8 @@ dumpAlterDomain(FILE *output, PQLDomain a, PQLDomain b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
 						b.seclabels[i].provider,
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
+						b.obj.schemaname,
+						b.obj.objectname,
 						b.seclabels[i].label);
 			}
 		}
@@ -428,8 +428,8 @@ dumpAlterDomain(FILE *output, PQLDomain a, PQLDomain b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS NULL;",
 						a.seclabels[i].provider,
-						formatObjectIdentifier(a.obj.schemaname),
-						formatObjectIdentifier(a.obj.objectname));
+						a.obj.schemaname,
+						a.obj.objectname);
 			}
 		}
 		else if (a.seclabels != NULL && b.seclabels != NULL)
@@ -444,8 +444,8 @@ dumpAlterDomain(FILE *output, PQLDomain a, PQLDomain b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
 							b.seclabels[j].provider,
-							formatObjectIdentifier(b.obj.schemaname),
-							formatObjectIdentifier(b.obj.objectname),
+							b.obj.schemaname,
+							b.obj.objectname,
 							b.seclabels[j].label);
 					j++;
 				}
@@ -454,8 +454,8 @@ dumpAlterDomain(FILE *output, PQLDomain a, PQLDomain b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS NULL;",
 							a.seclabels[i].provider,
-							formatObjectIdentifier(a.obj.schemaname),
-							formatObjectIdentifier(a.obj.objectname));
+							a.obj.schemaname,
+							a.obj.objectname);
 					i++;
 				}
 				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
@@ -465,8 +465,8 @@ dumpAlterDomain(FILE *output, PQLDomain a, PQLDomain b)
 						fprintf(output, "\n\n");
 						fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
 								b.seclabels[j].provider,
-								formatObjectIdentifier(b.obj.schemaname),
-								formatObjectIdentifier(b.obj.objectname),
+								b.obj.schemaname,
+								b.obj.objectname,
 								b.seclabels[j].label);
 					}
 					i++;
@@ -477,8 +477,8 @@ dumpAlterDomain(FILE *output, PQLDomain a, PQLDomain b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS NULL;",
 							a.seclabels[i].provider,
-							formatObjectIdentifier(a.obj.schemaname),
-							formatObjectIdentifier(a.obj.objectname));
+							a.obj.schemaname,
+							a.obj.objectname);
 					i++;
 				}
 				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
@@ -486,8 +486,8 @@ dumpAlterDomain(FILE *output, PQLDomain a, PQLDomain b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
 							b.seclabels[j].provider,
-							formatObjectIdentifier(b.obj.schemaname),
-							formatObjectIdentifier(b.obj.objectname),
+							b.obj.schemaname,
+							b.obj.objectname,
 							b.seclabels[j].label);
 					j++;
 				}
@@ -502,8 +502,8 @@ dumpAlterDomain(FILE *output, PQLDomain a, PQLDomain b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER DOMAIN %s.%s OWNER TO %s;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
+					b.obj.schemaname,
+					b.obj.objectname,
 					b.owner);
 		}
 	}
