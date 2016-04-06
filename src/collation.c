@@ -29,7 +29,7 @@ getCollations(PGconn *c, int *n)
 		query = (char *) malloc(nquery * sizeof(char));
 
 		r = snprintf(query, nquery,
-					 "SELECT c.oid, n.nspname, collname, pg_encoding_to_char(collencoding) AS collencoding, collcollate, collctype, pg_get_userbyid(collowner) AS collowner, obj_description(c.oid, 'pg_conversion') AS description FROM pg_collation c INNER JOIN pg_namespace n ON (c.collnamespace = n.oid) LEFT JOIN (pg_description d INNER JOIN pg_class x ON (x.oid = d.classoid AND x.relname = 'pg_conversion')) ON (d.objoid = c.oid) WHERE c.oid >= %u ORDER BY n.nspname, collname",
+					 "SELECT c.oid, quote_ident(n.nspname) AS nspname, quote_ident(collname) AS collname, pg_encoding_to_char(collencoding) AS collencoding, collcollate, collctype, pg_get_userbyid(collowner) AS collowner, obj_description(c.oid, 'pg_conversion') AS description FROM pg_collation c INNER JOIN pg_namespace n ON (c.collnamespace = n.oid) LEFT JOIN (pg_description d INNER JOIN pg_class x ON (x.oid = d.classoid AND x.relname = 'pg_conversion')) ON (d.objoid = c.oid) WHERE c.oid >= %u ORDER BY n.nspname, collname",
 					 PGQ_FIRST_USER_OID);
 
 		if (r < nquery)
@@ -119,8 +119,8 @@ dumpCreateCollation(FILE *output, PQLCollation c)
 	 */
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE COLLATION %s.%s (LC_COLLATE = '%s', LC_CTYPE = '%s');",
-			formatObjectIdentifier(c.obj.schemaname),
-			formatObjectIdentifier(c.obj.objectname),
+			c.obj.schemaname,
+			c.obj.objectname,
 			c.collate,
 			c.ctype);
 
@@ -129,8 +129,8 @@ dumpCreateCollation(FILE *output, PQLCollation c)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "COMMENT ON COLLATION %s.%s IS '%s';",
-				formatObjectIdentifier(c.obj.schemaname),
-				formatObjectIdentifier(c.obj.objectname),
+				c.obj.schemaname,
+				c.obj.objectname,
 				c.comment);
 	}
 
@@ -139,8 +139,8 @@ dumpCreateCollation(FILE *output, PQLCollation c)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER COLLATION %s.%s OWNER TO %s;",
-				formatObjectIdentifier(c.obj.schemaname),
-				formatObjectIdentifier(c.obj.objectname),
+				c.obj.schemaname,
+				c.obj.objectname,
 				c.owner);
 	}
 }
@@ -150,8 +150,8 @@ dumpDropCollation(FILE *output, PQLCollation c)
 {
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP COLLATION %s.%s;",
-			formatObjectIdentifier(c.obj.schemaname),
-			formatObjectIdentifier(c.obj.objectname));
+			c.obj.schemaname,
+			c.obj.objectname);
 }
 
 void
@@ -166,16 +166,16 @@ dumpAlterCollation(FILE *output, PQLCollation a, PQLCollation b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON COLLATION %s.%s IS '%s';",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
+					b.obj.schemaname,
+					b.obj.objectname,
 					b.comment);
 		}
 		else if (a.comment != NULL && b.comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON COLLATION %s.%s IS NULL;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname));
+					b.obj.schemaname,
+					b.obj.objectname);
 		}
 	}
 
@@ -186,8 +186,8 @@ dumpAlterCollation(FILE *output, PQLCollation a, PQLCollation b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER COLLATION %s.%s OWNER TO %s;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
+					b.obj.schemaname,
+					b.obj.objectname,
 					b.owner);
 		}
 	}

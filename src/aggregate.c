@@ -22,9 +22,9 @@ getAggregates(PGconn *c, int *n)
 	logNoise("aggregate: server version: %d", PQserverVersion(c));
 
 	if (PQserverVersion(c) >= 90400)
-		res = PQexec(c, "SELECT p.oid, n.nspname, p.proname, pg_get_function_arguments(p.oid) AS aggargs, aggtransfn, aggtranstype::regtype, aggtransspace, aggfinalfn, aggfinalextra, agginitval, aggmtransfn, aggminvtransfn, aggmtranstype::regtype, aggmtransspace, aggmfinalfn, aggmfinalextra, aggminitval, aggsortop::regoperator, (aggkind = 'h') AS hypothetical, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(p.proowner) AS aggowner FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, p.proname, pg_get_function_arguments(p.oid)");
+		res = PQexec(c, "SELECT p.oid, quote_ident(n.nspname) AS nspname, quote_ident(p.proname) AS proname, pg_get_function_arguments(p.oid) AS aggargs, aggtransfn, aggtranstype::regtype, aggtransspace, aggfinalfn, aggfinalextra, agginitval, aggmtransfn, aggminvtransfn, aggmtranstype::regtype, aggmtransspace, aggmfinalfn, aggmfinalextra, aggminitval, aggsortop::regoperator, (aggkind = 'h') AS hypothetical, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(p.proowner) AS aggowner FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, p.proname, pg_get_function_arguments(p.oid)");
 	else	/* >= 80400 */
-		res = PQexec(c, "SELECT p.oid, n.nspname, p.proname, pg_get_function_arguments(p.oid) AS aggargs, aggtransfn, aggtranstype::regtype, NULL AS aggtransspace, aggfinalfn, false AS aggfinalextra, agginitval, NULL AS aggmtransfn, NULL AS aggminvtransfn, NULL AS aggmtranstype, NULL AS aggmtransspace, NULL AS aggmfinalfn, false AS aggmfinalextra, NULL AS aggminitval, aggsortop::regoperator, false AS hypothetical, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(p.proowner) AS aggowner FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, p.proname, pg_get_function_arguments(p.oid)");
+		res = PQexec(c, "SELECT p.oid, quote_ident(n.nspname) AS nspname, quote_ident(p.proname) AS proname, pg_get_function_arguments(p.oid) AS aggargs, aggtransfn, aggtranstype::regtype, NULL AS aggtransspace, aggfinalfn, false AS aggfinalextra, agginitval, NULL AS aggmtransfn, NULL AS aggminvtransfn, NULL AS aggmtranstype, NULL AS aggmtransspace, NULL AS aggmfinalfn, false AS aggmfinalextra, NULL AS aggminitval, aggsortop::regoperator, false AS hypothetical, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(p.proowner) AS aggowner FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, p.proname, pg_get_function_arguments(p.oid)");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -123,8 +123,8 @@ getAggregates(PGconn *c, int *n)
 		a[i].nseclabels = 0;
 		a[i].seclabels = NULL;
 
-		logDebug("aggregate %s.%s(%s)", formatObjectIdentifier(a[i].obj.schemaname),
-				 formatObjectIdentifier(a[i].obj.objectname), a[i].arguments);
+		logDebug("aggregate %s.%s(%s)", a[i].obj.schemaname,
+				 a[i].obj.objectname, a[i].arguments);
 	}
 
 	PQclear(res);
@@ -188,8 +188,8 @@ getAggregateSecurityLabels(PGconn *c, PQLAggregate *a)
 		a->seclabels = NULL;
 
 	logDebug("number of security labels in aggregate %s.%s(%s): %d",
-			 formatObjectIdentifier(a->obj.schemaname),
-			 formatObjectIdentifier(a->obj.objectname),
+			 a->obj.schemaname,
+			 a->obj.objectname,
 			 a->arguments,
 			 a->nseclabels);
 
@@ -262,8 +262,8 @@ dumpDropAggregate(FILE *output, PQLAggregate a)
 {
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP AGGREGATE %s.%s(%s);",
-			formatObjectIdentifier(a.obj.schemaname),
-			formatObjectIdentifier(a.obj.objectname), a.arguments);
+			a.obj.schemaname,
+			a.obj.objectname, a.arguments);
 }
 
 void
@@ -271,8 +271,8 @@ dumpCreateAggregate(FILE *output, PQLAggregate a)
 {
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE AGGREGATE %s.%s(%s) (",
-			formatObjectIdentifier(a.obj.schemaname),
-			formatObjectIdentifier(a.obj.objectname), a.arguments);
+			a.obj.schemaname,
+			a.obj.objectname, a.arguments);
 	fprintf(output, "\nSFUNC = %s", a.sfunc);
 	fprintf(output, ",\nSTYPE = %s,", a.stype);
 	if (a.sspace)
@@ -321,8 +321,8 @@ dumpAlterAggregate(FILE *output, PQLAggregate a, PQLAggregate b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON AGGREGATE %s.%s(%s) IS '%s';",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
+					b.obj.schemaname,
+					b.obj.objectname,
 					b.arguments,
 					b.comment);
 		}
@@ -330,8 +330,8 @@ dumpAlterAggregate(FILE *output, PQLAggregate a, PQLAggregate b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON AGGREGATE %s.%s(%s) IS NULL;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
+					b.obj.schemaname,
+					b.obj.objectname,
 					b.arguments);
 		}
 	}
@@ -348,8 +348,8 @@ dumpAlterAggregate(FILE *output, PQLAggregate a, PQLAggregate b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS '%s';",
 						b.seclabels[i].provider,
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
+						b.obj.schemaname,
+						b.obj.objectname,
 						b.arguments,
 						b.seclabels[i].label);
 			}
@@ -363,8 +363,8 @@ dumpAlterAggregate(FILE *output, PQLAggregate a, PQLAggregate b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS NULL;",
 						a.seclabels[i].provider,
-						formatObjectIdentifier(a.obj.schemaname),
-						formatObjectIdentifier(a.obj.objectname),
+						a.obj.schemaname,
+						a.obj.objectname,
 						a.arguments);
 			}
 		}
@@ -380,8 +380,8 @@ dumpAlterAggregate(FILE *output, PQLAggregate a, PQLAggregate b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS '%s';",
 							b.seclabels[j].provider,
-							formatObjectIdentifier(b.obj.schemaname),
-							formatObjectIdentifier(b.obj.objectname),
+							b.obj.schemaname,
+							b.obj.objectname,
 							b.arguments,
 							b.seclabels[j].label);
 					j++;
@@ -391,8 +391,8 @@ dumpAlterAggregate(FILE *output, PQLAggregate a, PQLAggregate b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS NULL;",
 							a.seclabels[i].provider,
-							formatObjectIdentifier(a.obj.schemaname),
-							formatObjectIdentifier(a.obj.objectname),
+							a.obj.schemaname,
+							a.obj.objectname,
 							a.arguments);
 					i++;
 				}
@@ -403,8 +403,8 @@ dumpAlterAggregate(FILE *output, PQLAggregate a, PQLAggregate b)
 						fprintf(output, "\n\n");
 						fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS '%s';",
 								b.seclabels[j].provider,
-								formatObjectIdentifier(b.obj.schemaname),
-								formatObjectIdentifier(b.obj.objectname),
+								b.obj.schemaname,
+								b.obj.objectname,
 								b.arguments,
 								b.seclabels[j].label);
 					}
@@ -416,8 +416,8 @@ dumpAlterAggregate(FILE *output, PQLAggregate a, PQLAggregate b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS NULL;",
 							a.seclabels[i].provider,
-							formatObjectIdentifier(a.obj.schemaname),
-							formatObjectIdentifier(a.obj.objectname),
+							a.obj.schemaname,
+							a.obj.objectname,
 							a.arguments);
 					i++;
 				}
@@ -426,8 +426,8 @@ dumpAlterAggregate(FILE *output, PQLAggregate a, PQLAggregate b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS '%s';",
 							b.seclabels[j].provider,
-							formatObjectIdentifier(b.obj.schemaname),
-							formatObjectIdentifier(b.obj.objectname),
+							b.obj.schemaname,
+							b.obj.objectname,
 							b.arguments,
 							b.seclabels[j].label);
 					j++;
@@ -443,8 +443,8 @@ dumpAlterAggregate(FILE *output, PQLAggregate a, PQLAggregate b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER AGGREGATE %s.%s(%s) OWNER TO %s;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
+					b.obj.schemaname,
+					b.obj.objectname,
 					b.arguments,
 					b.owner);
 		}
