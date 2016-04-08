@@ -143,7 +143,7 @@ typedef struct stringList
 int compareRelations(PQLObject a, PQLObject b);
 int compareNamesAndRelations(PQLObject a, PQLObject b, char *aname,
 							 char *bname);
-const char *formatObjectIdentifier(char *s);
+char *formatObjectIdentifier(char *s);
 void logGeneric(enum PQLLogLevel level, const char *fmt, ...);
 
 stringList *buildStringList(char *options);

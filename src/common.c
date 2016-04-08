@@ -132,7 +132,7 @@ ScanKeywordLookup(const char *text,
 	return NULL;
 }
 
-const char *
+char *
 formatObjectIdentifier(char *s)
 {
 	bool	need_quotes = false;
