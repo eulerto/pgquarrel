@@ -389,6 +389,9 @@ void
 dumpGrant(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee,
 		  char *extra)
 {
+	char	*schema = NULL;
+	char	*objname = formatObjectIdentifier(a.objectname);
+
 	char	*p;
 
 	/* nothing to be done */
@@ -441,9 +444,12 @@ dumpGrant(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee,
 	/* function arguments? */
 	if (objecttype == PGQ_FUNCTION && extra != NULL)
 	{
+		/* there are some objects that are not schema-qualified */
+		schema = formatObjectIdentifier(a.schemaname);
+
 		fprintf(output, " %s.%s(%s) TO %s;",
-				formatObjectIdentifier(a.schemaname),
-				formatObjectIdentifier(a.objectname),
+				schema,
+				objname,
 				extra,
 				grantee);
 	}
@@ -452,24 +458,33 @@ dumpGrant(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee,
 			 objecttype == PGQ_SCHEMA || objecttype == PGQ_TABLESPACE)
 	{
 		fprintf(output, " %s TO %s;",
-				formatObjectIdentifier(a.objectname),
+				objname,
 				grantee);
 	}
 	else
 	{
+		/* there are some objects that are not schema-qualified */
+		schema = formatObjectIdentifier(a.schemaname);
+
 		fprintf(output, " %s.%s TO %s;",
-				formatObjectIdentifier(a.schemaname),
-				formatObjectIdentifier(a.objectname),
+				schema,
+				objname,
 				grantee);
 	}
 
 	free(p);
+	free(objname);
+	if (schema)
+		free(schema);
 }
 
 void
 dumpRevoke(FILE *output, int objecttype, PQLObject a, char *privs,
 		   char *grantee, char *extra)
 {
+	char	*schema = NULL;
+	char	*objname = formatObjectIdentifier(a.objectname);
+
 	char	*p;
 
 	/* nothing to be done */
@@ -522,9 +537,12 @@ dumpRevoke(FILE *output, int objecttype, PQLObject a, char *privs,
 	/* function arguments? */
 	if (objecttype == PGQ_FUNCTION && extra != NULL)
 	{
+		/* there are some objects that are not schema-qualified */
+		schema = formatObjectIdentifier(a.schemaname);
+
 		fprintf(output, " %s.%s(%s) FROM %s;",
-				formatObjectIdentifier(a.schemaname),
-				formatObjectIdentifier(a.objectname),
+				schema,
+				objname,
 				extra,
 				grantee);
 	}
@@ -533,18 +551,24 @@ dumpRevoke(FILE *output, int objecttype, PQLObject a, char *privs,
 			 objecttype == PGQ_SCHEMA || objecttype == PGQ_TABLESPACE)
 	{
 		fprintf(output, " %s FROM %s;",
-				formatObjectIdentifier(a.objectname),
+				objname,
 				grantee);
 	}
 	else
 	{
+		/* there are some objects that are not schema-qualified */
+		schema = formatObjectIdentifier(a.schemaname);
+
 		fprintf(output, " %s.%s FROM %s;",
-				formatObjectIdentifier(a.schemaname),
-				formatObjectIdentifier(a.objectname),
+				schema,
+				objname,
 				grantee);
 	}
 
 	free(p);
+	free(objname);
+	if (schema)
+		free(schema);
 }
 
 void

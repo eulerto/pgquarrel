@@ -87,17 +87,21 @@ freeExtensions(PQLExtension *e, int n)
 void
 dumpDropExtension(FILE *output, PQLExtension e)
 {
+	char	*extname = formatObjectIdentifier(e.extensionname);
+
 	fprintf(output, "\n\n");
-	fprintf(output, "DROP EXTENSION %s;",
-			formatObjectIdentifier(e.extensionname));
+	fprintf(output, "DROP EXTENSION %s;", extname);
+
+	free(extname);
 }
 
 void
 dumpCreateExtension(FILE *output, PQLExtension e)
 {
+	char	*extname = formatObjectIdentifier(e.extensionname);
+
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE EXTENSION %s",
-			formatObjectIdentifier(e.extensionname));
+	fprintf(output, "CREATE EXTENSION %s", extname);
 
 	if (e.relocatable)
 		fprintf(output, " WITH SCHEMA %s", e.schemaname);
@@ -110,28 +114,27 @@ dumpCreateExtension(FILE *output, PQLExtension e)
 	if (options.comment && e.comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON EXTENSION %s IS '%s';",
-				formatObjectIdentifier(e.extensionname), e.comment);
+		fprintf(output, "COMMENT ON EXTENSION %s IS '%s';", extname, e.comment);
 	}
+
+	free(extname);
 }
 
 void
 dumpAlterExtension(FILE *output, PQLExtension a, PQLExtension b)
 {
+	char	*extname2 = formatObjectIdentifier(b.extensionname);
+
 	if (strcmp(a.version, b.version) != 0)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER EXTENSION %s UPDATE TO %s;",
-				formatObjectIdentifier(b.extensionname),
-				b.version);
+		fprintf(output, "ALTER EXTENSION %s UPDATE TO %s;", extname2, b.version);
 	}
 
 	if (strcmp(a.schemaname, b.schemaname) != 0)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER EXTENSION %s SET SCHEMA %s;",
-				formatObjectIdentifier(b.extensionname),
-				b.schemaname);
+		fprintf(output, "ALTER EXTENSION %s SET SCHEMA %s;", extname2, b.schemaname);
 	}
 
 	/* comment */
@@ -142,14 +145,14 @@ dumpAlterExtension(FILE *output, PQLExtension a, PQLExtension b)
 				 strcmp(a.comment, b.comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON EXTENSION %s IS '%s';",
-					formatObjectIdentifier(b.extensionname), b.comment);
+			fprintf(output, "COMMENT ON EXTENSION %s IS '%s';", extname2, b.comment);
 		}
 		else if (a.comment != NULL && b.comment == NULL)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON EXTENSION %s IS NULL;",
-					formatObjectIdentifier(b.extensionname));
+			fprintf(output, "COMMENT ON EXTENSION %s IS NULL;", extname2);
 		}
 	}
+
+	free(extname2);
 }

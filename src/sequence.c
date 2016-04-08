@@ -234,19 +234,24 @@ freeSequences(PQLSequence *s, int n)
 void
 dumpDropSequence(FILE *output, PQLSequence s)
 {
+	char	*schema = formatObjectIdentifier(s.obj.schemaname);
+	char	*seqname = formatObjectIdentifier(s.obj.objectname);
+
 	fprintf(output, "\n\n");
-	fprintf(output, "DROP SEQUENCE %s.%s;",
-			formatObjectIdentifier(s.obj.schemaname),
-			formatObjectIdentifier(s.obj.objectname));
+	fprintf(output, "DROP SEQUENCE %s.%s;", schema, seqname);
+
+	free(schema);
+	free(seqname);
 }
 
 void
 dumpCreateSequence(FILE *output, PQLSequence s)
 {
+	char	*schema = formatObjectIdentifier(s.obj.schemaname);
+	char	*seqname = formatObjectIdentifier(s.obj.objectname);
+
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE SEQUENCE %s.%s",
-			formatObjectIdentifier(s.obj.schemaname),
-			formatObjectIdentifier(s.obj.objectname));
+	fprintf(output, "CREATE SEQUENCE %s.%s", schema, seqname);
 
 	/*
 	 * dump only if it is not default
@@ -278,10 +283,7 @@ dumpCreateSequence(FILE *output, PQLSequence s)
 	if (options.comment && s.comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON SEQUENCE %s.%s IS '%s';",
-				formatObjectIdentifier(s.obj.schemaname),
-				formatObjectIdentifier(s.obj.objectname),
-				s.comment);
+		fprintf(output, "COMMENT ON SEQUENCE %s.%s IS '%s';", schema, seqname, s.comment);
 	}
 
 	/* security labels */
@@ -294,8 +296,8 @@ dumpCreateSequence(FILE *output, PQLSequence s)
 			fprintf(output, "\n\n");
 			fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
 					s.seclabels[i].provider,
-					formatObjectIdentifier(s.obj.schemaname),
-					formatObjectIdentifier(s.obj.objectname),
+					schema,
+					seqname,
 					s.seclabels[i].label);
 		}
 	}
@@ -304,21 +306,26 @@ dumpCreateSequence(FILE *output, PQLSequence s)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER SEQUENCE %s.%s OWNER TO %s;",
-				formatObjectIdentifier(s.obj.schemaname),
-				formatObjectIdentifier(s.obj.objectname),
-				s.owner);
+		fprintf(output, "ALTER SEQUENCE %s.%s OWNER TO %s;", schema, seqname, s.owner);
 	}
 
 	/* privileges */
 	/* XXX second s.obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
 		dumpGrantAndRevoke(output, PGQ_SEQUENCE, s.obj, s.obj, NULL, s.acl, NULL);
+
+	free(schema);
+	free(seqname);
 }
 
 void
 dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 {
+	char	*schema1 = formatObjectIdentifier(a.obj.schemaname);
+	char	*seqname1 = formatObjectIdentifier(a.obj.objectname);
+	char	*schema2 = formatObjectIdentifier(b.obj.schemaname);
+	char	*seqname2 = formatObjectIdentifier(b.obj.objectname);
+
 	bool	printalter = true;
 
 	if (strcmp(a.incvalue, b.incvalue) != 0)
@@ -326,9 +333,7 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 		if (printalter)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER SEQUENCE %s.%s",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname));
+			fprintf(output, "ALTER SEQUENCE %s.%s", schema2, seqname2);
 		}
 		printalter = false;
 
@@ -340,9 +345,7 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 		if (printalter)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER SEQUENCE %s.%s",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname));
+			fprintf(output, "ALTER SEQUENCE %s.%s", schema2, seqname2);
 		}
 		printalter = false;
 
@@ -354,9 +357,7 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 		if (printalter)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER SEQUENCE %s.%s",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname));
+			fprintf(output, "ALTER SEQUENCE %s.%s", schema2, seqname2);
 		}
 		printalter = false;
 
@@ -368,9 +369,7 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 		if (printalter)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER SEQUENCE %s.%s",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname));
+			fprintf(output, "ALTER SEQUENCE %s.%s", schema2, seqname2);
 		}
 		printalter = false;
 
@@ -382,9 +381,7 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 		if (printalter)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER SEQUENCE %s.%s",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname));
+			fprintf(output, "ALTER SEQUENCE %s.%s", schema2, seqname2);
 		}
 		printalter = false;
 
@@ -396,9 +393,7 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 		if (printalter)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER SEQUENCE %s.%s",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname));
+			fprintf(output, "ALTER SEQUENCE %s.%s", schema2, seqname2);
 		}
 		printalter = false;
 
@@ -419,17 +414,12 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 				 strcmp(a.comment, b.comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON SEQUENCE %s.%s IS '%s';",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					b.comment);
+			fprintf(output, "COMMENT ON SEQUENCE %s.%s IS '%s';", schema2, seqname2, b.comment);
 		}
 		else if (a.comment != NULL && b.comment == NULL)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON SEQUENCE %s.%s IS NULL;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname));
+			fprintf(output, "COMMENT ON SEQUENCE %s.%s IS NULL;", schema2, seqname2);
 		}
 	}
 
@@ -445,8 +435,8 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
 						b.seclabels[i].provider,
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
+						schema2,
+						seqname2,
 						b.seclabels[i].label);
 			}
 		}
@@ -459,8 +449,8 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS NULL;",
 						a.seclabels[i].provider,
-						formatObjectIdentifier(a.obj.schemaname),
-						formatObjectIdentifier(a.obj.objectname));
+						schema1,
+						seqname1);
 			}
 		}
 		else if (a.seclabels != NULL && b.seclabels != NULL)
@@ -475,8 +465,8 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
 							b.seclabels[j].provider,
-							formatObjectIdentifier(b.obj.schemaname),
-							formatObjectIdentifier(b.obj.objectname),
+							schema2,
+							seqname2,
 							b.seclabels[j].label);
 					j++;
 				}
@@ -485,8 +475,8 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS NULL;",
 							a.seclabels[i].provider,
-							formatObjectIdentifier(a.obj.schemaname),
-							formatObjectIdentifier(a.obj.objectname));
+							schema1,
+							seqname1);
 					i++;
 				}
 				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
@@ -496,8 +486,8 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 						fprintf(output, "\n\n");
 						fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
 								b.seclabels[j].provider,
-								formatObjectIdentifier(b.obj.schemaname),
-								formatObjectIdentifier(b.obj.objectname),
+								schema2,
+								seqname2,
 								b.seclabels[j].label);
 					}
 					i++;
@@ -508,8 +498,8 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS NULL;",
 							a.seclabels[i].provider,
-							formatObjectIdentifier(a.obj.schemaname),
-							formatObjectIdentifier(a.obj.objectname));
+							schema1,
+							seqname1);
 					i++;
 				}
 				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
@@ -517,8 +507,8 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
 							b.seclabels[j].provider,
-							formatObjectIdentifier(b.obj.schemaname),
-							formatObjectIdentifier(b.obj.objectname),
+							schema2,
+							seqname2,
 							b.seclabels[j].label);
 					j++;
 				}
@@ -532,10 +522,7 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 		if (strcmp(a.owner, b.owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER SEQUENCE %s.%s OWNER TO %s;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					b.owner);
+			fprintf(output, "ALTER SEQUENCE %s.%s OWNER TO %s;", schema2, seqname2, b.owner);
 		}
 	}
 
@@ -545,4 +532,9 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 		if (a.acl != NULL || b.acl != NULL)
 			dumpGrantAndRevoke(output, PGQ_SEQUENCE, a.obj, b.obj, a.acl, b.acl, NULL);
 	}
+
+	free(schema1);
+	free(seqname1);
+	free(schema2);
+	free(seqname2);
 }

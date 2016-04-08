@@ -83,6 +83,10 @@ freeTriggers(PQLTrigger *t, int n)
 void
 dumpCreateTrigger(FILE *output, PQLTrigger t)
 {
+	char	*trgname = formatObjectIdentifier(t.trgname);
+	char	*schema = formatObjectIdentifier(t.table.schemaname);
+	char	*tabname = formatObjectIdentifier(t.table.objectname);
+
 	fprintf(output, "\n\n");
 	fprintf(output, "%s;", t.trgdef);
 
@@ -90,28 +94,39 @@ dumpCreateTrigger(FILE *output, PQLTrigger t)
 	if (options.comment && t.comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON TRIGGER %s ON %s.%s IS '%s';",
-				formatObjectIdentifier(t.trgname),
-				formatObjectIdentifier(t.table.schemaname),
-				formatObjectIdentifier(t.table.objectname),
-				t.comment);
+		fprintf(output, "COMMENT ON TRIGGER %s ON %s.%s IS '%s';", trgname, schema, tabname, t.comment);
 	}
+
+	free(trgname);
+	free(schema);
+	free(tabname);
 }
 
 void
 dumpDropTrigger(FILE *output, PQLTrigger t)
 {
+	char	*trgname = formatObjectIdentifier(t.trgname);
+	char	*schema = formatObjectIdentifier(t.table.schemaname);
+	char	*tabname = formatObjectIdentifier(t.table.objectname);
+
 	fprintf(output, "\n\n");
-	fprintf(output, "DROP TRIGGER %s ON %s.%s;", t.trgname, t.table.schemaname,
-			t.table.objectname);
+	fprintf(output, "DROP TRIGGER %s ON %s.%s;", trgname, schema, tabname);
+
+	free(trgname);
+	free(schema);
+	free(tabname);
 }
 
 void
 dumpAlterTrigger(FILE *output, PQLTrigger a, PQLTrigger b)
 {
+	char	*trgname1 = formatObjectIdentifier(a.trgname);
+	char	*trgname2 = formatObjectIdentifier(b.trgname);
+	char	*schema2 = formatObjectIdentifier(b.table.schemaname);
+	char	*tabname2 = formatObjectIdentifier(b.table.objectname);
+
 	fprintf(output, "\n\n");
-	fprintf(output, "ALTER TRIGGER %s ON %s.%s RENAME TO %s;", a.trgname,
-			b.table.schemaname, b.table.objectname, b.trgname);
+	fprintf(output, "ALTER TRIGGER %s ON %s.%s RENAME TO %s;", trgname1, schema2, tabname2, trgname2);
 
 	/* comment */
 	if (options.comment)
@@ -121,19 +136,17 @@ dumpAlterTrigger(FILE *output, PQLTrigger a, PQLTrigger b)
 				 strcmp(a.comment, b.comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TRIGGER %s ON %s.%s IS '%s';",
-					formatObjectIdentifier(b.trgname),
-					formatObjectIdentifier(b.table.schemaname),
-					formatObjectIdentifier(b.table.objectname),
-					b.comment);
+			fprintf(output, "COMMENT ON TRIGGER %s ON %s.%s IS '%s';", trgname2, schema2, tabname2, b.comment);
 		}
 		else if (a.comment != NULL && b.comment == NULL)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TRIGGER %s ON %s.%s IS NULL;",
-					formatObjectIdentifier(b.trgname),
-					formatObjectIdentifier(b.table.schemaname),
-					formatObjectIdentifier(b.table.objectname));
+			fprintf(output, "COMMENT ON TRIGGER %s ON %s.%s IS NULL;", trgname2, schema2, tabname2);
 		}
 	}
+
+	free(trgname1);
+	free(trgname2);
+	free(schema2);
+	free(tabname2);
 }

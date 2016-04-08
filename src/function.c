@@ -206,18 +206,28 @@ freeFunctions(PQLFunction *f, int n)
 void
 dumpDropFunction(FILE *output, PQLFunction f)
 {
+	char	*schema = formatObjectIdentifier(f.obj.schemaname);
+	char	*funcname = formatObjectIdentifier(f.obj.objectname);
+
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP FUNCTION %s.%s(%s);",
-			formatObjectIdentifier(f.obj.schemaname),
-			formatObjectIdentifier(f.obj.objectname), f.arguments);
+			schema,
+			funcname,
+			f.arguments);
+
+	free(schema);
+	free(funcname);
 }
 void
 dumpCreateFunction(FILE *output, PQLFunction f, bool orreplace)
 {
+	char	*schema = formatObjectIdentifier(f.obj.schemaname);
+	char	*funcname = formatObjectIdentifier(f.obj.objectname);
+
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE %sFUNCTION %s.%s(%s) RETURNS %s",
-			orreplace ? "OR REPLACE " : "", formatObjectIdentifier(f.obj.schemaname),
-			formatObjectIdentifier(f.obj.objectname), f.arguments, f.returntype);
+			orreplace ? "OR REPLACE " : "",
+			schema, funcname, f.arguments, f.returntype);
 	fprintf(output, "\n    LANGUAGE %s", f.language);
 	if (f.iswindow)
 		fprintf(output, " WINDOW");
@@ -229,8 +239,7 @@ dumpCreateFunction(FILE *output, PQLFunction f, bool orreplace)
 		fprintf(output, " VOLATILE");
 	else	/* can't happen */
 		logError("unrecognized volatile value for function %s.%s(%s)",
-				 formatObjectIdentifier(f.obj.schemaname),
-				 formatObjectIdentifier(f.obj.objectname), f.arguments);
+				schema, funcname, f.arguments);
 
 	if (f.isstrict)
 		fprintf(output, " STRICT");
@@ -287,8 +296,8 @@ dumpCreateFunction(FILE *output, PQLFunction f, bool orreplace)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "COMMENT ON FUNCTION %s.%s(%s) IS '%s';",
-				formatObjectIdentifier(f.obj.schemaname),
-				formatObjectIdentifier(f.obj.objectname),
+				schema,
+				funcname,
 				f.arguments,
 				f.comment);
 	}
@@ -303,8 +312,8 @@ dumpCreateFunction(FILE *output, PQLFunction f, bool orreplace)
 			fprintf(output, "\n\n");
 			fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
 					f.seclabels[i].provider,
-					formatObjectIdentifier(f.obj.schemaname),
-					formatObjectIdentifier(f.obj.objectname),
+					schema,
+					funcname,
 					f.arguments,
 					f.seclabels[i].label);
 		}
@@ -315,8 +324,8 @@ dumpCreateFunction(FILE *output, PQLFunction f, bool orreplace)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER FUNCTION %s.%s(%s) OWNER TO %s;",
-				formatObjectIdentifier(f.obj.schemaname),
-				formatObjectIdentifier(f.obj.objectname),
+				schema,
+				funcname,
 				f.arguments,
 				f.owner);
 	}
@@ -326,11 +335,19 @@ dumpCreateFunction(FILE *output, PQLFunction f, bool orreplace)
 	if (options.privileges)
 		dumpGrantAndRevoke(output, PGQ_FUNCTION, f.obj, f.obj, NULL, f.acl,
 						   f.arguments);
+
+	free(schema);
+	free(funcname);
 }
 
 void
 dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 {
+	char	*schema1 = formatObjectIdentifier(a.obj.schemaname);
+	char	*funcname1 = formatObjectIdentifier(a.obj.objectname);
+	char	*schema2 = formatObjectIdentifier(b.obj.schemaname);
+	char	*funcname2 = formatObjectIdentifier(b.obj.objectname);
+
 	bool	printalter = true;
 
 	if (a.funcvolatile != b.funcvolatile)
@@ -339,8 +356,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname), b.arguments);
+					schema2, funcname2, b.arguments);
 		}
 		printalter = false;
 
@@ -360,8 +376,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname), b.arguments);
+					schema2, funcname2, b.arguments);
 		}
 		printalter = false;
 
@@ -377,8 +392,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname), b.arguments);
+					schema2, funcname2, b.arguments);
 		}
 		printalter = false;
 
@@ -395,8 +409,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname), b.arguments);
+					schema2, funcname2, b.arguments);
 		}
 		printalter = false;
 
@@ -412,8 +425,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname), b.arguments);
+					schema2, funcname2, b.arguments);
 		}
 		printalter = false;
 
@@ -426,8 +438,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname), b.arguments);
+					schema2, funcname2, b.arguments);
 		}
 		printalter = false;
 
@@ -441,8 +452,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname), b.arguments);
+					schema2, funcname2, b.arguments);
 		}
 		printalter = false;
 
@@ -456,8 +466,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname), b.arguments);
+					schema2, funcname2, b.arguments);
 		}
 		printalter = false;
 
@@ -496,8 +505,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname), b.arguments);
+					schema2, funcname2, b.arguments);
 		}
 		printalter = false;
 
@@ -590,18 +598,13 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON FUNCTION %s.%s(%s) IS '%s';",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					b.arguments,
-					b.comment);
+					schema2, funcname2, b.arguments, b.comment);
 		}
 		else if (a.comment != NULL && b.comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON FUNCTION %s.%s(%s) IS NULL;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					b.arguments);
+					schema2, funcname2, b.arguments);
 		}
 	}
 
@@ -617,10 +620,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
 						b.seclabels[i].provider,
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
-						b.arguments,
-						b.seclabels[i].label);
+						schema2, funcname2, b.arguments, b.seclabels[i].label);
 			}
 		}
 		else if (a.seclabels != NULL && b.seclabels == NULL)
@@ -632,9 +632,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS NULL;",
 						a.seclabels[i].provider,
-						formatObjectIdentifier(a.obj.schemaname),
-						formatObjectIdentifier(a.obj.objectname),
-						a.arguments);
+						schema1, funcname1, a.arguments);
 			}
 		}
 		else if (a.seclabels != NULL && b.seclabels != NULL)
@@ -649,10 +647,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
 							b.seclabels[j].provider,
-							formatObjectIdentifier(b.obj.schemaname),
-							formatObjectIdentifier(b.obj.objectname),
-							b.arguments,
-							b.seclabels[j].label);
+							schema2, funcname2, b.arguments, b.seclabels[j].label);
 					j++;
 				}
 				else if (j == b.nseclabels)
@@ -660,9 +655,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS NULL;",
 							a.seclabels[i].provider,
-							formatObjectIdentifier(a.obj.schemaname),
-							formatObjectIdentifier(a.obj.objectname),
-							a.arguments);
+							schema1, funcname1, a.arguments);
 					i++;
 				}
 				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
@@ -672,10 +665,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 						fprintf(output, "\n\n");
 						fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
 								b.seclabels[j].provider,
-								formatObjectIdentifier(b.obj.schemaname),
-								formatObjectIdentifier(b.obj.objectname),
-								b.arguments,
-								b.seclabels[j].label);
+								schema2, funcname2, b.arguments, b.seclabels[j].label);
 					}
 					i++;
 					j++;
@@ -685,9 +675,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS NULL;",
 							a.seclabels[i].provider,
-							formatObjectIdentifier(a.obj.schemaname),
-							formatObjectIdentifier(a.obj.objectname),
-							a.arguments);
+							schema1, funcname1, a.arguments);
 					i++;
 				}
 				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
@@ -695,10 +683,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
 							b.seclabels[j].provider,
-							formatObjectIdentifier(b.obj.schemaname),
-							formatObjectIdentifier(b.obj.objectname),
-							b.arguments,
-							b.seclabels[j].label);
+							schema2, funcname2, b.arguments, b.seclabels[j].label);
 					j++;
 				}
 			}
@@ -712,10 +697,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s) OWNER TO %s;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					b.arguments,
-					b.owner);
+					schema2, funcname2, b.arguments, b.owner);
 		}
 	}
 
@@ -726,4 +708,9 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 			dumpGrantAndRevoke(output, PGQ_FUNCTION, a.obj, b.obj, a.acl, b.acl,
 							   a.arguments);
 	}
+
+	free(schema1);
+	free(funcname1);
+	free(schema2);
+	free(funcname2);
 }

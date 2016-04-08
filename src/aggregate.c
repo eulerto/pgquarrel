@@ -260,19 +260,26 @@ freeAggregates(PQLAggregate *a, int n)
 void
 dumpDropAggregate(FILE *output, PQLAggregate a)
 {
+	char	*schema = formatObjectIdentifier(a.obj.schemaname);
+	char	*aggname = formatObjectIdentifier(a.obj.objectname);
+
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP AGGREGATE %s.%s(%s);",
-			formatObjectIdentifier(a.obj.schemaname),
-			formatObjectIdentifier(a.obj.objectname), a.arguments);
+			schema, aggname, a.arguments);
+
+	free(schema);
+	free(aggname);
 }
 
 void
 dumpCreateAggregate(FILE *output, PQLAggregate a)
 {
+	char	*schema = formatObjectIdentifier(a.obj.schemaname);
+	char	*aggname = formatObjectIdentifier(a.obj.objectname);
+
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE AGGREGATE %s.%s(%s) (",
-			formatObjectIdentifier(a.obj.schemaname),
-			formatObjectIdentifier(a.obj.objectname), a.arguments);
+			schema, aggname, a.arguments);
 	fprintf(output, "\nSFUNC = %s", a.sfunc);
 	fprintf(output, ",\nSTYPE = %s,", a.stype);
 	if (a.sspace)
@@ -307,11 +314,19 @@ dumpCreateAggregate(FILE *output, PQLAggregate a)
 			fprintf(output, ",\nHYPOTHETICAL");
 
 	fprintf(output, ");");
+
+	free(schema);
+	free(aggname);
 }
 
 void
 dumpAlterAggregate(FILE *output, PQLAggregate a, PQLAggregate b)
 {
+	char	*schema1 = formatObjectIdentifier(a.obj.schemaname);
+	char	*aggname1 = formatObjectIdentifier(a.obj.objectname);
+	char	*schema2 = formatObjectIdentifier(b.obj.schemaname);
+	char	*aggname2 = formatObjectIdentifier(b.obj.objectname);
+
 	/* comment */
 	if (options.comment)
 	{
@@ -321,18 +336,13 @@ dumpAlterAggregate(FILE *output, PQLAggregate a, PQLAggregate b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON AGGREGATE %s.%s(%s) IS '%s';",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					b.arguments,
-					b.comment);
+					schema2, aggname2, b.arguments, b.comment);
 		}
 		else if (a.comment != NULL && b.comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON AGGREGATE %s.%s(%s) IS NULL;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					b.arguments);
+					schema2, aggname2, b.arguments);
 		}
 	}
 
@@ -348,8 +358,8 @@ dumpAlterAggregate(FILE *output, PQLAggregate a, PQLAggregate b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS '%s';",
 						b.seclabels[i].provider,
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
+						schema2,
+						aggname2,
 						b.arguments,
 						b.seclabels[i].label);
 			}
@@ -363,8 +373,8 @@ dumpAlterAggregate(FILE *output, PQLAggregate a, PQLAggregate b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS NULL;",
 						a.seclabels[i].provider,
-						formatObjectIdentifier(a.obj.schemaname),
-						formatObjectIdentifier(a.obj.objectname),
+						schema1,
+						aggname1,
 						a.arguments);
 			}
 		}
@@ -380,8 +390,8 @@ dumpAlterAggregate(FILE *output, PQLAggregate a, PQLAggregate b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS '%s';",
 							b.seclabels[j].provider,
-							formatObjectIdentifier(b.obj.schemaname),
-							formatObjectIdentifier(b.obj.objectname),
+							schema2,
+							aggname2,
 							b.arguments,
 							b.seclabels[j].label);
 					j++;
@@ -391,8 +401,8 @@ dumpAlterAggregate(FILE *output, PQLAggregate a, PQLAggregate b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS NULL;",
 							a.seclabels[i].provider,
-							formatObjectIdentifier(a.obj.schemaname),
-							formatObjectIdentifier(a.obj.objectname),
+							schema1,
+							aggname1,
 							a.arguments);
 					i++;
 				}
@@ -403,8 +413,8 @@ dumpAlterAggregate(FILE *output, PQLAggregate a, PQLAggregate b)
 						fprintf(output, "\n\n");
 						fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS '%s';",
 								b.seclabels[j].provider,
-								formatObjectIdentifier(b.obj.schemaname),
-								formatObjectIdentifier(b.obj.objectname),
+								schema2,
+								aggname2,
 								b.arguments,
 								b.seclabels[j].label);
 					}
@@ -416,8 +426,8 @@ dumpAlterAggregate(FILE *output, PQLAggregate a, PQLAggregate b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS NULL;",
 							a.seclabels[i].provider,
-							formatObjectIdentifier(a.obj.schemaname),
-							formatObjectIdentifier(a.obj.objectname),
+							schema1,
+							aggname1,
 							a.arguments);
 					i++;
 				}
@@ -426,8 +436,8 @@ dumpAlterAggregate(FILE *output, PQLAggregate a, PQLAggregate b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS '%s';",
 							b.seclabels[j].provider,
-							formatObjectIdentifier(b.obj.schemaname),
-							formatObjectIdentifier(b.obj.objectname),
+							schema2,
+							aggname2,
 							b.arguments,
 							b.seclabels[j].label);
 					j++;
@@ -443,10 +453,15 @@ dumpAlterAggregate(FILE *output, PQLAggregate a, PQLAggregate b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER AGGREGATE %s.%s(%s) OWNER TO %s;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
+					schema2,
+					aggname2,
 					b.arguments,
 					b.owner);
 		}
 	}
+
+	free(schema1);
+	free(aggname1);
+	free(schema2);
+	free(aggname2);
 }

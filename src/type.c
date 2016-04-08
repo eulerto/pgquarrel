@@ -796,10 +796,11 @@ freeRangeTypes(PQLRangeType *t, int n)
 void
 dumpCreateBaseType(FILE *output, PQLBaseType t)
 {
+	char	*schema = formatObjectIdentifier(t.obj.schemaname);
+	char	*typname = formatObjectIdentifier(t.obj.objectname);
+
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE TYPE %s.%s (",
-			formatObjectIdentifier(t.obj.schemaname),
-			formatObjectIdentifier(t.obj.objectname));
+	fprintf(output, "CREATE TYPE %s.%s (", schema, typname);
 
 	fprintf(output, "\n\tINPUT = %s", t.input);
 	fprintf(output, ",\n\tOUTPUT = %s", t.output);
@@ -864,10 +865,7 @@ dumpCreateBaseType(FILE *output, PQLBaseType t)
 	if (options.comment && t.comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';",
-				formatObjectIdentifier(t.obj.schemaname),
-				formatObjectIdentifier(t.obj.objectname),
-				t.comment);
+		fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema, typname, t.comment);
 	}
 
 	/* security labels */
@@ -880,8 +878,8 @@ dumpCreateBaseType(FILE *output, PQLBaseType t)
 			fprintf(output, "\n\n");
 			fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
 					t.seclabels[i].provider,
-					formatObjectIdentifier(t.obj.schemaname),
-					formatObjectIdentifier(t.obj.objectname),
+					schema,
+					typname,
 					t.seclabels[i].label);
 		}
 	}
@@ -890,27 +888,28 @@ dumpCreateBaseType(FILE *output, PQLBaseType t)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;",
-				formatObjectIdentifier(t.obj.schemaname),
-				formatObjectIdentifier(t.obj.objectname),
-				t.owner);
+		fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema, typname, t.owner);
 	}
 
 	/* privileges */
 	/* XXX second t.obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
 		dumpGrantAndRevoke(output, PGQ_TYPE, t.obj, t.obj, NULL, t.acl, NULL);
+
+	free(schema);
+	free(typname);
 }
 
 void
 dumpCreateCompositeType(FILE *output, PQLCompositeType t)
 {
+	char	*schema = formatObjectIdentifier(t.obj.schemaname);
+	char	*typname = formatObjectIdentifier(t.obj.objectname);
+
 	int		i;
 
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE TYPE %s.%s AS (",
-			formatObjectIdentifier(t.obj.schemaname),
-			formatObjectIdentifier(t.obj.objectname));
+	fprintf(output, "CREATE TYPE %s.%s AS (", schema, typname);
 
 	for (i = 0; i < t.nattributes; i++)
 	{
@@ -919,9 +918,15 @@ dumpCreateCompositeType(FILE *output, PQLCompositeType t)
 		fprintf(output, "\n\t%s %s", t.attributes[i].attname, t.attributes[i].typname);
 
 		if (t.attributes[i].collname != NULL)
-			fprintf(output, " COLLATE %s.%s",
-					formatObjectIdentifier(t.attributes[i].collschemaname),
-					formatObjectIdentifier(t.attributes[i].collname));
+		{
+			char	*attschema = formatObjectIdentifier(t.attributes[i].collschemaname);
+			char	*attcollation = formatObjectIdentifier(t.attributes[i].collname);
+
+			fprintf(output, " COLLATE %s.%s", attschema, attcollation);
+
+			free(attschema);
+			free(attcollation);
+		}
 	}
 
 	fprintf(output, "\n);");
@@ -930,10 +935,7 @@ dumpCreateCompositeType(FILE *output, PQLCompositeType t)
 	if (options.comment && t.comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';",
-				formatObjectIdentifier(t.obj.schemaname),
-				formatObjectIdentifier(t.obj.objectname),
-				t.comment);
+		fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema, typname, t.comment);
 	}
 
 	/* security labels */
@@ -944,8 +946,8 @@ dumpCreateCompositeType(FILE *output, PQLCompositeType t)
 			fprintf(output, "\n\n");
 			fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
 					t.seclabels[i].provider,
-					formatObjectIdentifier(t.obj.schemaname),
-					formatObjectIdentifier(t.obj.objectname),
+					schema,
+					typname,
 					t.seclabels[i].label);
 		}
 	}
@@ -954,27 +956,28 @@ dumpCreateCompositeType(FILE *output, PQLCompositeType t)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;",
-				formatObjectIdentifier(t.obj.schemaname),
-				formatObjectIdentifier(t.obj.objectname),
-				t.owner);
+		fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema, typname, t.owner);
 	}
 
 	/* privileges */
 	/* XXX second t.obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
 		dumpGrantAndRevoke(output, PGQ_TYPE, t.obj, t.obj, NULL, t.acl, NULL);
+
+	free(schema);
+	free(typname);
 }
 
 void
 dumpCreateEnumType(FILE *output, PQLEnumType t)
 {
+	char	*schema = formatObjectIdentifier(t.obj.schemaname);
+	char	*typname = formatObjectIdentifier(t.obj.objectname);
+
 	int		i;
 
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE TYPE %s.%s AS ENUM (",
-			formatObjectIdentifier(t.obj.schemaname),
-			formatObjectIdentifier(t.obj.objectname));
+	fprintf(output, "CREATE TYPE %s.%s AS ENUM (", schema, typname);
 
 	for (i = 0; i < t.nlabels; i++)
 	{
@@ -989,10 +992,7 @@ dumpCreateEnumType(FILE *output, PQLEnumType t)
 	if (options.comment && t.comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';",
-				formatObjectIdentifier(t.obj.schemaname),
-				formatObjectIdentifier(t.obj.objectname),
-				t.comment);
+		fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema, typname, t.comment);
 	}
 
 	/* security labels */
@@ -1003,8 +1003,8 @@ dumpCreateEnumType(FILE *output, PQLEnumType t)
 			fprintf(output, "\n\n");
 			fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
 					t.seclabels[i].provider,
-					formatObjectIdentifier(t.obj.schemaname),
-					formatObjectIdentifier(t.obj.objectname),
+					schema,
+					typname,
 					t.seclabels[i].label);
 		}
 	}
@@ -1013,36 +1013,51 @@ dumpCreateEnumType(FILE *output, PQLEnumType t)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;",
-				formatObjectIdentifier(t.obj.schemaname),
-				formatObjectIdentifier(t.obj.objectname),
-				t.owner);
+		fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema, typname, t.owner);
 	}
 
 	/* privileges */
 	/* XXX second t.obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
 		dumpGrantAndRevoke(output, PGQ_TYPE, t.obj, t.obj, NULL, t.acl, NULL);
+
+	free(schema);
+	free(typname);
 }
 
 void
 dumpCreateRangeType(FILE *output, PQLRangeType t)
 {
+	char	*schema = formatObjectIdentifier(t.obj.schemaname);
+	char	*typname = formatObjectIdentifier(t.obj.objectname);
+
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE TYPE %s.%s AS RANGE (",
-			formatObjectIdentifier(t.obj.schemaname),
-			formatObjectIdentifier(t.obj.objectname));
+	fprintf(output, "CREATE TYPE %s.%s AS RANGE (", schema, typname);
 
 	fprintf(output, "\n\tSUBTYPE = %s", t.subtype);
 
 	/* print only if it isn't the default operator class */
 	if (!t.opcdefault)
-		fprintf(output, ",\n\tSUBTYPE_OPCLASS = %s.%s",
-				formatObjectIdentifier(t.opcschemaname), formatObjectIdentifier(t.opcname));
+	{
+		char	*opcschema = formatObjectIdentifier(t.opcschemaname);
+		char	*opcname = formatObjectIdentifier(t.opcname);
+
+		fprintf(output, ",\n\tSUBTYPE_OPCLASS = %s.%s", opcschema, opcname);
+
+		free(opcschema);
+		free(opcname);
+	}
 
 	if (t.collname != NULL)
-		fprintf(output, ",\n\tCOLLATION = %s.%s",
-				formatObjectIdentifier(t.collschemaname), formatObjectIdentifier(t.collname));
+	{
+		char	*collschema = formatObjectIdentifier(t.collschemaname);
+		char	*collname = formatObjectIdentifier(t.collname);
+
+		fprintf(output, ",\n\tCOLLATION = %s.%s", t.collschemaname, t.collname);
+
+		free(collschema);
+		free(collname);
+	}
 
 	if (strcmp(t.canonical, "-") != 0)
 		fprintf(output, ",\n\tCANONICAL = %s", t.canonical);
@@ -1056,10 +1071,7 @@ dumpCreateRangeType(FILE *output, PQLRangeType t)
 	if (options.comment && t.comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';",
-				formatObjectIdentifier(t.obj.schemaname),
-				formatObjectIdentifier(t.obj.objectname),
-				t.comment);
+		fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema, typname, t.comment);
 	}
 
 	/* security labels */
@@ -1072,8 +1084,8 @@ dumpCreateRangeType(FILE *output, PQLRangeType t)
 			fprintf(output, "\n\n");
 			fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
 					t.seclabels[i].provider,
-					formatObjectIdentifier(t.obj.schemaname),
-					formatObjectIdentifier(t.obj.objectname),
+					schema,
+					typname,
 					t.seclabels[i].label);
 		}
 	}
@@ -1082,53 +1094,78 @@ dumpCreateRangeType(FILE *output, PQLRangeType t)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;",
-				formatObjectIdentifier(t.obj.schemaname),
-				formatObjectIdentifier(t.obj.objectname),
-				t.owner);
+		fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema, typname, t.owner);
 	}
 
 	/* privileges */
 	/* XXX second t.obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
 		dumpGrantAndRevoke(output, PGQ_TYPE, t.obj, t.obj, NULL, t.acl, NULL);
+
+	free(schema);
+	free(typname);
 }
 
 void
 dumpDropBaseType(FILE *output, PQLBaseType t)
 {
+	char	*schema = formatObjectIdentifier(t.obj.schemaname);
+	char	*typname = formatObjectIdentifier(t.obj.objectname);
+
 	fprintf(output, "\n\n");
-	fprintf(output, "DROP TYPE %s.%s;", formatObjectIdentifier(t.obj.schemaname),
-			formatObjectIdentifier(t.obj.objectname));
+	fprintf(output, "DROP TYPE %s.%s;", schema, typname);
+
+	free(schema);
+	free(typname);
 }
 
 void
 dumpDropCompositeType(FILE *output, PQLCompositeType t)
 {
+	char	*schema = formatObjectIdentifier(t.obj.schemaname);
+	char	*typname = formatObjectIdentifier(t.obj.objectname);
+
 	fprintf(output, "\n\n");
-	fprintf(output, "DROP TYPE %s.%s;", formatObjectIdentifier(t.obj.schemaname),
-			formatObjectIdentifier(t.obj.objectname));
+	fprintf(output, "DROP TYPE %s.%s;", schema, typname);
+
+	free(schema);
+	free(typname);
 }
 
 void
 dumpDropEnumType(FILE *output, PQLEnumType t)
 {
+	char	*schema = formatObjectIdentifier(t.obj.schemaname);
+	char	*typname = formatObjectIdentifier(t.obj.objectname);
+
 	fprintf(output, "\n\n");
-	fprintf(output, "DROP TYPE %s.%s;", formatObjectIdentifier(t.obj.schemaname),
-			formatObjectIdentifier(t.obj.objectname));
+	fprintf(output, "DROP TYPE %s.%s;", schema, typname);
+
+	free(schema);
+	free(typname);
 }
 
 void
 dumpDropRangeType(FILE *output, PQLRangeType t)
 {
+	char	*schema = formatObjectIdentifier(t.obj.schemaname);
+	char	*typname = formatObjectIdentifier(t.obj.objectname);
+
 	fprintf(output, "\n\n");
-	fprintf(output, "DROP TYPE %s.%s;", formatObjectIdentifier(t.obj.schemaname),
-			formatObjectIdentifier(t.obj.objectname));
+	fprintf(output, "DROP TYPE %s.%s;", schema, typname);
+
+	free(schema);
+	free(typname);
 }
 
 void
 dumpAlterBaseType(FILE *output, PQLBaseType a, PQLBaseType b)
 {
+	char	*schema1 = formatObjectIdentifier(a.obj.schemaname);
+	char	*typname1 = formatObjectIdentifier(a.obj.objectname);
+	char	*schema2 = formatObjectIdentifier(b.obj.schemaname);
+	char	*typname2 = formatObjectIdentifier(b.obj.objectname);
+
 	/* comment */
 	if (options.comment)
 	{
@@ -1137,17 +1174,12 @@ dumpAlterBaseType(FILE *output, PQLBaseType a, PQLBaseType b)
 				 strcmp(a.comment, b.comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					b.comment);
+			fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema2, typname2, b.comment);
 		}
 		else if (a.comment != NULL && b.comment == NULL)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TYPE %s.%s IS NULL;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname));
+			fprintf(output, "COMMENT ON TYPE %s.%s IS NULL;", schema2, typname2);
 		}
 	}
 
@@ -1163,8 +1195,8 @@ dumpAlterBaseType(FILE *output, PQLBaseType a, PQLBaseType b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
 						b.seclabels[i].provider,
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
+						schema2,
+						typname2,
 						b.seclabels[i].label);
 			}
 		}
@@ -1177,8 +1209,8 @@ dumpAlterBaseType(FILE *output, PQLBaseType a, PQLBaseType b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS NULL;",
 						a.seclabels[i].provider,
-						formatObjectIdentifier(a.obj.schemaname),
-						formatObjectIdentifier(a.obj.objectname));
+						schema1,
+						typname1);
 			}
 		}
 		else if (a.seclabels != NULL && b.seclabels != NULL)
@@ -1193,8 +1225,8 @@ dumpAlterBaseType(FILE *output, PQLBaseType a, PQLBaseType b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
 							b.seclabels[j].provider,
-							formatObjectIdentifier(b.obj.schemaname),
-							formatObjectIdentifier(b.obj.objectname),
+							schema2,
+							typname2,
 							b.seclabels[j].label);
 					j++;
 				}
@@ -1203,8 +1235,8 @@ dumpAlterBaseType(FILE *output, PQLBaseType a, PQLBaseType b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS NULL;",
 							a.seclabels[i].provider,
-							formatObjectIdentifier(a.obj.schemaname),
-							formatObjectIdentifier(a.obj.objectname));
+							schema1,
+							typname1);
 					i++;
 				}
 				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
@@ -1214,8 +1246,8 @@ dumpAlterBaseType(FILE *output, PQLBaseType a, PQLBaseType b)
 						fprintf(output, "\n\n");
 						fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
 								b.seclabels[j].provider,
-								formatObjectIdentifier(b.obj.schemaname),
-								formatObjectIdentifier(b.obj.objectname),
+								schema2,
+								typname2,
 								b.seclabels[j].label);
 					}
 					i++;
@@ -1226,8 +1258,8 @@ dumpAlterBaseType(FILE *output, PQLBaseType a, PQLBaseType b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS NULL;",
 							a.seclabels[i].provider,
-							formatObjectIdentifier(a.obj.schemaname),
-							formatObjectIdentifier(a.obj.objectname));
+							schema1,
+							typname1);
 					i++;
 				}
 				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
@@ -1235,8 +1267,8 @@ dumpAlterBaseType(FILE *output, PQLBaseType a, PQLBaseType b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
 							b.seclabels[j].provider,
-							formatObjectIdentifier(b.obj.schemaname),
-							formatObjectIdentifier(b.obj.objectname),
+							schema2,
+							typname2,
 							b.seclabels[j].label);
 					j++;
 				}
@@ -1250,10 +1282,7 @@ dumpAlterBaseType(FILE *output, PQLBaseType a, PQLBaseType b)
 		if (strcmp(a.owner, b.owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					b.owner);
+			fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema2, typname2, b.owner);
 		}
 	}
 
@@ -1263,11 +1292,21 @@ dumpAlterBaseType(FILE *output, PQLBaseType a, PQLBaseType b)
 		if (a.acl != NULL || b.acl != NULL)
 			dumpGrantAndRevoke(output, PGQ_TYPE, a.obj, b.obj, a.acl, b.acl, NULL);
 	}
+
+	free(schema1);
+	free(typname1);
+	free(schema2);
+	free(typname2);
 }
 
 void
 dumpAlterCompositeType(FILE *output, PQLCompositeType a, PQLCompositeType b)
 {
+	char	*schema1 = formatObjectIdentifier(a.obj.schemaname);
+	char	*typname1 = formatObjectIdentifier(a.obj.objectname);
+	char	*schema2 = formatObjectIdentifier(b.obj.schemaname);
+	char	*typname2 = formatObjectIdentifier(b.obj.objectname);
+
 	/* comment */
 	if (options.comment)
 	{
@@ -1276,17 +1315,12 @@ dumpAlterCompositeType(FILE *output, PQLCompositeType a, PQLCompositeType b)
 				 strcmp(a.comment, b.comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					b.comment);
+			fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema2, typname2, b.comment);
 		}
 		else if (a.comment != NULL && b.comment == NULL)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TYPE %s.%s IS NULL;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname));
+			fprintf(output, "COMMENT ON TYPE %s.%s IS NULL;", schema2, typname2);
 		}
 	}
 
@@ -1302,8 +1336,8 @@ dumpAlterCompositeType(FILE *output, PQLCompositeType a, PQLCompositeType b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
 						b.seclabels[i].provider,
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
+						schema2,
+						typname2,
 						b.seclabels[i].label);
 			}
 		}
@@ -1316,8 +1350,8 @@ dumpAlterCompositeType(FILE *output, PQLCompositeType a, PQLCompositeType b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS NULL;",
 						a.seclabels[i].provider,
-						formatObjectIdentifier(a.obj.schemaname),
-						formatObjectIdentifier(a.obj.objectname));
+						schema1,
+						typname1);
 			}
 		}
 		else if (a.seclabels != NULL && b.seclabels != NULL)
@@ -1332,8 +1366,8 @@ dumpAlterCompositeType(FILE *output, PQLCompositeType a, PQLCompositeType b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
 							b.seclabels[j].provider,
-							formatObjectIdentifier(b.obj.schemaname),
-							formatObjectIdentifier(b.obj.objectname),
+							schema2,
+							typname2,
 							b.seclabels[j].label);
 					j++;
 				}
@@ -1342,8 +1376,8 @@ dumpAlterCompositeType(FILE *output, PQLCompositeType a, PQLCompositeType b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS NULL;",
 							a.seclabels[i].provider,
-							formatObjectIdentifier(a.obj.schemaname),
-							formatObjectIdentifier(a.obj.objectname));
+							schema1,
+							typname1);
 					i++;
 				}
 				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
@@ -1353,8 +1387,8 @@ dumpAlterCompositeType(FILE *output, PQLCompositeType a, PQLCompositeType b)
 						fprintf(output, "\n\n");
 						fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
 								b.seclabels[j].provider,
-								formatObjectIdentifier(b.obj.schemaname),
-								formatObjectIdentifier(b.obj.objectname),
+								schema2,
+								typname2,
 								b.seclabels[j].label);
 					}
 					i++;
@@ -1365,8 +1399,8 @@ dumpAlterCompositeType(FILE *output, PQLCompositeType a, PQLCompositeType b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS NULL;",
 							a.seclabels[i].provider,
-							formatObjectIdentifier(a.obj.schemaname),
-							formatObjectIdentifier(a.obj.objectname));
+							schema1,
+							typname1);
 					i++;
 				}
 				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
@@ -1374,8 +1408,8 @@ dumpAlterCompositeType(FILE *output, PQLCompositeType a, PQLCompositeType b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
 							b.seclabels[j].provider,
-							formatObjectIdentifier(b.obj.schemaname),
-							formatObjectIdentifier(b.obj.objectname),
+							schema2,
+							typname2,
 							b.seclabels[j].label);
 					j++;
 				}
@@ -1389,10 +1423,7 @@ dumpAlterCompositeType(FILE *output, PQLCompositeType a, PQLCompositeType b)
 		if (strcmp(a.owner, b.owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					b.owner);
+			fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema2, typname2, b.owner);
 		}
 	}
 
@@ -1402,11 +1433,21 @@ dumpAlterCompositeType(FILE *output, PQLCompositeType a, PQLCompositeType b)
 		if (a.acl != NULL || b.acl != NULL)
 			dumpGrantAndRevoke(output, PGQ_TYPE, a.obj, b.obj, a.acl, b.acl, NULL);
 	}
+
+	free(schema1);
+	free(typname1);
+	free(schema2);
+	free(typname2);
 }
 
 void
 dumpAlterEnumType(FILE *output, PQLEnumType a, PQLEnumType b)
 {
+	char	*schema1 = formatObjectIdentifier(a.obj.schemaname);
+	char	*typname1 = formatObjectIdentifier(a.obj.objectname);
+	char	*schema2 = formatObjectIdentifier(b.obj.schemaname);
+	char	*typname2 = formatObjectIdentifier(b.obj.objectname);
+
 	/* comment */
 	if (options.comment)
 	{
@@ -1415,17 +1456,12 @@ dumpAlterEnumType(FILE *output, PQLEnumType a, PQLEnumType b)
 				 strcmp(a.comment, b.comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					b.comment);
+			fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema2, typname2, b.comment);
 		}
 		else if (a.comment != NULL && b.comment == NULL)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TYPE %s.%s IS NULL;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname));
+			fprintf(output, "COMMENT ON TYPE %s.%s IS NULL;", schema2, typname2);
 		}
 	}
 
@@ -1441,8 +1477,8 @@ dumpAlterEnumType(FILE *output, PQLEnumType a, PQLEnumType b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
 						b.seclabels[i].provider,
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
+						schema2,
+						typname2,
 						b.seclabels[i].label);
 			}
 		}
@@ -1455,8 +1491,8 @@ dumpAlterEnumType(FILE *output, PQLEnumType a, PQLEnumType b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS NULL;",
 						a.seclabels[i].provider,
-						formatObjectIdentifier(a.obj.schemaname),
-						formatObjectIdentifier(a.obj.objectname));
+						schema1,
+						typname1);
 			}
 		}
 		else if (a.seclabels != NULL && b.seclabels != NULL)
@@ -1471,8 +1507,8 @@ dumpAlterEnumType(FILE *output, PQLEnumType a, PQLEnumType b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
 							b.seclabels[j].provider,
-							formatObjectIdentifier(b.obj.schemaname),
-							formatObjectIdentifier(b.obj.objectname),
+							schema2,
+							typname2,
 							b.seclabels[j].label);
 					j++;
 				}
@@ -1481,8 +1517,8 @@ dumpAlterEnumType(FILE *output, PQLEnumType a, PQLEnumType b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS NULL;",
 							a.seclabels[i].provider,
-							formatObjectIdentifier(a.obj.schemaname),
-							formatObjectIdentifier(a.obj.objectname));
+							schema1,
+							typname1);
 					i++;
 				}
 				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
@@ -1492,8 +1528,8 @@ dumpAlterEnumType(FILE *output, PQLEnumType a, PQLEnumType b)
 						fprintf(output, "\n\n");
 						fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
 								b.seclabels[j].provider,
-								formatObjectIdentifier(b.obj.schemaname),
-								formatObjectIdentifier(b.obj.objectname),
+								schema2,
+								typname2,
 								b.seclabels[j].label);
 					}
 					i++;
@@ -1504,8 +1540,8 @@ dumpAlterEnumType(FILE *output, PQLEnumType a, PQLEnumType b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS NULL;",
 							a.seclabels[i].provider,
-							formatObjectIdentifier(a.obj.schemaname),
-							formatObjectIdentifier(a.obj.objectname));
+							schema1,
+							typname1);
 					i++;
 				}
 				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
@@ -1513,8 +1549,8 @@ dumpAlterEnumType(FILE *output, PQLEnumType a, PQLEnumType b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
 							b.seclabels[j].provider,
-							formatObjectIdentifier(b.obj.schemaname),
-							formatObjectIdentifier(b.obj.objectname),
+							schema2,
+							typname2,
 							b.seclabels[j].label);
 					j++;
 				}
@@ -1528,10 +1564,7 @@ dumpAlterEnumType(FILE *output, PQLEnumType a, PQLEnumType b)
 		if (strcmp(a.owner, b.owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					b.owner);
+			fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema2, typname2, b.owner);
 		}
 	}
 
@@ -1541,11 +1574,21 @@ dumpAlterEnumType(FILE *output, PQLEnumType a, PQLEnumType b)
 		if (a.acl != NULL || b.acl != NULL)
 			dumpGrantAndRevoke(output, PGQ_TYPE, a.obj, b.obj, a.acl, b.acl, NULL);
 	}
+
+	free(schema1);
+	free(typname1);
+	free(schema2);
+	free(typname2);
 }
 
 void
 dumpAlterRangeType(FILE *output, PQLRangeType a, PQLRangeType b)
 {
+	char	*schema1 = formatObjectIdentifier(a.obj.schemaname);
+	char	*typname1 = formatObjectIdentifier(a.obj.objectname);
+	char	*schema2 = formatObjectIdentifier(b.obj.schemaname);
+	char	*typname2 = formatObjectIdentifier(b.obj.objectname);
+
 	/* comment */
 	if (options.comment)
 	{
@@ -1554,17 +1597,12 @@ dumpAlterRangeType(FILE *output, PQLRangeType a, PQLRangeType b)
 				 strcmp(a.comment, b.comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					b.comment);
+			fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema2, typname2, b.comment);
 		}
 		else if (a.comment != NULL && b.comment == NULL)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TYPE %s.%s IS NULL;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname));
+			fprintf(output, "COMMENT ON TYPE %s.%s IS NULL;", schema2, typname2);
 		}
 	}
 
@@ -1580,8 +1618,8 @@ dumpAlterRangeType(FILE *output, PQLRangeType a, PQLRangeType b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
 						b.seclabels[i].provider,
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
+						schema2,
+						typname2,
 						b.seclabels[i].label);
 			}
 		}
@@ -1594,8 +1632,8 @@ dumpAlterRangeType(FILE *output, PQLRangeType a, PQLRangeType b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS NULL;",
 						a.seclabels[i].provider,
-						formatObjectIdentifier(a.obj.schemaname),
-						formatObjectIdentifier(a.obj.objectname));
+						schema1,
+						typname1);
 			}
 		}
 		else if (a.seclabels != NULL && b.seclabels != NULL)
@@ -1610,8 +1648,8 @@ dumpAlterRangeType(FILE *output, PQLRangeType a, PQLRangeType b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
 							b.seclabels[j].provider,
-							formatObjectIdentifier(b.obj.schemaname),
-							formatObjectIdentifier(b.obj.objectname),
+							schema2,
+							typname2,
 							b.seclabels[j].label);
 					j++;
 				}
@@ -1620,8 +1658,8 @@ dumpAlterRangeType(FILE *output, PQLRangeType a, PQLRangeType b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS NULL;",
 							a.seclabels[i].provider,
-							formatObjectIdentifier(a.obj.schemaname),
-							formatObjectIdentifier(a.obj.objectname));
+							schema1,
+							typname1);
 					i++;
 				}
 				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
@@ -1631,8 +1669,8 @@ dumpAlterRangeType(FILE *output, PQLRangeType a, PQLRangeType b)
 						fprintf(output, "\n\n");
 						fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
 								b.seclabels[j].provider,
-								formatObjectIdentifier(b.obj.schemaname),
-								formatObjectIdentifier(b.obj.objectname),
+								schema2,
+								typname2,
 								b.seclabels[j].label);
 					}
 					i++;
@@ -1643,8 +1681,8 @@ dumpAlterRangeType(FILE *output, PQLRangeType a, PQLRangeType b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS NULL;",
 							a.seclabels[i].provider,
-							formatObjectIdentifier(a.obj.schemaname),
-							formatObjectIdentifier(a.obj.objectname));
+							schema1,
+							typname1);
 					i++;
 				}
 				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
@@ -1652,8 +1690,8 @@ dumpAlterRangeType(FILE *output, PQLRangeType a, PQLRangeType b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
 							b.seclabels[j].provider,
-							formatObjectIdentifier(b.obj.schemaname),
-							formatObjectIdentifier(b.obj.objectname),
+							schema2,
+							typname2,
 							b.seclabels[j].label);
 					j++;
 				}
@@ -1667,10 +1705,7 @@ dumpAlterRangeType(FILE *output, PQLRangeType a, PQLRangeType b)
 		if (strcmp(a.owner, b.owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					b.owner);
+			fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema2, typname2, b.owner);
 		}
 	}
 
@@ -1680,4 +1715,9 @@ dumpAlterRangeType(FILE *output, PQLRangeType a, PQLRangeType b)
 		if (a.acl != NULL || b.acl != NULL)
 			dumpGrantAndRevoke(output, PGQ_TYPE, a.obj, b.obj, a.acl, b.acl, NULL);
 	}
+
+	free(schema1);
+	free(typname1);
+	free(schema2);
+	free(typname2);
 }

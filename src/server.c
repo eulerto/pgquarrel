@@ -109,15 +109,21 @@ freeForeignServers(PQLForeignServer *s, int n)
 void
 dumpDropForeignServer(FILE *output, PQLForeignServer s)
 {
+	char	*srvname = formatObjectIdentifier(s.servername);
+
 	fprintf(output, "\n\n");
-	fprintf(output, "DROP SERVER %s;", s.servername);
+	fprintf(output, "DROP SERVER %s;", srvname);
+
+	free(srvname);
 }
 
 void
 dumpCreateForeignServer(FILE *output, PQLForeignServer s)
 {
+	char	*srvname = formatObjectIdentifier(s.servername);
+
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE SERVER %s", s.servername);
+	fprintf(output, "CREATE SERVER %s", srvname);
 
 	/* type (optional) */
 	if (s.servertype)
@@ -167,18 +173,14 @@ dumpCreateForeignServer(FILE *output, PQLForeignServer s)
 	if (options.comment && s.comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON SERVER %s IS '%s';",
-				formatObjectIdentifier(s.servername),
-				s.comment);
+		fprintf(output, "COMMENT ON SERVER %s IS '%s';", srvname, s.comment);
 	}
 
 	/* owner */
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER SERVER %s OWNER TO %s;",
-				formatObjectIdentifier(s.servername),
-				s.owner);
+		fprintf(output, "ALTER SERVER %s OWNER TO %s;", srvname, s.owner);
 	}
 
 	/* privileges */
@@ -192,26 +194,31 @@ dumpCreateForeignServer(FILE *output, PQLForeignServer s)
 
 		dumpGrantAndRevoke(output, PGQ_FOREIGN_SERVER, tmp, tmp, NULL, s.acl, NULL);
 	}
+
+	free(srvname);
 }
 
 void
 dumpAlterForeignServer(FILE *output, PQLForeignServer a, PQLForeignServer b)
 {
+	char	*srvname1 = formatObjectIdentifier(a.servername);
+	char	*srvname2 = formatObjectIdentifier(b.servername);
+
 	/* version */
 	if (a.serverversion == NULL && b.serverversion != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER SERVER %s VERSION '%s';", b.servername, b.serverversion);
+		fprintf(output, "ALTER SERVER %s VERSION '%s';", srvname2, b.serverversion);
 	}
 	else if (a.serverversion != NULL && b.serverversion == NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER SERVER %s VERSION NULL;", b.servername);
+		fprintf(output, "ALTER SERVER %s VERSION NULL;", srvname2);
 	}
 	else if (a.serverversion != NULL && b.serverversion != NULL && strcmp(a.serverversion, b.serverversion) != 0)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER SERVER %s VERSION '%s';", b.servername, b.serverversion);
+		fprintf(output, "ALTER SERVER %s VERSION '%s';", srvname2, b.serverversion);
 	}
 
 	/* options */
@@ -223,7 +230,7 @@ dumpAlterForeignServer(FILE *output, PQLForeignServer a, PQLForeignServer b)
 
 		sl = buildStringList(b.options);
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER SERVER %s OPTIONS (", b.servername);
+		fprintf(output, "ALTER SERVER %s OPTIONS (", srvname2);
 		for (cell = sl->head; cell; cell = cell->next)
 		{
 			char	*str;
@@ -253,7 +260,7 @@ dumpAlterForeignServer(FILE *output, PQLForeignServer a, PQLForeignServer b)
 
 		sl = buildStringList(a.options);
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER SERVER %s OPTIONS (", a.servername);
+		fprintf(output, "ALTER SERVER %s OPTIONS (", srvname1);
 		for (cell = sl->head; cell; cell = cell->next)
 		{
 			char	*str;
@@ -287,7 +294,7 @@ dumpAlterForeignServer(FILE *output, PQLForeignServer a, PQLForeignServer b)
 			stringListCell	*cell;
 
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER SERVER %s OPTIONS (", b.servername);
+			fprintf(output, "ALTER SERVER %s OPTIONS (", srvname2);
 			for (cell = rlist->head; cell; cell = cell->next)
 			{
 				if (first)
@@ -315,7 +322,7 @@ dumpAlterForeignServer(FILE *output, PQLForeignServer a, PQLForeignServer b)
 			stringListCell	*cell;
 
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER SERVER %s OPTIONS (", b.servername);
+			fprintf(output, "ALTER SERVER %s OPTIONS (", srvname2);
 			for (cell = ilist->head; cell; cell = cell->next)
 			{
 				char	*str;
@@ -348,7 +355,7 @@ dumpAlterForeignServer(FILE *output, PQLForeignServer a, PQLForeignServer b)
 			bool			first = true;
 
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER SERVER %s OPTIONS (", b.servername);
+			fprintf(output, "ALTER SERVER %s OPTIONS (", srvname2);
 			for (cell = slist->head; cell; cell = cell->next)
 			{
 				char	*str;
@@ -380,15 +387,12 @@ dumpAlterForeignServer(FILE *output, PQLForeignServer a, PQLForeignServer b)
 				 strcmp(a.comment, b.comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON SERVER %s IS '%s';",
-					b.servername,
-					b.comment);
+			fprintf(output, "COMMENT ON SERVER %s IS '%s';", srvname2, b.comment);
 		}
 		else if (a.comment != NULL && b.comment == NULL)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON SERVER %s IS NULL;",
-					b.servername);
+			fprintf(output, "COMMENT ON SERVER %s IS NULL;", srvname2);
 		}
 	}
 
@@ -398,9 +402,7 @@ dumpAlterForeignServer(FILE *output, PQLForeignServer a, PQLForeignServer b)
 		if (strcmp(a.owner, b.owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER SERVER %s OWNER TO %s;",
-					formatObjectIdentifier(b.servername),
-					b.owner);
+			fprintf(output, "ALTER SERVER %s OWNER TO %s;", srvname2, b.owner);
 		}
 	}
 

@@ -175,18 +175,24 @@ freeViews(PQLView *v, int n)
 void
 dumpDropView(FILE *output, PQLView v)
 {
+	char	*schema = formatObjectIdentifier(v.obj.schemaname);
+	char	*viewname = formatObjectIdentifier(v.obj.objectname);
+
 	fprintf(output, "\n\n");
-	fprintf(output, "DROP VIEW %s.%s;",
-			formatObjectIdentifier(v.obj.schemaname),
-			formatObjectIdentifier(v.obj.objectname));
+	fprintf(output, "DROP VIEW %s.%s;", schema, viewname);
+
+	free(schema);
+	free(viewname);
 }
 
 void
 dumpCreateView(FILE *output, PQLView v)
 {
+	char	*schema = formatObjectIdentifier(v.obj.schemaname);
+	char	*viewname = formatObjectIdentifier(v.obj.objectname);
+
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE VIEW %s.%s", formatObjectIdentifier(v.obj.schemaname),
-			formatObjectIdentifier(v.obj.objectname));
+	fprintf(output, "CREATE VIEW %s.%s", schema, viewname);
 
 	/* reloptions */
 	if (v.reloptions != NULL)
@@ -203,10 +209,7 @@ dumpCreateView(FILE *output, PQLView v)
 	if (options.comment && v.comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON VIEW %s.%s IS '%s';",
-				formatObjectIdentifier(v.obj.schemaname),
-				formatObjectIdentifier(v.obj.objectname),
-				v.comment);
+		fprintf(output, "COMMENT ON VIEW %s.%s IS '%s';", schema, viewname, v.comment);
 	}
 
 	/* security labels */
@@ -219,8 +222,8 @@ dumpCreateView(FILE *output, PQLView v)
 			fprintf(output, "\n\n");
 			fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS '%s';",
 					v.seclabels[i].provider,
-					formatObjectIdentifier(v.obj.schemaname),
-					formatObjectIdentifier(v.obj.objectname),
+					schema,
+					viewname,
 					v.seclabels[i].label);
 		}
 	}
@@ -229,52 +232,44 @@ dumpCreateView(FILE *output, PQLView v)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER VIEW %s.%s OWNER TO %s;",
-				formatObjectIdentifier(v.obj.schemaname),
-				formatObjectIdentifier(v.obj.objectname),
-				v.owner);
+		fprintf(output, "ALTER VIEW %s.%s OWNER TO %s;", schema, viewname, v.owner);
 	}
+
+	free(schema);
+	free(viewname);
 }
 
 void
 dumpAlterView(FILE *output, PQLView a, PQLView b)
 {
+	char	*schema1 = formatObjectIdentifier(a.obj.schemaname);
+	char	*viewname1 = formatObjectIdentifier(a.obj.objectname);
+	char	*schema2 = formatObjectIdentifier(b.obj.schemaname);
+	char	*viewname2 = formatObjectIdentifier(b.obj.objectname);
+
 	/* check option */
 	if (a.checkoption == NULL && b.checkoption != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER VIEW %s.%s SET (check_option=%s)",
-				formatObjectIdentifier(b.obj.schemaname),
-				formatObjectIdentifier(b.obj.objectname),
-				b.checkoption);
-		fprintf(output, ";");
+		fprintf(output, "ALTER VIEW %s.%s SET (check_option=%s);", schema2, viewname2, b.checkoption);
 	}
 	else if (a.checkoption != NULL && b.checkoption == NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER VIEW %s.%s RESET (check_option);",
-				formatObjectIdentifier(b.obj.schemaname),
-				formatObjectIdentifier(b.obj.objectname));
+		fprintf(output, "ALTER VIEW %s.%s RESET (check_option);", schema2, viewname2);
 	}
 	else if (a.checkoption != NULL && b.checkoption != NULL &&
 			 strcmp(a.checkoption, b.checkoption) != 0)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER VIEW %s.%s SET (check_option=%s)",
-				formatObjectIdentifier(b.obj.schemaname),
-				formatObjectIdentifier(b.obj.objectname),
-				b.checkoption);
-		fprintf(output, ";");
+		fprintf(output, "ALTER VIEW %s.%s SET (check_option=%s);", schema2, viewname2, b.checkoption);
 	}
 
 	/* reloptions */
 	if (a.reloptions == NULL && b.reloptions != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER VIEW %s.%s SET (%s);",
-				formatObjectIdentifier(b.obj.schemaname),
-				formatObjectIdentifier(b.obj.objectname),
-				b.reloptions);
+		fprintf(output, "ALTER VIEW %s.%s SET (%s);", schema2, viewname2, b.reloptions);
 	}
 	else if (a.reloptions != NULL && b.reloptions == NULL)
 	{
@@ -287,10 +282,7 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 
 			resetlist = printOptions(rlist);
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER VIEW %s.%s RESET (%s);",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					resetlist);
+			fprintf(output, "ALTER VIEW %s.%s RESET (%s);", schema2, viewname2, resetlist);
 
 			free(resetlist);
 			freeStringList(rlist);
@@ -308,10 +300,7 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 
 			resetlist = printOptions(rlist);
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER VIEW %s.%s RESET (%s);",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					resetlist);
+			fprintf(output, "ALTER VIEW %s.%s RESET (%s);", schema2, viewname2, resetlist);
 
 			free(resetlist);
 			freeStringList(rlist);
@@ -328,10 +317,7 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 
 			setlist = printOptions(ilist);
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER VIEW %s.%s SET (%s);",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					setlist);
+			fprintf(output, "ALTER VIEW %s.%s SET (%s);", schema2, viewname2, setlist);
 
 			free(setlist);
 			freeStringList(ilist);
@@ -347,10 +333,7 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 
 			setlist = printOptions(slist);
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER VIEW %s.%s SET (%s);",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					setlist);
+			fprintf(output, "ALTER VIEW %s.%s SET (%s);", schema2, viewname2, setlist);
 
 			free(setlist);
 			freeStringList(slist);
@@ -365,17 +348,12 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 				 strcmp(a.comment, b.comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON VIEW %s.%s IS '%s';",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					b.comment);
+			fprintf(output, "COMMENT ON VIEW %s.%s IS '%s';", schema2, viewname2, b.comment);
 		}
 		else if (a.comment != NULL && b.comment == NULL)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON VIEW %s.%s IS NULL;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname));
+			fprintf(output, "COMMENT ON VIEW %s.%s IS NULL;", schema2, viewname2);
 		}
 	}
 
@@ -391,8 +369,8 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS '%s';",
 						b.seclabels[i].provider,
-						formatObjectIdentifier(b.obj.schemaname),
-						formatObjectIdentifier(b.obj.objectname),
+						schema2,
+						viewname2,
 						b.seclabels[i].label);
 			}
 		}
@@ -405,8 +383,8 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS NULL;",
 						a.seclabels[i].provider,
-						formatObjectIdentifier(a.obj.schemaname),
-						formatObjectIdentifier(a.obj.objectname));
+						schema1,
+						viewname1);
 			}
 		}
 		else if (a.seclabels != NULL && b.seclabels != NULL)
@@ -421,8 +399,8 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS '%s';",
 							b.seclabels[j].provider,
-							formatObjectIdentifier(b.obj.schemaname),
-							formatObjectIdentifier(b.obj.objectname),
+							schema2,
+							viewname2,
 							b.seclabels[j].label);
 					j++;
 				}
@@ -431,8 +409,8 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS NULL;",
 							a.seclabels[i].provider,
-							formatObjectIdentifier(a.obj.schemaname),
-							formatObjectIdentifier(a.obj.objectname));
+							schema1,
+							viewname1);
 					i++;
 				}
 				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
@@ -442,8 +420,8 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 						fprintf(output, "\n\n");
 						fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS '%s';",
 								b.seclabels[j].provider,
-								formatObjectIdentifier(b.obj.schemaname),
-								formatObjectIdentifier(b.obj.objectname),
+								schema2,
+								viewname2,
 								b.seclabels[j].label);
 					}
 					i++;
@@ -454,8 +432,8 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS NULL;",
 							a.seclabels[i].provider,
-							formatObjectIdentifier(a.obj.schemaname),
-							formatObjectIdentifier(a.obj.objectname));
+							schema1,
+							viewname1);
 					i++;
 				}
 				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
@@ -463,8 +441,8 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS '%s';",
 							b.seclabels[j].provider,
-							formatObjectIdentifier(b.obj.schemaname),
-							formatObjectIdentifier(b.obj.objectname),
+							schema2,
+							viewname2,
 							b.seclabels[j].label);
 					j++;
 				}
@@ -478,10 +456,12 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 		if (strcmp(a.owner, b.owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER VIEW %s.%s OWNER TO %s;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					b.owner);
+			fprintf(output, "ALTER VIEW %s.%s OWNER TO %s;", schema2, viewname2, b.owner);
 		}
 	}
+
+	free(schema1);
+	free(viewname1);
+	free(schema2);
+	free(viewname2);
 }

@@ -97,15 +97,22 @@ freeIndexes(PQLIndex *i, int n)
 void
 dumpDropIndex(FILE *output, PQLIndex i)
 {
+	char	*schema = formatObjectIdentifier(i.obj.schemaname);
+	char	*idxname = formatObjectIdentifier(i.obj.objectname);
+
 	fprintf(output, "\n\n");
-	fprintf(output, "DROP INDEX %s.%s;",
-			formatObjectIdentifier(i.obj.schemaname),
-			formatObjectIdentifier(i.obj.objectname));
+	fprintf(output, "DROP INDEX %s.%s;", schema, idxname);
+
+	free(schema);
+	free(idxname);
 }
 
 void
 dumpCreateIndex(FILE *output, PQLIndex i)
 {
+	char	*schema = formatObjectIdentifier(i.obj.schemaname);
+	char	*idxname = formatObjectIdentifier(i.obj.objectname);
+
 	fprintf(output, "\n\n");
 	fprintf(output, "%s;", i.indexdef);
 
@@ -114,22 +121,26 @@ dumpCreateIndex(FILE *output, PQLIndex i)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "COMMENT ON INDEX %s.%s IS '%s';",
-				formatObjectIdentifier(i.obj.schemaname),
-				formatObjectIdentifier(i.obj.objectname),
-				i.comment);
+				schema, idxname, i.comment);
 	}
+
+	free(schema);
+	free(idxname);
 }
 
 void
 dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 {
+	char	*schema1 = formatObjectIdentifier(a.obj.schemaname);
+	char	*idxname1 = formatObjectIdentifier(a.obj.objectname);
+	char	*schema2 = formatObjectIdentifier(b.obj.schemaname);
+	char	*idxname2 = formatObjectIdentifier(b.obj.objectname);
+
 	if (compareRelations(a.obj, b.obj) != 0)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER INDEX %s.%s RENAME TO %s;",
-				formatObjectIdentifier(a.obj.schemaname),
-				formatObjectIdentifier(a.obj.objectname),
-				formatObjectIdentifier(b.obj.objectname));
+				schema1, idxname1, idxname2);
 	}
 
 	/*
@@ -140,8 +151,7 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER INDEX %s.%s SET TABLESPACE pg_default;",
-				formatObjectIdentifier(a.obj.schemaname),
-				formatObjectIdentifier(a.obj.objectname));
+				schema1, idxname1);
 	}
 	else if ((a.tbspcname == NULL && b.tbspcname != NULL) ||
 			 (a.tbspcname != NULL && b.tbspcname != NULL &&
@@ -149,8 +159,7 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER INDEX %s.%s SET TABLESPACE %s;",
-				formatObjectIdentifier(a.obj.schemaname),
-				formatObjectIdentifier(a.obj.objectname), b.tbspcname);
+				schema1, idxname1, b.tbspcname);
 	}
 
 	/* reloptions */
@@ -158,8 +167,7 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER INDEX %s.%s SET (%s);",
-				formatObjectIdentifier(a.obj.schemaname),
-				formatObjectIdentifier(a.obj.objectname), b.reloptions);
+				schema1, idxname1, b.reloptions);
 	}
 	else if (a.reloptions != NULL && b.reloptions == NULL)
 	{
@@ -174,9 +182,7 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 			resetlist = printOptions(rlist);
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER INDEX %s.%s RESET (%s);",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					resetlist);
+					schema2, idxname2, resetlist);
 
 			free(resetlist);
 			freeStringList(rlist);
@@ -196,9 +202,7 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 			resetlist = printOptions(rlist);
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER INDEX %s.%s RESET (%s);",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					resetlist);
+					schema2, idxname2, resetlist);
 
 			free(resetlist);
 			freeStringList(rlist);
@@ -216,9 +220,7 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 			setlist = printOptions(ilist);
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER INDEX %s.%s SET (%s);",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					setlist);
+					schema2, idxname2, setlist);
 
 			free(setlist);
 			freeStringList(ilist);
@@ -235,9 +237,7 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 			setlist = printOptions(slist);
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER INDEX %s.%s SET (%s);",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					setlist);
+					schema2, idxname2, setlist);
 
 			free(setlist);
 			freeStringList(slist);
@@ -253,16 +253,18 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON INDEX %s.%s IS '%s';",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname),
-					b.comment);
+					schema2, idxname2, b.comment);
 		}
 		else if (a.comment != NULL && b.comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON INDEX %s.%s IS NULL;",
-					formatObjectIdentifier(b.obj.schemaname),
-					formatObjectIdentifier(b.obj.objectname));
+					schema2, idxname2);
 		}
 	}
+
+	free(schema1);
+	free(idxname1);
+	free(schema2);
+	free(idxname2);
 }

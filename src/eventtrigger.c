@@ -152,9 +152,10 @@ freeEventTriggers(PQLEventTrigger *e, int n)
 void
 dumpCreateEventTrigger(FILE *output, PQLEventTrigger e)
 {
+	char	*evtname = formatObjectIdentifier(e.trgname);
+
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE EVENT TRIGGER %s ON %s",
-			formatObjectIdentifier(e.trgname), e.event);
+	fprintf(output, "CREATE EVENT TRIGGER %s ON %s", evtname, e.event);
 
 	if (e.tags != NULL)
 		fprintf(output, "\n    WHEN TAG IN (%s)", e.tags);
@@ -166,7 +167,7 @@ dumpCreateEventTrigger(FILE *output, PQLEventTrigger e)
 	if (e.enabled != 'O')
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER EVENT TRIGGER %s", formatObjectIdentifier(e.trgname));
+		fprintf(output, "ALTER EVENT TRIGGER %s", evtname);
 
 		switch (e.enabled)
 		{
@@ -191,9 +192,7 @@ dumpCreateEventTrigger(FILE *output, PQLEventTrigger e)
 	if (options.comment && e.comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON EVENT TRIGGER %s IS '%s';",
-				formatObjectIdentifier(e.trgname),
-				e.comment);
+		fprintf(output, "COMMENT ON EVENT TRIGGER %s IS '%s';", evtname, e.comment);
 	}
 
 	/* security labels */
@@ -206,7 +205,7 @@ dumpCreateEventTrigger(FILE *output, PQLEventTrigger e)
 			fprintf(output, "\n\n");
 			fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS '%s';",
 					e.seclabels[i].provider,
-					formatObjectIdentifier(e.trgname),
+					evtname,
 					e.seclabels[i].label);
 		}
 	}
@@ -216,25 +215,34 @@ dumpCreateEventTrigger(FILE *output, PQLEventTrigger e)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER EVENT TRIGGER %s OWNER TO %s;",
-				formatObjectIdentifier(e.trgname),
+				evtname,
 				e.owner);
 	}
+
+	free(evtname);
 }
 
 void
 dumpDropEventTrigger(FILE *output, PQLEventTrigger e)
 {
+	char	*evtname = formatObjectIdentifier(e.trgname);
+
 	fprintf(output, "\n\n");
-	fprintf(output, "DROP EVENT TRIGGER %s;", e.trgname);
+	fprintf(output, "DROP EVENT TRIGGER %s;", evtname);
+
+	free(evtname);
 }
 
 void
 dumpAlterEventTrigger(FILE *output, PQLEventTrigger a, PQLEventTrigger b)
 {
+	char	*evtname1 = formatObjectIdentifier(a.trgname);
+	char	*evtname2 = formatObjectIdentifier(b.trgname);
+
 	if (a.enabled != b.enabled)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER EVENT TRIGGER %s", b.trgname);
+		fprintf(output, "ALTER EVENT TRIGGER %s", evtname2);
 
 		switch (b.enabled)
 		{
@@ -258,7 +266,7 @@ dumpAlterEventTrigger(FILE *output, PQLEventTrigger a, PQLEventTrigger b)
 	if (strcmp(a.trgname, b.trgname) != 0)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER EVENT TRIGGER %s RENAME TO %s;", a.trgname, b.trgname);
+		fprintf(output, "ALTER EVENT TRIGGER %s RENAME TO %s;", evtname1, evtname2);
 	}
 
 	/* comment */
@@ -269,15 +277,12 @@ dumpAlterEventTrigger(FILE *output, PQLEventTrigger a, PQLEventTrigger b)
 				 strcmp(a.comment, b.comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON EVENT TRIGGER %s IS '%s';",
-					formatObjectIdentifier(b.trgname),
-					b.comment);
+			fprintf(output, "COMMENT ON EVENT TRIGGER %s IS '%s';", evtname2, b.comment);
 		}
 		else if (a.comment != NULL && b.comment == NULL)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON EVENT TRIGGER %s IS NULL;",
-					formatObjectIdentifier(b.trgname));
+			fprintf(output, "COMMENT ON EVENT TRIGGER %s IS NULL;", evtname2);
 		}
 	}
 
@@ -293,7 +298,7 @@ dumpAlterEventTrigger(FILE *output, PQLEventTrigger a, PQLEventTrigger b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS '%s';",
 						b.seclabels[i].provider,
-						formatObjectIdentifier(b.trgname),
+						evtname2,
 						b.seclabels[i].label);
 			}
 		}
@@ -306,7 +311,7 @@ dumpAlterEventTrigger(FILE *output, PQLEventTrigger a, PQLEventTrigger b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS NULL;",
 						a.seclabels[i].provider,
-						formatObjectIdentifier(a.trgname));
+						evtname1);
 			}
 		}
 		else if (a.seclabels != NULL && b.seclabels != NULL)
@@ -321,7 +326,7 @@ dumpAlterEventTrigger(FILE *output, PQLEventTrigger a, PQLEventTrigger b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS '%s';",
 							b.seclabels[j].provider,
-							formatObjectIdentifier(b.trgname),
+							evtname2,
 							b.seclabels[j].label);
 					j++;
 				}
@@ -329,8 +334,7 @@ dumpAlterEventTrigger(FILE *output, PQLEventTrigger a, PQLEventTrigger b)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS NULL;",
-							a.seclabels[i].provider,
-							formatObjectIdentifier(a.trgname));
+							a.seclabels[i].provider, evtname1);
 					i++;
 				}
 				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
@@ -340,7 +344,7 @@ dumpAlterEventTrigger(FILE *output, PQLEventTrigger a, PQLEventTrigger b)
 						fprintf(output, "\n\n");
 						fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS '%s';",
 								b.seclabels[j].provider,
-								formatObjectIdentifier(b.trgname),
+								evtname2,
 								b.seclabels[j].label);
 					}
 					i++;
@@ -350,8 +354,7 @@ dumpAlterEventTrigger(FILE *output, PQLEventTrigger a, PQLEventTrigger b)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS NULL;",
-							a.seclabels[i].provider,
-							formatObjectIdentifier(a.trgname));
+							a.seclabels[i].provider, evtname1);
 					i++;
 				}
 				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
@@ -359,7 +362,7 @@ dumpAlterEventTrigger(FILE *output, PQLEventTrigger a, PQLEventTrigger b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS '%s';",
 							b.seclabels[j].provider,
-							formatObjectIdentifier(b.trgname),
+							evtname2,
 							b.seclabels[j].label);
 					j++;
 				}
@@ -374,8 +377,11 @@ dumpAlterEventTrigger(FILE *output, PQLEventTrigger a, PQLEventTrigger b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER EVENT TRIGGER %s OWNER TO %s;",
-					formatObjectIdentifier(b.trgname),
+					evtname2,
 					b.owner);
 		}
 	}
+
+	free(evtname1);
+	free(evtname2);
 }

@@ -118,15 +118,21 @@ freeForeignDataWrappers(PQLForeignDataWrapper *f, int n)
 void
 dumpDropForeignDataWrapper(FILE *output, PQLForeignDataWrapper f)
 {
+	char	*fdwname = formatObjectIdentifier(f.fdwname);
+
 	fprintf(output, "\n\n");
-	fprintf(output, "DROP FOREIGN DATA WRAPPER %s;", f.fdwname);
+	fprintf(output, "DROP FOREIGN DATA WRAPPER %s;", fdwname);
+
+	free(fdwname);
 }
 
 void
 dumpCreateForeignDataWrapper(FILE *output, PQLForeignDataWrapper f)
 {
+	char	*fdwname = formatObjectIdentifier(f.fdwname);
+
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE FOREIGN DATA WRAPPER %s", f.fdwname);
+	fprintf(output, "CREATE FOREIGN DATA WRAPPER %s", fdwname);
 
 	if (f.handler.objectname)
 		fprintf(output, " HANDLER %s.%s", f.handler.schemaname, f.handler.objectname);
@@ -170,18 +176,14 @@ dumpCreateForeignDataWrapper(FILE *output, PQLForeignDataWrapper f)
 	if (options.comment && f.comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON FOREIGN DATA WRAPPER %s IS '%s';",
-				formatObjectIdentifier(f.fdwname),
-				f.comment);
+		fprintf(output, "COMMENT ON FOREIGN DATA WRAPPER %s IS '%s';", fdwname, f.comment);
 	}
 
 	/* owner */
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OWNER TO %s;",
-				formatObjectIdentifier(f.fdwname),
-				f.owner);
+		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OWNER TO %s;", fdwname, f.owner);
 	}
 
 	/* privileges */
@@ -195,43 +197,48 @@ dumpCreateForeignDataWrapper(FILE *output, PQLForeignDataWrapper f)
 
 		dumpGrantAndRevoke(output, PGQ_FOREIGN_DATA_WRAPPER, tmp, tmp, NULL, f.acl, NULL);
 	}
+
+	free(fdwname);
 }
 
 void
 dumpAlterForeignDataWrapper(FILE *output, PQLForeignDataWrapper a, PQLForeignDataWrapper b)
 {
+	char	*fdwname1 = formatObjectIdentifier(a.fdwname);
+	char	*fdwname2 = formatObjectIdentifier(b.fdwname);
+
 	/* handler */
 	if (a.handler.objectname == NULL && b.handler.objectname != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s HANDLER %s.%s;", b.fdwname, b.handler.schemaname, b.handler.objectname);
+		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s HANDLER %s.%s;", fdwname2, b.handler.schemaname, b.handler.objectname);
 	}
 	else if (a.handler.objectname != NULL && b.handler.objectname == NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s NO HANDLER;", a.fdwname);
+		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s NO HANDLER;", fdwname1);
 	}
 	else if (a.handler.objectname != NULL && b.handler.objectname != NULL && compareRelations(a.handler, b.handler) != 0)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s HANDLER %s.%s;", b.fdwname, b.handler.schemaname, b.handler.objectname);
+		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s HANDLER %s.%s;", fdwname2, b.handler.schemaname, b.handler.objectname);
 	}
 
 	/* validator */
 	if (a.validator.objectname == NULL && b.validator.objectname != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s VALIDATOR %s.%s;", b.fdwname, b.validator.schemaname, b.validator.objectname);
+		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s VALIDATOR %s.%s;", fdwname2, b.validator.schemaname, b.validator.objectname);
 	}
 	else if (a.validator.objectname != NULL && b.validator.objectname == NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s NO VALIDATOR;", a.fdwname);
+		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s NO VALIDATOR;", fdwname1);
 	}
 	else if (a.validator.objectname != NULL && b.validator.objectname != NULL && compareRelations(a.validator, b.validator) != 0)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s VALIDATOR %s.%s;", b.fdwname, b.validator.schemaname, b.validator.objectname);
+		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s VALIDATOR %s.%s;", fdwname2, b.validator.schemaname, b.validator.objectname);
 	}
 
 	/* options */
@@ -243,7 +250,7 @@ dumpAlterForeignDataWrapper(FILE *output, PQLForeignDataWrapper a, PQLForeignDat
 
 		sl = buildStringList(b.options);
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OPTIONS (", b.fdwname);
+		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OPTIONS (", fdwname2);
 		for (cell = sl->head; cell; cell = cell->next)
 		{
 			char	*str;
@@ -273,7 +280,7 @@ dumpAlterForeignDataWrapper(FILE *output, PQLForeignDataWrapper a, PQLForeignDat
 
 		sl = buildStringList(a.options);
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OPTIONS (", a.fdwname);
+		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OPTIONS (", fdwname1);
 		for (cell = sl->head; cell; cell = cell->next)
 		{
 			char	*str;
@@ -307,7 +314,7 @@ dumpAlterForeignDataWrapper(FILE *output, PQLForeignDataWrapper a, PQLForeignDat
 			stringListCell	*cell;
 
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OPTIONS (", b.fdwname);
+			fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OPTIONS (", fdwname2);
 			for (cell = rlist->head; cell; cell = cell->next)
 			{
 				if (first)
@@ -335,7 +342,7 @@ dumpAlterForeignDataWrapper(FILE *output, PQLForeignDataWrapper a, PQLForeignDat
 			stringListCell	*cell;
 
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OPTIONS (", b.fdwname);
+			fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OPTIONS (", fdwname2);
 			for (cell = ilist->head; cell; cell = cell->next)
 			{
 				char	*str;
@@ -368,7 +375,7 @@ dumpAlterForeignDataWrapper(FILE *output, PQLForeignDataWrapper a, PQLForeignDat
 			bool			first = true;
 
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OPTIONS (", b.fdwname);
+			fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OPTIONS (", fdwname2);
 			for (cell = slist->head; cell; cell = cell->next)
 			{
 				char	*str;
@@ -400,15 +407,12 @@ dumpAlterForeignDataWrapper(FILE *output, PQLForeignDataWrapper a, PQLForeignDat
 				 strcmp(a.comment, b.comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON FOREIGN DATA WRAPPER %s IS '%s';",
-					b.fdwname,
-					b.comment);
+			fprintf(output, "COMMENT ON FOREIGN DATA WRAPPER %s IS '%s';", fdwname2, b.comment);
 		}
 		else if (a.comment != NULL && b.comment == NULL)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON FOREIGN DATA WRAPPER %s IS NULL;",
-					b.fdwname);
+			fprintf(output, "COMMENT ON FOREIGN DATA WRAPPER %s IS NULL;", fdwname2);
 		}
 	}
 
@@ -418,9 +422,7 @@ dumpAlterForeignDataWrapper(FILE *output, PQLForeignDataWrapper a, PQLForeignDat
 		if (strcmp(a.owner, b.owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OWNER TO %s;",
-					b.fdwname,
-					b.owner);
+			fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OWNER TO %s;", fdwname2, b.owner);
 		}
 	}
 
@@ -437,4 +439,7 @@ dumpAlterForeignDataWrapper(FILE *output, PQLForeignDataWrapper a, PQLForeignDat
 		if (a.acl != NULL || b.acl != NULL)
 			dumpGrantAndRevoke(output, PGQ_FOREIGN_DATA_WRAPPER, tmpa, tmpb, a.acl, b.acl, NULL);
 	}
+
+	free(fdwname1);
+	free(fdwname2);
 }
