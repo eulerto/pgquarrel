@@ -389,14 +389,17 @@ void
 dumpGrant(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee,
 		  char *extra)
 {
-	char	*schema = NULL;
-	char	*objname = formatObjectIdentifier(a.objectname);
+	char	*schema;
+	char	*objname;
 
 	char	*p;
 
 	/* nothing to be done */
 	if (privs == NULL)
 		return;
+
+	schema = NULL;
+	objname = formatObjectIdentifier(a.objectname);
 
 	p = formatPrivileges(privs);
 
@@ -482,14 +485,17 @@ void
 dumpRevoke(FILE *output, int objecttype, PQLObject a, char *privs,
 		   char *grantee, char *extra)
 {
-	char	*schema = NULL;
-	char	*objname = formatObjectIdentifier(a.objectname);
+	char	*schema;
+	char	*objname;
 
 	char	*p;
 
 	/* nothing to be done */
 	if (privs == NULL)
 		return;
+
+	schema = NULL;
+	objname = formatObjectIdentifier(a.objectname);
 
 	p = formatPrivileges(privs);
 
