@@ -419,4 +419,7 @@ dumpAlterForeignServer(FILE *output, PQLForeignServer a, PQLForeignServer b)
 		if (a.acl != NULL || b.acl != NULL)
 			dumpGrantAndRevoke(output, PGQ_FOREIGN_SERVER, tmpa, tmpb, a.acl, b.acl, NULL);
 	}
+
+	free(srvname1);
+	free(srvname2);
 }
