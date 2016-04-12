@@ -123,8 +123,7 @@ getAggregates(PGconn *c, int *n)
 		a[i].nseclabels = 0;
 		a[i].seclabels = NULL;
 
-		logDebug("aggregate %s.%s(%s)", formatObjectIdentifier(a[i].obj.schemaname),
-				 formatObjectIdentifier(a[i].obj.objectname), a[i].arguments);
+		logDebug("aggregate \"%s\".\"%s\"(%s)", a[i].obj.schemaname, a[i].obj.objectname, a[i].arguments);
 	}
 
 	PQclear(res);
@@ -187,11 +186,7 @@ getAggregateSecurityLabels(PGconn *c, PQLAggregate *a)
 	else
 		a->seclabels = NULL;
 
-	logDebug("number of security labels in aggregate %s.%s(%s): %d",
-			 formatObjectIdentifier(a->obj.schemaname),
-			 formatObjectIdentifier(a->obj.objectname),
-			 a->arguments,
-			 a->nseclabels);
+	logDebug("number of security labels in aggregate \"%s\".\"%s\"(%s): %d", a->obj.schemaname, a->obj.objectname, a->arguments, a->nseclabels);
 
 	for (i = 0; i < a->nseclabels; i++)
 	{

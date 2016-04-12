@@ -85,8 +85,7 @@ getFunctions(PGconn *c, int *n)
 		f[i].nseclabels = 0;
 		f[i].seclabels = NULL;
 
-		logDebug("function %s.%s(%s)", formatObjectIdentifier(f[i].obj.schemaname),
-				 formatObjectIdentifier(f[i].obj.objectname), f[i].arguments);
+		logDebug("function \"%s\".\"%s\"(%s)", f[i].obj.schemaname, f[i].obj.objectname, f[i].arguments);
 	}
 
 	PQclear(res);
@@ -146,11 +145,7 @@ getFunctionSecurityLabels(PGconn *c, PQLFunction *f)
 	else
 		f->seclabels = NULL;
 
-	logDebug("number of security labels in function %s.%s(%s): %d",
-			 formatObjectIdentifier(f->obj.schemaname),
-			 formatObjectIdentifier(f->obj.objectname),
-			 f->arguments,
-			 f->nseclabels);
+	logDebug("number of security labels in function \"%s\".\"%s\"(%s): %d", f->obj.schemaname, f->obj.objectname, f->arguments, f->nseclabels);
 
 	for (i = 0; i < f->nseclabels; i++)
 	{

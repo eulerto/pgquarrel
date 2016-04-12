@@ -63,7 +63,7 @@ getSchemas(PGconn *c, int *n)
 		s[i].nseclabels = 0;
 		s[i].seclabels = NULL;
 
-		logDebug("schema %s", formatObjectIdentifier(s[i].schemaname));
+		logDebug("schema \"%s\"", s[i].schemaname);
 	}
 
 	PQclear(res);
@@ -103,9 +103,7 @@ getSchemaSecurityLabels(PGconn *c, PQLSchema *s)
 	else
 		s->seclabels = NULL;
 
-	logDebug("number of security labels in schema %s: %d",
-			 formatObjectIdentifier(s->schemaname),
-			 s->nseclabels);
+	logDebug("number of security labels in schema \"%s\": %d", s->schemaname, s->nseclabels);
 
 	for (i = 0; i < s->nseclabels; i++)
 	{

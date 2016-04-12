@@ -78,8 +78,7 @@ getSequences(PGconn *c, int *n)
 		s[i].nseclabels = 0;
 		s[i].seclabels = NULL;
 
-		logDebug("sequence %s.%s", formatObjectIdentifier(s[i].obj.schemaname),
-				 formatObjectIdentifier(s[i].obj.objectname));
+		logDebug("sequence \"%s\".\"%s\"", s[i].obj.schemaname, s[i].obj.objectname);
 	}
 
 	PQclear(res);
@@ -173,9 +172,7 @@ getSequenceSecurityLabels(PGconn *c, PQLSequence *s)
 	else
 		s->seclabels = NULL;
 
-	logDebug("number of security labels in sequence %s.%s: %d",
-			 formatObjectIdentifier(s->obj.schemaname),
-			 formatObjectIdentifier(s->obj.objectname), s->nseclabels);
+	logDebug("number of security labels in sequence \"%s\".\"%s\": %d", s->obj.schemaname, s->obj.objectname, s->nseclabels);
 
 	for (i = 0; i < s->nseclabels; i++)
 	{

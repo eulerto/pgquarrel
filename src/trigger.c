@@ -48,10 +48,7 @@ getTriggers(PGconn *c, int *n)
 		else
 			t[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
 
-		logDebug("trigger %s on %s.%s",
-				 formatObjectIdentifier(t[i].trgname),
-				 formatObjectIdentifier(t[i].table.schemaname),
-				 formatObjectIdentifier(t[i].table.objectname));
+		logDebug("trigger \"%s\" on \"%s\".\"%s\"", t[i].trgname, t[i].table.schemaname, t[i].table.objectname);
 	}
 
 	PQclear(res);

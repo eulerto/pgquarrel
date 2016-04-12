@@ -138,8 +138,7 @@ getTables(PGconn *c, int *n)
 		t[i].nseclabels = 0;
 		t[i].seclabels = NULL;
 
-		logDebug("table %s.%s", formatObjectIdentifier(t[i].obj.schemaname),
-				 formatObjectIdentifier(t[i].obj.objectname));
+		logDebug("table \"%s\".\"%s\"", t[i].obj.schemaname, t[i].obj.objectname);
 	}
 
 	PQclear(res);
@@ -196,9 +195,7 @@ getCheckConstraints(PGconn *c, PQLTable *t, int n)
 		else
 			t[i].check = NULL;
 
-		logDebug("number of check constraints in table %s.%s: %d",
-				 formatObjectIdentifier(t[i].obj.schemaname),
-				 formatObjectIdentifier(t[i].obj.objectname), t[i].ncheck);
+		logDebug("number of check constraints in table \"%s\".\"%s\": %d", t[i].obj.schemaname, t[i].obj.objectname, t[i].ncheck);
 		for (j = 0; j < t[i].ncheck; j++)
 		{
 			t[i].check[j].conname = strdup(PQgetvalue(res, j, PQfnumber(res, "conname")));
@@ -261,9 +258,7 @@ getFKConstraints(PGconn *c, PQLTable *t, int n)
 		else
 			t[i].fk = NULL;
 
-		logDebug("number of FK constraints in table %s.%s: %d",
-				 formatObjectIdentifier(t[i].obj.schemaname),
-				 formatObjectIdentifier(t[i].obj.objectname), t[i].nfk);
+		logDebug("number of FK constraints in table \"%s\".\"%s\": %d", t[i].obj.schemaname, t[i].obj.objectname, t[i].nfk);
 		for (j = 0; j < t[i].nfk; j++)
 		{
 			t[i].fk[j].conname = strdup(PQgetvalue(res, j, PQfnumber(res, "conname")));
@@ -383,19 +378,12 @@ getTableAttributes(PGconn *c, PQLTable *t)
 	else
 		t->attributes = NULL;
 
-	logDebug("number of attributes in table %s.%s: %d",
-			 formatObjectIdentifier(t->obj.schemaname),
-			 formatObjectIdentifier(t->obj.objectname), t->nattributes);
+	logDebug("number of attributes in table \"%s\".\"%s\": %d", t->obj.schemaname, t->obj.objectname, t->nattributes);
 
 	if (t->reloptions)
-		logDebug("table %s.%s: reloptions: %s",
-				 formatObjectIdentifier(t->obj.schemaname),
-				 formatObjectIdentifier(t->obj.objectname),
-				 t->reloptions);
+		logDebug("table \"%s\".\"%s\": reloptions: %s", t->obj.schemaname, t->obj.objectname, t->reloptions);
 	else
-		logDebug("table %s.%s: no reloptions",
-				 formatObjectIdentifier(t->obj.schemaname),
-				 formatObjectIdentifier(t->obj.objectname));
+		logDebug("table \"%s\".\"%s\": no reloptions", t->obj.schemaname, t->obj.objectname);
 
 	for (i = 0; i < t->nattributes; i++)
 	{
@@ -472,15 +460,13 @@ getTableAttributes(PGconn *c, PQLTable *t)
 		t->attributes[i].seclabels = NULL;
 
 		if (t->attributes[i].attdefexpr != NULL)
-			logDebug("table: %s.%s ; attribute %s; type: %s ; default: %s ; storage: %s",
-					 formatObjectIdentifier(t->obj.schemaname),
-					 formatObjectIdentifier(t->obj.objectname), t->attributes[i].attname,
+			logDebug("table: \"%s\".\"%s\" ; attribute \"%s\"; type: %s ; default: %s ; storage: %s",
+					 t->obj.schemaname, t->obj.objectname, t->attributes[i].attname,
 					 t->attributes[i].atttypname, t->attributes[i].attdefexpr,
 					 t->attributes[i].attstorage);
 		else
-			logDebug("table: %s.%s ; attribute %s; type: %s ; storage: %s",
-					 formatObjectIdentifier(t->obj.schemaname),
-					 formatObjectIdentifier(t->obj.objectname), t->attributes[i].attname,
+			logDebug("table: \"%s\".\"%s\" ; attribute \"%s\"; type: %s ; storage: %s",
+					 t->obj.schemaname, t->obj.objectname, t->attributes[i].attname,
 					 t->attributes[i].atttypname,
 					 t->attributes[i].attstorage);
 	}
@@ -528,9 +514,7 @@ getTableAttributes(PGconn *c, PQLTable *t)
 		}
 		else
 		{
-			logWarning("table %s.%s should contain one replica identity index (returned %d)",
-					   formatObjectIdentifier(t->obj.schemaname),
-					   formatObjectIdentifier(t->obj.objectname), i);
+			logWarning("table \"%s\".\"%s\" should contain one replica identity index (returned %d)", t->obj.schemaname, t->obj.objectname, i);
 		}
 
 		PQclear(res);
@@ -569,9 +553,7 @@ getTableSecurityLabels(PGconn *c, PQLTable *t)
 	else
 		t->seclabels = NULL;
 
-	logDebug("number of security labels in table %s.%s: %d",
-			 formatObjectIdentifier(t->obj.schemaname),
-			 formatObjectIdentifier(t->obj.objectname), t->nseclabels);
+	logDebug("number of security labels in table \"%s\".\"%s\": %d", t->obj.schemaname, t->obj.objectname, t->nseclabels);
 
 	for (i = 0; i < t->nseclabels; i++)
 	{
@@ -605,11 +587,9 @@ getTableSecurityLabels(PGconn *c, PQLTable *t)
 		else
 			t->attributes[i].seclabels = NULL;
 
-		logDebug("number of security labels in table %s.%s attribute %s: %d",
-				 formatObjectIdentifier(t->obj.schemaname),
-				 formatObjectIdentifier(t->obj.objectname),
-				 t->attributes[i].attname,
-				 t->attributes[i].nseclabels);
+		logDebug("number of security labels in table \"%s\".\"%s\" attribute \"%s\": %d",
+				 t->obj.schemaname, t->obj.objectname,
+				 t->attributes[i].attname, t->attributes[i].nseclabels);
 
 		for (j = 0; j < t->attributes[i].nseclabels; j++)
 		{
@@ -786,9 +766,7 @@ getOwnedBySequences(PGconn *c, PQLTable *t)
 		t->attownedby = NULL;
 	}
 
-	logDebug("number of sequences owned by the table %s.%s: %d",
-			 formatObjectIdentifier(t->obj.schemaname),
-			 formatObjectIdentifier(t->obj.objectname), t->nownedby);
+	logDebug("number of sequences owned by the table \"%s\".\"%s\": %d", t->obj.schemaname, t->obj.objectname, t->nownedby);
 	for (i = 0; i < t->nownedby; i++)
 	{
 		t->seqownedby[i].schemaname = strdup(PQgetvalue(res, i, PQfnumber(res,
@@ -797,12 +775,9 @@ getOwnedBySequences(PGconn *c, PQLTable *t)
 											 "relname")));
 		t->attownedby[i] = strdup(PQgetvalue(res, i, PQfnumber(res, "attname")));
 
-		logDebug("sequence %s.%s owned by table %s.%s attribute %s",
-				 formatObjectIdentifier(t->seqownedby[i].schemaname),
-				 formatObjectIdentifier(t->seqownedby[i].objectname),
-				 formatObjectIdentifier(t->obj.schemaname),
-				 formatObjectIdentifier(t->obj.objectname),
-				 t->attownedby[i]);
+		logDebug("sequence \"%s\".\"%s\" owned by table \"%s\".\"%s\" attribute \"%s\"",
+				 t->seqownedby[i].schemaname, t->seqownedby[i].objectname,
+				 t->obj.schemaname, t->obj.objectname, t->attownedby[i]);
 	}
 
 	PQclear(res);
@@ -1476,10 +1451,9 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 		 */
 		if (i == a.nattributes)
 		{
-			logDebug("table %s.%s attribute %s (%s) added",
-					 formatObjectIdentifier(b.obj.schemaname),
-					 formatObjectIdentifier(b.obj.objectname), b.attributes[j].attname,
-					 b.attributes[j].atttypname);
+			logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) added",
+					 b.obj.schemaname, b.obj.objectname,
+					 b.attributes[j].attname, b.attributes[j].atttypname);
 
 			dumpAddColumn(output, b, j);
 
@@ -1494,10 +1468,7 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 		 */
 		else if (j == b.nattributes)
 		{
-			logDebug("table %s.%s attribute %s (%s) removed",
-					 formatObjectIdentifier(a.obj.schemaname),
-					 formatObjectIdentifier(a.obj.objectname), a.attributes[i].attname,
-					 a.attributes[i].atttypname);
+			logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) removed", a.obj.schemaname, a.obj.objectname, a.attributes[i].attname, a.attributes[i].atttypname);
 
 			dumpRemoveColumn(output, a, i);
 			i++;
@@ -1515,10 +1486,9 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 			if (strcmp(a.attributes[i].atttypname, b.attributes[j].atttypname) != 0 ||
 					a.attributes[i].attnotnull != b.attributes[j].attnotnull)
 			{
-				logDebug("table %s.%s attribute %s (%s) altered to (%s)",
-						 formatObjectIdentifier(a.obj.schemaname),
-						 formatObjectIdentifier(a.obj.objectname), a.attributes[i].attname,
-						 a.attributes[i].atttypname, b.attributes[j].atttypname);
+				logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) altered to (%s)",
+						 a.obj.schemaname, a.obj.objectname,
+						 a.attributes[i].attname, a.attributes[i].atttypname, b.attributes[j].atttypname);
 
 				dumpAlterColumn(output, a, i, b, j);
 			}
@@ -1539,20 +1509,18 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 		}
 		else if (strcmp(a.attributes[i].attname, b.attributes[j].attname) < 0)
 		{
-			logDebug("table %s.%s attribute %s (%s) removed",
-					 formatObjectIdentifier(a.obj.schemaname),
-					 formatObjectIdentifier(a.obj.objectname), a.attributes[i].attname,
-					 a.attributes[i].atttypname);
+			logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) removed",
+					 a.obj.schemaname, a.obj.objectname,
+					 a.attributes[i].attname, a.attributes[i].atttypname);
 
 			dumpRemoveColumn(output, a, i);
 			i++;
 		}
 		else if (strcmp(a.attributes[i].attname, b.attributes[j].attname) > 0)
 		{
-			logDebug("table %s.%s attribute %s (%s) added",
-					 formatObjectIdentifier(b.obj.schemaname),
-					 formatObjectIdentifier(b.obj.objectname), b.attributes[j].attname,
-					 b.attributes[j].atttypname);
+			logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) added",
+					 b.obj.schemaname, b.obj.objectname,
+					 b.attributes[j].attname, b.attributes[j].atttypname);
 
 			dumpAddColumn(output, b, j);
 

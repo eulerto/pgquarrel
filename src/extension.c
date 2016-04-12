@@ -56,7 +56,7 @@ getExtensions(PGconn *c, int *n)
 		else
 			e[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
 
-		logDebug("extension %s", formatObjectIdentifier(e[i].extensionname));
+		logDebug("extension \"%s\"", e[i].extensionname);
 	}
 
 	PQclear(res);

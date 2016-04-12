@@ -100,8 +100,7 @@ getMaterializedViews(PGconn *c, int *n)
 		v[i].nseclabels = 0;
 		v[i].seclabels = NULL;
 
-		logDebug("materialized view %s.%s", formatObjectIdentifier(v[i].obj.schemaname),
-				 formatObjectIdentifier(v[i].obj.objectname));
+		logDebug("materialized view \"%s\".\"%s\"", v[i].obj.schemaname, v[i].obj.objectname);
 
 		/*
 		 * These values are not assigned here (see
@@ -112,14 +111,9 @@ getMaterializedViews(PGconn *c, int *n)
 		v[i].attributes = NULL;
 
 		if (v[i].reloptions)
-			logDebug("materialized view %s.%s: reloptions: %s",
-					 formatObjectIdentifier(v[i].obj.schemaname),
-					 formatObjectIdentifier(v[i].obj.objectname),
-					 v[i].reloptions);
+			logDebug("materialized view \"%s\".\"%s\": reloptions: %s", v[i].obj.schemaname, v[i].obj.objectname, v[i].reloptions);
 		else
-			logDebug("materialized view %s.%s: no reloptions",
-					 formatObjectIdentifier(v[i].obj.schemaname),
-					 formatObjectIdentifier(v[i].obj.objectname));
+			logDebug("materialized view \"%s\".\"%s\": no reloptions", v[i].obj.schemaname, v[i].obj.objectname);
 	}
 
 	PQclear(res);
@@ -173,9 +167,7 @@ getMaterializedViewAttributes(PGconn *c, PQLMaterializedView *v)
 	else
 		v->attributes = NULL;
 
-	logDebug("number of attributes in materialized view %s.%s: %d",
-			 formatObjectIdentifier(v->obj.schemaname),
-			 formatObjectIdentifier(v->obj.objectname), v->nattributes);
+	logDebug("number of attributes in materialized view \"%s\".\"%s\": %d", v->obj.schemaname, v->obj.objectname, v->nattributes);
 
 	for (i = 0; i < v->nattributes; i++)
 	{
@@ -263,9 +255,7 @@ getMaterializedViewSecurityLabels(PGconn *c, PQLMaterializedView *v)
 	else
 		v->seclabels = NULL;
 
-	logDebug("number of security labels in materialized view %s.%s: %d",
-			 formatObjectIdentifier(v->obj.schemaname),
-			 formatObjectIdentifier(v->obj.objectname), v->nseclabels);
+	logDebug("number of security labels in materialized view \"%s\".\"%s\": %d", v->obj.schemaname, v->obj.objectname, v->nseclabels);
 
 	for (i = 0; i < v->nseclabels; i++)
 	{

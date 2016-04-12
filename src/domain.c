@@ -157,9 +157,7 @@ getDomainConstraints(PGconn *c, PQLDomain *d)
 	else
 		d->check = NULL;
 
-	logDebug("number of check constraints in domain %s.%s: %d",
-			 formatObjectIdentifier(d->obj.schemaname),
-			 formatObjectIdentifier(d->obj.objectname), d->ncheck);
+	logDebug("number of check constraints in domain \"%s\".\"%s\": %d", d->obj.schemaname, d->obj.objectname, d->ncheck);
 
 	for (i = 0; i < d->ncheck; i++)
 	{
@@ -208,9 +206,7 @@ getDomainSecurityLabels(PGconn *c, PQLDomain *d)
 	else
 		d->seclabels = NULL;
 
-	logDebug("number of security labels in domain %s.%s: %d",
-			 formatObjectIdentifier(d->obj.schemaname),
-			 formatObjectIdentifier(d->obj.objectname), d->nseclabels);
+	logDebug("number of security labels in domain \"%s\".\"%s\": %d", d->obj.schemaname, d->obj.objectname, d->nseclabels);
 
 	for (i = 0; i < d->nseclabels; i++)
 	{

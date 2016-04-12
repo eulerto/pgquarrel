@@ -69,7 +69,7 @@ getLanguages(PGconn *c, int *n)
 		l[i].nseclabels = 0;
 		l[i].seclabels = NULL;
 
-		logDebug("language %s", formatObjectIdentifier(l[i].languagename));
+		logDebug("language \"%s\"", l[i].languagename);
 	}
 
 	PQclear(res);
@@ -109,9 +109,7 @@ getLanguageSecurityLabels(PGconn *c, PQLLanguage *l)
 	else
 		l->seclabels = NULL;
 
-	logDebug("number of security labels in language %s: %d",
-			 formatObjectIdentifier(l->languagename),
-			 l->nseclabels);
+	logDebug("number of security labels in language \"%s\": %d", l->languagename, l->nseclabels);
 
 	for (i = 0; i < l->nseclabels; i++)
 	{

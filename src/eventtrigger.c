@@ -62,7 +62,7 @@ getEventTriggers(PGconn *c, int *n)
 		e[i].nseclabels = 0;
 		e[i].seclabels = NULL;
 
-		logDebug("event trigger %s", formatObjectIdentifier(e[i].trgname));
+		logDebug("event trigger \"%s\"", e[i].trgname);
 	}
 
 	PQclear(res);
@@ -102,8 +102,7 @@ getEventTriggerSecurityLabels(PGconn *c, PQLEventTrigger *e)
 	else
 		e->seclabels = NULL;
 
-	logDebug("number of security labels in event trigger %s: %d",
-			 formatObjectIdentifier(e->trgname), e->nseclabels);
+	logDebug("number of security labels in event trigger \"%s\": %d", e->trgname, e->nseclabels);
 
 	for (i = 0; i < e->nseclabels; i++)
 	{

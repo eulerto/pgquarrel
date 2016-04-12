@@ -79,7 +79,7 @@ getConversions(PGconn *c, int *n)
 
 		d[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "conowner")));
 
-		logDebug("conversion %s.%s ; %s => %s", d[i].obj.schemaname,
+		logDebug("conversion \"%s\".\"%s\" ; %s => %s", d[i].obj.schemaname,
 				 d[i].obj.objectname, d[i].forencoding, d[i].toencoding);
 	}
 

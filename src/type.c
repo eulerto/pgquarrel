@@ -136,9 +136,7 @@ getBaseTypeSecurityLabels(PGconn *c, PQLBaseType *t)
 	else
 		t->seclabels = NULL;
 
-	logDebug("number of security labels in base type %s.%s: %d",
-			 formatObjectIdentifier(t->obj.schemaname),
-			 formatObjectIdentifier(t->obj.objectname), t->nseclabels);
+	logDebug("number of security labels in base type \"%s\".\"%s\": %d", t->obj.schemaname, t->obj.objectname, t->nseclabels);
 
 	for (i = 0; i < t->nseclabels; i++)
 	{
@@ -321,9 +319,7 @@ getCompositeTypeSecurityLabels(PGconn *c, PQLCompositeType *t)
 	else
 		t->seclabels = NULL;
 
-	logDebug("number of security labels in composite type %s.%s: %d",
-			 formatObjectIdentifier(t->obj.schemaname),
-			 formatObjectIdentifier(t->obj.objectname), t->nseclabels);
+	logDebug("number of security labels in composite type \"%s\".\"%s\": %d", t->obj.schemaname, t->obj.objectname, t->nseclabels);
 
 	for (i = 0; i < t->nseclabels; i++)
 	{
@@ -486,9 +482,7 @@ getEnumTypeSecurityLabels(PGconn *c, PQLEnumType *t)
 	else
 		t->seclabels = NULL;
 
-	logDebug("number of security labels in enum type %s.%s: %d",
-			 formatObjectIdentifier(t->obj.schemaname),
-			 formatObjectIdentifier(t->obj.objectname), t->nseclabels);
+	logDebug("number of security labels in enum type \"%s\".\"%s\": %d", t->obj.schemaname, t->obj.objectname, t->nseclabels);
 
 	for (i = 0; i < t->nseclabels; i++)
 	{
@@ -606,9 +600,7 @@ getRangeTypeSecurityLabels(PGconn *c, PQLRangeType *t)
 	else
 		t->seclabels = NULL;
 
-	logDebug("number of security labels in range type %s.%s: %d",
-			 formatObjectIdentifier(t->obj.schemaname),
-			 formatObjectIdentifier(t->obj.objectname), t->nseclabels);
+	logDebug("number of security labels in range type \"%s\".\"%s\": %d", t->obj.schemaname, t->obj.objectname, t->nseclabels);
 
 	for (i = 0; i < t->nseclabels; i++)
 	{
