@@ -132,6 +132,13 @@ ScanKeywordLookup(const char *text,
 	return NULL;
 }
 
+/*
+ * Quote an identifier iif necessary. For quoting, consider the SQL rules and
+ * also the list of PostgreSQL keywords. Those keywords come from PostgreSQL
+ * version that pgquarrel was compiled with. Ensure that pgquarrel is compiled
+ * with the latest PostgreSQL version to ensure that we don't have problems
+ * with strings that become keywords. Returns an allocated string.
+ */
 char *
 formatObjectIdentifier(char *s)
 {
@@ -173,11 +180,15 @@ formatObjectIdentifier(char *s)
 	if (!need_quotes)
 	{
 		/* no quotes needed */
-		ret = s;
+		ret = strdup(s);
 	}
 	else
 	{
-		ret = malloc(100 * sizeof(char));
+		/*
+		 * Maximum length for identifiers is NAMEDATALEN (64 bytes by default
+		 * including trailing zero byte).
+		 * */
+		ret = malloc(NAMEDATALEN * sizeof(char));
 		if (ret == NULL)
 			logError("could not allocate memory");
 
