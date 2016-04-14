@@ -190,7 +190,10 @@ formatObjectIdentifier(char *s)
 		 * */
 		ret = malloc(NAMEDATALEN * sizeof(char));
 		if (ret == NULL)
+		{
 			logError("could not allocate memory");
+			exit(EXIT_FAILURE);
+		}
 
 		ret[i++] = '\"';
 		for (p = s; *p; p++)
@@ -606,7 +609,10 @@ printOptions(stringList *sl)
 				listlen = newlen;
 				list = (char *) realloc(list, listlen);
 				if (list == NULL)
+				{
 					logError("could not allocate memory");
+					exit(EXIT_FAILURE);
+				}
 			}
 
 			if (firstitem)
