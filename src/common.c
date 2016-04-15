@@ -385,7 +385,6 @@ buildStringList(char *options)
  * Return a linked list of stringListCell that contains elements from 'a' that
  * is also in 'b'. If 'withvalue' is true, then strings are built with values
  * from 'b' else the list will contain only the options.
- * TODO cleanup tmpa and tmpb memory
  * TODO this function is buggy. Your return should be a linked list with almost
  * TODO all elements from B except those whose option/value is the same as in A.
  */
@@ -400,12 +399,6 @@ intersectWithSortedLists(stringListCell *a, stringListCell *b, bool withvalue, b
 	if (a == NULL || b == NULL)
 		return NULL;
 
-	/* both string lists are not NULL */
-	tmpa = strdup(a->value);
-	tmpb = strdup(b->value);
-	c = strtok(tmpa, "=");
-	d = strtok(tmpb, "=");
-
 	/*
 	 * If same option and value, call recursively incrementing both lists. We
 	 * don't want to include option that doesn't change the value unless
@@ -414,12 +407,30 @@ intersectWithSortedLists(stringListCell *a, stringListCell *b, bool withvalue, b
 	if (changed && strcmp(a->value, b->value) == 0)
 		return intersectWithSortedLists(a->next, b->next, withvalue, changed);
 
+	/* both string lists are not NULL */
+	tmpa = strdup(a->value);
+	tmpb = strdup(b->value);
+	c = strtok(tmpa, "=");
+	d = strtok(tmpb, "=");
+
 	/* advance "smaller" string list and call recursively */
 	if (strcmp(c, d) < 0)
+	{
+		/* avoid leaking temporary variables */
+		free(tmpa);
+		free(tmpb);
+
 		return intersectWithSortedLists(a->next, b, withvalue, changed);
+	}
 
 	if (strcmp(c, d) > 0)
+	{
+		/* avoid leaking temporary variables */
+		free(tmpa);
+		free(tmpb);
+
 		return intersectWithSortedLists(a, b->next, withvalue, changed);
+	}
 
 	/*
 	 * If both options/values are equal, add it only if 'changed' is false.
@@ -430,6 +441,10 @@ intersectWithSortedLists(stringListCell *a, stringListCell *b, bool withvalue, b
 		t->value = strdup(b->value);
 	else
 		t->value = strdup(d);
+
+	/* avoid leaking temporary variables */
+	free(tmpa);
+	free(tmpb);
 
 	/* advance both string lists and call recursively */
 	t->next = intersectWithSortedLists(a->next, b->next, withvalue, changed);
