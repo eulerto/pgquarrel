@@ -456,7 +456,6 @@ intersectWithSortedLists(stringListCell *a, stringListCell *b, bool withvalue, b
  * Given two sorted linked lists (A, B), produce another linked list that is
  * the result of 'A minus B' i.e. elements that are only presented in A. If
  * there aren't elements, return NULL.
- * TODO cleanup tmpa and tmpb memory
  */
 static stringListCell *
 setDifferenceWithSortedLists(stringListCell *a, stringListCell *b, bool withvalue)
