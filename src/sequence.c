@@ -256,16 +256,17 @@ dumpCreateSequence(FILE *output, PQLSequence s)
 	if (strcmp(s.incvalue, "1") != 0)
 		fprintf(output, " INCREMENT BY %s", s.incvalue);
 
-	if ((s.incvalue > 0 && strcmp(s.minvalue, "1") != 0) ||
-			(s.incvalue < 0 && strcmp(s.minvalue, MINIMUM_SEQUENCE_VALUE) != 0))
+	/* variables used above can't be null (see getSequenceAttributes) */
+	if ((atol(s.incvalue) > 0 && strcmp(s.minvalue, "1") != 0) ||
+			(atol(s.incvalue) < 0 && strcmp(s.minvalue, MINIMUM_SEQUENCE_VALUE) != 0))
 		fprintf(output, " MINVALUE %s", s.minvalue);
 
-	if ((s.incvalue > 0 && strcmp(s.maxvalue, MAXIMUM_SEQUENCE_VALUE) != 0) ||
-			(s.incvalue < 0 && strcmp(s.maxvalue, "-1") != 0))
+	if ((atol(s.incvalue) > 0 && strcmp(s.maxvalue, MAXIMUM_SEQUENCE_VALUE) != 0) ||
+			(atol(s.incvalue) < 0 && strcmp(s.maxvalue, "-1") != 0))
 		fprintf(output, " MAXVALUE %s", s.maxvalue);
 
-	if ((s.incvalue > 0 && strcmp(s.startvalue, s.minvalue) != 0) ||
-			(s.incvalue < 0 && strcmp(s.startvalue, s.maxvalue) != 0))
+	if ((atol(s.incvalue) > 0 && strcmp(s.startvalue, s.minvalue) != 0) ||
+			(atol(s.incvalue) < 0 && strcmp(s.startvalue, s.maxvalue) != 0))
 		fprintf(output, " START WITH %s", s.startvalue);
 
 	if (strcmp(s.cache, "1") != 0)
