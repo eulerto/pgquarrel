@@ -209,9 +209,6 @@ buildACL(char *acl)
 	}
 	logNoise("acl: \"%s\"", acl);
 
-	al = (aclList *) malloc(sizeof(aclList));
-	al->head = al->tail = NULL;
-
 	len = strlen(acl);
 
 	/* use a temporary variable to avoid changing the original acl */
@@ -234,10 +231,16 @@ buildACL(char *acl)
 	if (tmp[0] != '{')	/* can't happen */
 	{
 		logWarning("mal formed ACL \"%s\" (first character is \"%c\")", tmp, tmp[0]);
+
+		/* avoid leaking temp variable */
+		free(tmp);
+
 		return NULL;
 	}
 	p++;
 
+	al = (aclList *) malloc(sizeof(aclList));
+	al->head = al->tail = NULL;
 
 	for (item = p; item; item = nextitem)
 	{
