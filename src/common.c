@@ -385,8 +385,6 @@ buildStringList(char *options)
  * Return a linked list of stringListCell that contains elements from 'a' that
  * is also in 'b'. If 'withvalue' is true, then strings are built with values
  * from 'b' else the list will contain only the options.
- * TODO this function is buggy. Your return should be a linked list with almost
- * TODO all elements from B except those whose option/value is the same as in A.
  */
 static stringListCell *
 intersectWithSortedLists(stringListCell *a, stringListCell *b, bool withvalue, bool changed)
