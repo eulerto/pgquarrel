@@ -141,7 +141,10 @@ mini_parse_line(MiniFile *mini_file, char *line)
 			/* Get value string */
 			value = (char *) malloc((value_len + 1) * sizeof(char));
 			if(value == NULL)
+			{
+				free(key);
 				return -1;
+			}
 
 			strncpy(value, &equal[1], value_len);
 			value[value_len] = '\0';

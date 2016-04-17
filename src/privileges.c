@@ -224,6 +224,10 @@ buildACL(char *acl)
 	{
 		logWarning("mal formed ACL \"%s\" (last character is \"%c\")", tmp,
 				   tmp[len - 1]);
+
+		/* avoid leaking temp variable */
+		free(tmp);
+
 		return NULL;
 	}
 	p[len - 1] = '\0';
