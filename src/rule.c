@@ -79,11 +79,11 @@ freeRules(PQLRule *r, int n)
 }
 
 void
-dumpDropRule(FILE *output, PQLRule r)
+dumpDropRule(FILE *output, PQLRule *r)
 {
-	char	*schema = formatObjectIdentifier(r.table.schemaname);
-	char	*objname = formatObjectIdentifier(r.table.objectname);
-	char	*rulename = formatObjectIdentifier(r.rulename);
+	char	*schema = formatObjectIdentifier(r->table.schemaname);
+	char	*objname = formatObjectIdentifier(r->table.objectname);
+	char	*rulename = formatObjectIdentifier(r->rulename);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP RULE %s ON %s.%s;", rulename, schema, objname);
@@ -94,20 +94,20 @@ dumpDropRule(FILE *output, PQLRule r)
 }
 
 void
-dumpCreateRule(FILE *output, PQLRule r)
+dumpCreateRule(FILE *output, PQLRule *r)
 {
-	char	*schema = formatObjectIdentifier(r.table.schemaname);
-	char	*objname = formatObjectIdentifier(r.table.objectname);
-	char	*rulename = formatObjectIdentifier(r.rulename);
+	char	*schema = formatObjectIdentifier(r->table.schemaname);
+	char	*objname = formatObjectIdentifier(r->table.objectname);
+	char	*rulename = formatObjectIdentifier(r->rulename);
 
 	fprintf(output, "\n\n");
-	fprintf(output, "%s", r.ruledef);
+	fprintf(output, "%s", r->ruledef);
 
 	/* comment */
-	if (options.comment && r.comment != NULL)
+	if (options.comment && r->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON RULE %s ON %s.%s IS '%s';", rulename, schema, objname, r.comment);
+		fprintf(output, "COMMENT ON RULE %s ON %s.%s IS '%s';", rulename, schema, objname, r->comment);
 	}
 
 	free(schema);
@@ -116,14 +116,14 @@ dumpCreateRule(FILE *output, PQLRule r)
 }
 
 void
-dumpAlterRule(FILE *output, PQLRule a, PQLRule b)
+dumpAlterRule(FILE *output, PQLRule *a, PQLRule *b)
 {
-	char	*schema = formatObjectIdentifier(b.table.schemaname);
-	char	*objname = formatObjectIdentifier(b.table.objectname);
-	char	*rulename1 = formatObjectIdentifier(a.rulename);
-	char	*rulename2 = formatObjectIdentifier(b.rulename);
+	char	*schema = formatObjectIdentifier(b->table.schemaname);
+	char	*objname = formatObjectIdentifier(b->table.objectname);
+	char	*rulename1 = formatObjectIdentifier(a->rulename);
+	char	*rulename2 = formatObjectIdentifier(b->rulename);
 
-	if (strcmp(a.rulename, b.rulename) != 0)
+	if (strcmp(a->rulename, b->rulename) != 0)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER RULE %s ON %s.%s RENAME TO %s;", rulename1, schema, objname, rulename2);
@@ -132,14 +132,14 @@ dumpAlterRule(FILE *output, PQLRule a, PQLRule b)
 	/* comment */
 	if (options.comment)
 	{
-		if ((a.comment == NULL && b.comment != NULL) ||
-				(a.comment != NULL && b.comment != NULL &&
-				 strcmp(a.comment, b.comment) != 0))
+		if ((a->comment == NULL && b->comment != NULL) ||
+				(a->comment != NULL && b->comment != NULL &&
+				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON RULE %s ON %s.%s IS '%s';", rulename2, schema, objname, b.comment);
+			fprintf(output, "COMMENT ON RULE %s ON %s.%s IS '%s';", rulename2, schema, objname, b->comment);
 		}
-		else if (a.comment != NULL && b.comment == NULL)
+		else if (a->comment != NULL && b->comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON RULE %s ON %s.%s IS NULL;", rulename2, schema, objname);

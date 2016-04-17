@@ -20,10 +20,10 @@ typedef struct PQLForeignServer
 
 PQLForeignServer *getForeignServers(PGconn *c, int *n);
 
-void dumpDropForeignServer(FILE *output, PQLForeignServer s);
-void dumpCreateForeignServer(FILE *output, PQLForeignServer s);
-void dumpAlterForeignServer(FILE *output, PQLForeignServer a,
-							   PQLForeignServer b);
+void dumpDropForeignServer(FILE *output, PQLForeignServer *s);
+void dumpCreateForeignServer(FILE *output, PQLForeignServer *s);
+void dumpAlterForeignServer(FILE *output, PQLForeignServer *a,
+							   PQLForeignServer *b);
 
 void freeForeignServers(PQLForeignServer *s, int n);
 

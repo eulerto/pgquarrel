@@ -18,9 +18,9 @@ typedef struct PQLCollation
 PQLCollation *getCollations(PGconn *c, int *n);
 void getCollationConstraints(PGconn *c, PQLCollation *d);
 
-void dumpDropCollation(FILE *output, PQLCollation d);
-void dumpCreateCollation(FILE *output, PQLCollation d);
-void dumpAlterCollation(FILE *output, PQLCollation a, PQLCollation b);
+void dumpDropCollation(FILE *output, PQLCollation *c);
+void dumpCreateCollation(FILE *output, PQLCollation *c);
+void dumpAlterCollation(FILE *output, PQLCollation *a, PQLCollation *b);
 
 void freeCollations(PQLCollation *c, int n);
 

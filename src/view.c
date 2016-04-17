@@ -170,10 +170,10 @@ freeViews(PQLView *v, int n)
 }
 
 void
-dumpDropView(FILE *output, PQLView v)
+dumpDropView(FILE *output, PQLView *v)
 {
-	char	*schema = formatObjectIdentifier(v.obj.schemaname);
-	char	*viewname = formatObjectIdentifier(v.obj.objectname);
+	char	*schema = formatObjectIdentifier(v->obj.schemaname);
+	char	*viewname = formatObjectIdentifier(v->obj.objectname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP VIEW %s.%s;", schema, viewname);
@@ -183,45 +183,45 @@ dumpDropView(FILE *output, PQLView v)
 }
 
 void
-dumpCreateView(FILE *output, PQLView v)
+dumpCreateView(FILE *output, PQLView *v)
 {
-	char	*schema = formatObjectIdentifier(v.obj.schemaname);
-	char	*viewname = formatObjectIdentifier(v.obj.objectname);
+	char	*schema = formatObjectIdentifier(v->obj.schemaname);
+	char	*viewname = formatObjectIdentifier(v->obj.objectname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE VIEW %s.%s", schema, viewname);
 
 	/* reloptions */
-	if (v.reloptions != NULL)
-		fprintf(output, " WITH (%s)", v.reloptions);
+	if (v->reloptions != NULL)
+		fprintf(output, " WITH (%s)", v->reloptions);
 
-	fprintf(output, " AS\n%s", v.viewdef);
+	fprintf(output, " AS\n%s", v->viewdef);
 
-	if (v.checkoption != NULL)
-		fprintf(output, "\n WITH %s CHECK OPTION", v.checkoption);
+	if (v->checkoption != NULL)
+		fprintf(output, "\n WITH %s CHECK OPTION", v->checkoption);
 
 	fprintf(output, ";");
 
 	/* comment */
-	if (options.comment && v.comment != NULL)
+	if (options.comment && v->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON VIEW %s.%s IS '%s';", schema, viewname, v.comment);
+		fprintf(output, "COMMENT ON VIEW %s.%s IS '%s';", schema, viewname, v->comment);
 	}
 
 	/* security labels */
-	if (options.securitylabels && v.nseclabels > 0)
+	if (options.securitylabels && v->nseclabels > 0)
 	{
 		int	i;
 
-		for (i = 0; i < v.nseclabels; i++)
+		for (i = 0; i < v->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS '%s';",
-					v.seclabels[i].provider,
+					v->seclabels[i].provider,
 					schema,
 					viewname,
-					v.seclabels[i].label);
+					v->seclabels[i].label);
 		}
 	}
 
@@ -229,7 +229,7 @@ dumpCreateView(FILE *output, PQLView v)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER VIEW %s.%s OWNER TO %s;", schema, viewname, v.owner);
+		fprintf(output, "ALTER VIEW %s.%s OWNER TO %s;", schema, viewname, v->owner);
 	}
 
 	free(schema);
@@ -237,42 +237,42 @@ dumpCreateView(FILE *output, PQLView v)
 }
 
 void
-dumpAlterView(FILE *output, PQLView a, PQLView b)
+dumpAlterView(FILE *output, PQLView *a, PQLView *b)
 {
-	char	*schema1 = formatObjectIdentifier(a.obj.schemaname);
-	char	*viewname1 = formatObjectIdentifier(a.obj.objectname);
-	char	*schema2 = formatObjectIdentifier(b.obj.schemaname);
-	char	*viewname2 = formatObjectIdentifier(b.obj.objectname);
+	char	*schema1 = formatObjectIdentifier(a->obj.schemaname);
+	char	*viewname1 = formatObjectIdentifier(a->obj.objectname);
+	char	*schema2 = formatObjectIdentifier(b->obj.schemaname);
+	char	*viewname2 = formatObjectIdentifier(b->obj.objectname);
 
 	/* check option */
-	if (a.checkoption == NULL && b.checkoption != NULL)
+	if (a->checkoption == NULL && b->checkoption != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER VIEW %s.%s SET (check_option=%s);", schema2, viewname2, b.checkoption);
+		fprintf(output, "ALTER VIEW %s.%s SET (check_option=%s);", schema2, viewname2, b->checkoption);
 	}
-	else if (a.checkoption != NULL && b.checkoption == NULL)
+	else if (a->checkoption != NULL && b->checkoption == NULL)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER VIEW %s.%s RESET (check_option);", schema2, viewname2);
 	}
-	else if (a.checkoption != NULL && b.checkoption != NULL &&
-			 strcmp(a.checkoption, b.checkoption) != 0)
+	else if (a->checkoption != NULL && b->checkoption != NULL &&
+			 strcmp(a->checkoption, b->checkoption) != 0)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER VIEW %s.%s SET (check_option=%s);", schema2, viewname2, b.checkoption);
+		fprintf(output, "ALTER VIEW %s.%s SET (check_option=%s);", schema2, viewname2, b->checkoption);
 	}
 
 	/* reloptions */
-	if (a.reloptions == NULL && b.reloptions != NULL)
+	if (a->reloptions == NULL && b->reloptions != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER VIEW %s.%s SET (%s);", schema2, viewname2, b.reloptions);
+		fprintf(output, "ALTER VIEW %s.%s SET (%s);", schema2, viewname2, b->reloptions);
 	}
-	else if (a.reloptions != NULL && b.reloptions == NULL)
+	else if (a->reloptions != NULL && b->reloptions == NULL)
 	{
 		stringList	*rlist;
 
-		rlist = setOperationOptions(a.reloptions, b.reloptions, PGQ_SETDIFFERENCE, false, true);
+		rlist = setOperationOptions(a->reloptions, b->reloptions, PGQ_SETDIFFERENCE, false, true);
 		if (rlist)
 		{
 			char	*resetlist;
@@ -285,12 +285,12 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 			freeStringList(rlist);
 		}
 	}
-	else if (a.reloptions != NULL && b.reloptions != NULL &&
-			 strcmp(a.reloptions, b.reloptions) != 0)
+	else if (a->reloptions != NULL && b->reloptions != NULL &&
+			 strcmp(a->reloptions, b->reloptions) != 0)
 	{
 		stringList	*rlist, *ilist, *slist;
 
-		rlist = setOperationOptions(a.reloptions, b.reloptions, PGQ_SETDIFFERENCE, false, true);
+		rlist = setOperationOptions(a->reloptions, b->reloptions, PGQ_SETDIFFERENCE, false, true);
 		if (rlist)
 		{
 			char	*resetlist;
@@ -307,7 +307,7 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 		 * Include intersection between option sets. However, exclude options
 		 * that don't change.
 		 */
-		ilist = setOperationOptions(a.reloptions, b.reloptions, PGQ_INTERSECT, true, true);
+		ilist = setOperationOptions(a->reloptions, b->reloptions, PGQ_INTERSECT, true, true);
 		if (ilist)
 		{
 			char	*setlist;
@@ -323,7 +323,7 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 		/*
 		 * Set options that are only presented in the second set.
 		 */
-		slist = setOperationOptions(b.reloptions, a.reloptions, PGQ_SETDIFFERENCE, true, true);
+		slist = setOperationOptions(b->reloptions, a->reloptions, PGQ_SETDIFFERENCE, true, true);
 		if (slist)
 		{
 			char	*setlist;
@@ -340,14 +340,14 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 	/* comment */
 	if (options.comment)
 	{
-		if ((a.comment == NULL && b.comment != NULL) ||
-				(a.comment != NULL && b.comment != NULL &&
-				 strcmp(a.comment, b.comment) != 0))
+		if ((a->comment == NULL && b->comment != NULL) ||
+				(a->comment != NULL && b->comment != NULL &&
+				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON VIEW %s.%s IS '%s';", schema2, viewname2, b.comment);
+			fprintf(output, "COMMENT ON VIEW %s.%s IS '%s';", schema2, viewname2, b->comment);
 		}
-		else if (a.comment != NULL && b.comment == NULL)
+		else if (a->comment != NULL && b->comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON VIEW %s.%s IS NULL;", schema2, viewname2);
@@ -357,90 +357,90 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 	/* security labels */
 	if (options.securitylabels)
 	{
-		if (a.seclabels == NULL && b.seclabels != NULL)
+		if (a->seclabels == NULL && b->seclabels != NULL)
 		{
 			int	i;
 
-			for (i = 0; i < b.nseclabels; i++)
+			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS '%s';",
-						b.seclabels[i].provider,
+						b->seclabels[i].provider,
 						schema2,
 						viewname2,
-						b.seclabels[i].label);
+						b->seclabels[i].label);
 			}
 		}
-		else if (a.seclabels != NULL && b.seclabels == NULL)
+		else if (a->seclabels != NULL && b->seclabels == NULL)
 		{
 			int	i;
 
-			for (i = 0; i < a.nseclabels; i++)
+			for (i = 0; i < a->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS NULL;",
-						a.seclabels[i].provider,
+						a->seclabels[i].provider,
 						schema1,
 						viewname1);
 			}
 		}
-		else if (a.seclabels != NULL && b.seclabels != NULL)
+		else if (a->seclabels != NULL && b->seclabels != NULL)
 		{
 			int	i, j;
 
 			i = j = 0;
-			while (i < a.nseclabels || j < b.nseclabels)
+			while (i < a->nseclabels || j < b->nseclabels)
 			{
-				if (i == a.nseclabels)
+				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS '%s';",
-							b.seclabels[j].provider,
+							b->seclabels[j].provider,
 							schema2,
 							viewname2,
-							b.seclabels[j].label);
+							b->seclabels[j].label);
 					j++;
 				}
-				else if (j == b.nseclabels)
+				else if (j == b->nseclabels)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS NULL;",
-							a.seclabels[i].provider,
+							a->seclabels[i].provider,
 							schema1,
 							viewname1);
 					i++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) == 0)
 				{
-					if (strcmp(a.seclabels[i].label, b.seclabels[j].label) != 0)
+					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
 						fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS '%s';",
-								b.seclabels[j].provider,
+								b->seclabels[j].provider,
 								schema2,
 								viewname2,
-								b.seclabels[j].label);
+								b->seclabels[j].label);
 					}
 					i++;
 					j++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) < 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) < 0)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS NULL;",
-							a.seclabels[i].provider,
+							a->seclabels[i].provider,
 							schema1,
 							viewname1);
 					i++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS '%s';",
-							b.seclabels[j].provider,
+							b->seclabels[j].provider,
 							schema2,
 							viewname2,
-							b.seclabels[j].label);
+							b->seclabels[j].label);
 					j++;
 				}
 			}
@@ -450,10 +450,10 @@ dumpAlterView(FILE *output, PQLView a, PQLView b)
 	/* owner */
 	if (options.owner)
 	{
-		if (strcmp(a.owner, b.owner) != 0)
+		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER VIEW %s.%s OWNER TO %s;", schema2, viewname2, b.owner);
+			fprintf(output, "ALTER VIEW %s.%s OWNER TO %s;", schema2, viewname2, b->owner);
 		}
 	}
 

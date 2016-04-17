@@ -8,15 +8,15 @@
 
 /* there are similar code here in common.c */
 int
-compareCasts(PQLCast a, PQLCast b)
+compareCasts(PQLCast *a, PQLCast *b)
 {
 	int		c;
 
-	c = strcmp(a.source, b.source);
+	c = strcmp(a->source, b->source);
 
 	/* compare target types iif source type names are equal */
 	if (c == 0)
-		c = strcmp(a.target, b.target);
+		c = strcmp(a->target, b->target);
 
 	return c;
 }
@@ -115,19 +115,19 @@ freeCasts(PQLCast *c, int n)
 }
 
 void
-dumpCreateCast(FILE *output, PQLCast c)
+dumpCreateCast(FILE *output, PQLCast *c)
 {
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE CAST (%s AS %s)", c.source, c.target);
+	fprintf(output, "CREATE CAST (%s AS %s)", c->source, c->target);
 
-	switch (c.method)
+	switch (c->method)
 	{
 		case PGQ_CAST_METHOD_BINARY:
 			fprintf(output, " WITHOUT FUNCTION");
 			break;
 		case PGQ_CAST_METHOD_FUNCTION:
-			if (c.funcname)
-				fprintf(output, " WITH FUNCTION %s", c.funcname);
+			if (c->funcname)
+				fprintf(output, " WITH FUNCTION %s", c->funcname);
 			else
 				logWarning("bogus value in pg_cast.castfunc or pg_cast.castmethod");
 			break;
@@ -139,11 +139,11 @@ dumpCreateCast(FILE *output, PQLCast c)
 			break;
 	}
 
-	if (c.context == 'a')
+	if (c->context == 'a')
 		fprintf(output, " AS ASSIGNMENT");
-	else if (c.context == 'i')
+	else if (c->context == 'i')
 		fprintf(output, " AS IMPLICIT");
-	else if (c.context == 'e')
+	else if (c->context == 'e')
 		;
 	else
 		logWarning("bogus value in pg_cast.castcontext");
@@ -151,36 +151,36 @@ dumpCreateCast(FILE *output, PQLCast c)
 	fprintf(output, ";");
 
 	/* comment */
-	if (options.comment && c.comment != NULL)
+	if (options.comment && c->comment != NULL)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "COMMENT ON CAST (%s AS %s) IS '%s';",
-				c.source,
-				c.target,
-				c.comment);
+				c->source,
+				c->target,
+				c->comment);
 	}
 }
 
 void
-dumpDropCast(FILE *output, PQLCast c)
+dumpDropCast(FILE *output, PQLCast *c)
 {
 	fprintf(output, "\n\n");
-	fprintf(output, "DROP CAST (%s AS %s);", c.source, c.target);
+	fprintf(output, "DROP CAST (%s AS %s);", c->source, c->target);
 }
 
 void
-dumpAlterCast(FILE *output, PQLCast a, PQLCast b)
+dumpAlterCast(FILE *output, PQLCast *a, PQLCast *b)
 {
 	/*
 	 * XXX there is no ALTER CAST command. In this case, we need to DROP and
 	 * XXX CREATE the cast.
 	 */
-	if (a.method != b.method ||
-			a.context != b.context ||
-			(a.funcname == NULL && b.funcname != NULL) ||
-			(a.funcname != NULL && b.funcname == NULL) ||
-			(a.funcname != NULL && b.funcname != NULL &&
-			 strcmp(a.funcname, b.funcname) != 0))
+	if (a->method != b->method ||
+			a->context != b->context ||
+			(a->funcname == NULL && b->funcname != NULL) ||
+			(a->funcname != NULL && b->funcname == NULL) ||
+			(a->funcname != NULL && b->funcname != NULL &&
+			 strcmp(a->funcname, b->funcname) != 0))
 	{
 		dumpDropCast(output, a);
 		dumpCreateCast(output, b);
@@ -189,22 +189,22 @@ dumpAlterCast(FILE *output, PQLCast a, PQLCast b)
 	/* comment */
 	if (options.comment)
 	{
-		if ((a.comment == NULL && b.comment != NULL) ||
-				(a.comment != NULL && b.comment != NULL &&
-				 strcmp(a.comment, b.comment) != 0))
+		if ((a->comment == NULL && b->comment != NULL) ||
+				(a->comment != NULL && b->comment != NULL &&
+				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON CAST (%s AS %s) IS '%s';",
-					b.source,
-					b.target,
-					b.comment);
+					b->source,
+					b->target,
+					b->comment);
 		}
-		else if (a.comment != NULL && b.comment == NULL)
+		else if (a->comment != NULL && b->comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON CAST (%s AS %s) IS NULL;",
-					b.source,
-					b.target);
+					b->source,
+					b->target);
 		}
 	}
 }

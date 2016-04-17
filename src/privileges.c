@@ -389,7 +389,7 @@ diffPrivileges(char *a, char *b)
 }
 
 void
-dumpGrant(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee,
+dumpGrant(FILE *output, int objecttype, PQLObject *a, char *privs, char *grantee,
 		  char *extra)
 {
 	char	*schema;
@@ -402,7 +402,7 @@ dumpGrant(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee,
 		return;
 
 	schema = NULL;
-	objname = formatObjectIdentifier(a.objectname);
+	objname = formatObjectIdentifier(a->objectname);
 
 	p = formatPrivileges(privs);
 
@@ -451,7 +451,7 @@ dumpGrant(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee,
 	if (objecttype == PGQ_FUNCTION && extra != NULL)
 	{
 		/* there are some objects that are not schema-qualified */
-		schema = formatObjectIdentifier(a.schemaname);
+		schema = formatObjectIdentifier(a->schemaname);
 
 		fprintf(output, " %s.%s(%s) TO %s;",
 				schema,
@@ -470,7 +470,7 @@ dumpGrant(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee,
 	else
 	{
 		/* there are some objects that are not schema-qualified */
-		schema = formatObjectIdentifier(a.schemaname);
+		schema = formatObjectIdentifier(a->schemaname);
 
 		fprintf(output, " %s.%s TO %s;",
 				schema,
@@ -485,7 +485,7 @@ dumpGrant(FILE *output, int objecttype, PQLObject a, char *privs, char *grantee,
 }
 
 void
-dumpRevoke(FILE *output, int objecttype, PQLObject a, char *privs,
+dumpRevoke(FILE *output, int objecttype, PQLObject *a, char *privs,
 		   char *grantee, char *extra)
 {
 	char	*schema;
@@ -498,7 +498,7 @@ dumpRevoke(FILE *output, int objecttype, PQLObject a, char *privs,
 		return;
 
 	schema = NULL;
-	objname = formatObjectIdentifier(a.objectname);
+	objname = formatObjectIdentifier(a->objectname);
 
 	p = formatPrivileges(privs);
 
@@ -547,7 +547,7 @@ dumpRevoke(FILE *output, int objecttype, PQLObject a, char *privs,
 	if (objecttype == PGQ_FUNCTION && extra != NULL)
 	{
 		/* there are some objects that are not schema-qualified */
-		schema = formatObjectIdentifier(a.schemaname);
+		schema = formatObjectIdentifier(a->schemaname);
 
 		fprintf(output, " %s.%s(%s) FROM %s;",
 				schema,
@@ -566,7 +566,7 @@ dumpRevoke(FILE *output, int objecttype, PQLObject a, char *privs,
 	else
 	{
 		/* there are some objects that are not schema-qualified */
-		schema = formatObjectIdentifier(a.schemaname);
+		schema = formatObjectIdentifier(a->schemaname);
 
 		fprintf(output, " %s.%s FROM %s;",
 				schema,
@@ -581,7 +581,7 @@ dumpRevoke(FILE *output, int objecttype, PQLObject a, char *privs,
 }
 
 void
-dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject a, PQLObject b,
+dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject *a, PQLObject *b,
 				   char *acla, char *aclb, char *extra)
 {
 	aclList		*ala;

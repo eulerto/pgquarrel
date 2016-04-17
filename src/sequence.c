@@ -229,10 +229,10 @@ freeSequences(PQLSequence *s, int n)
 }
 
 void
-dumpDropSequence(FILE *output, PQLSequence s)
+dumpDropSequence(FILE *output, PQLSequence *s)
 {
-	char	*schema = formatObjectIdentifier(s.obj.schemaname);
-	char	*seqname = formatObjectIdentifier(s.obj.objectname);
+	char	*schema = formatObjectIdentifier(s->obj.schemaname);
+	char	*seqname = formatObjectIdentifier(s->obj.objectname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP SEQUENCE %s.%s;", schema, seqname);
@@ -242,10 +242,10 @@ dumpDropSequence(FILE *output, PQLSequence s)
 }
 
 void
-dumpCreateSequence(FILE *output, PQLSequence s)
+dumpCreateSequence(FILE *output, PQLSequence *s)
 {
-	char	*schema = formatObjectIdentifier(s.obj.schemaname);
-	char	*seqname = formatObjectIdentifier(s.obj.objectname);
+	char	*schema = formatObjectIdentifier(s->obj.schemaname);
+	char	*seqname = formatObjectIdentifier(s->obj.objectname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE SEQUENCE %s.%s", schema, seqname);
@@ -253,50 +253,50 @@ dumpCreateSequence(FILE *output, PQLSequence s)
 	/*
 	 * dump only if it is not default
 	 */
-	if (strcmp(s.incvalue, "1") != 0)
-		fprintf(output, " INCREMENT BY %s", s.incvalue);
+	if (strcmp(s->incvalue, "1") != 0)
+		fprintf(output, " INCREMENT BY %s", s->incvalue);
 
 	/* variables used above can't be null (see getSequenceAttributes) */
-	if ((atol(s.incvalue) > 0 && strcmp(s.minvalue, "1") != 0) ||
-			(atol(s.incvalue) < 0 && strcmp(s.minvalue, MINIMUM_SEQUENCE_VALUE) != 0))
-		fprintf(output, " MINVALUE %s", s.minvalue);
+	if ((atol(s->incvalue) > 0 && strcmp(s->minvalue, "1") != 0) ||
+			(atol(s->incvalue) < 0 && strcmp(s->minvalue, MINIMUM_SEQUENCE_VALUE) != 0))
+		fprintf(output, " MINVALUE %s", s->minvalue);
 
-	if ((atol(s.incvalue) > 0 && strcmp(s.maxvalue, MAXIMUM_SEQUENCE_VALUE) != 0) ||
-			(atol(s.incvalue) < 0 && strcmp(s.maxvalue, "-1") != 0))
-		fprintf(output, " MAXVALUE %s", s.maxvalue);
+	if ((atol(s->incvalue) > 0 && strcmp(s->maxvalue, MAXIMUM_SEQUENCE_VALUE) != 0) ||
+			(atol(s->incvalue) < 0 && strcmp(s->maxvalue, "-1") != 0))
+		fprintf(output, " MAXVALUE %s", s->maxvalue);
 
-	if ((atol(s.incvalue) > 0 && strcmp(s.startvalue, s.minvalue) != 0) ||
-			(atol(s.incvalue) < 0 && strcmp(s.startvalue, s.maxvalue) != 0))
-		fprintf(output, " START WITH %s", s.startvalue);
+	if ((atol(s->incvalue) > 0 && strcmp(s->startvalue, s->minvalue) != 0) ||
+			(atol(s->incvalue) < 0 && strcmp(s->startvalue, s->maxvalue) != 0))
+		fprintf(output, " START WITH %s", s->startvalue);
 
-	if (strcmp(s.cache, "1") != 0)
-		fprintf(output, " CACHE %s", s.cache);
+	if (strcmp(s->cache, "1") != 0)
+		fprintf(output, " CACHE %s", s->cache);
 
-	if (s.cycle)
+	if (s->cycle)
 		fprintf(output, " CYCLE");
 
 	fprintf(output, ";");
 
 	/* comment */
-	if (options.comment && s.comment != NULL)
+	if (options.comment && s->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON SEQUENCE %s.%s IS '%s';", schema, seqname, s.comment);
+		fprintf(output, "COMMENT ON SEQUENCE %s.%s IS '%s';", schema, seqname, s->comment);
 	}
 
 	/* security labels */
-	if (options.securitylabels && s.nseclabels > 0)
+	if (options.securitylabels && s->nseclabels > 0)
 	{
 		int	i;
 
-		for (i = 0; i < s.nseclabels; i++)
+		for (i = 0; i < s->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
-					s.seclabels[i].provider,
+					s->seclabels[i].provider,
 					schema,
 					seqname,
-					s.seclabels[i].label);
+					s->seclabels[i].label);
 		}
 	}
 
@@ -304,29 +304,29 @@ dumpCreateSequence(FILE *output, PQLSequence s)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER SEQUENCE %s.%s OWNER TO %s;", schema, seqname, s.owner);
+		fprintf(output, "ALTER SEQUENCE %s.%s OWNER TO %s;", schema, seqname, s->owner);
 	}
 
 	/* privileges */
-	/* XXX second s.obj isn't used. Add an invalid PQLObject? */
+	/* XXX second s->obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
-		dumpGrantAndRevoke(output, PGQ_SEQUENCE, s.obj, s.obj, NULL, s.acl, NULL);
+		dumpGrantAndRevoke(output, PGQ_SEQUENCE, &s->obj, &s->obj, NULL, s->acl, NULL);
 
 	free(schema);
 	free(seqname);
 }
 
 void
-dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
+dumpAlterSequence(FILE *output, PQLSequence *a, PQLSequence *b)
 {
-	char	*schema1 = formatObjectIdentifier(a.obj.schemaname);
-	char	*seqname1 = formatObjectIdentifier(a.obj.objectname);
-	char	*schema2 = formatObjectIdentifier(b.obj.schemaname);
-	char	*seqname2 = formatObjectIdentifier(b.obj.objectname);
+	char	*schema1 = formatObjectIdentifier(a->obj.schemaname);
+	char	*seqname1 = formatObjectIdentifier(a->obj.objectname);
+	char	*schema2 = formatObjectIdentifier(b->obj.schemaname);
+	char	*seqname2 = formatObjectIdentifier(b->obj.objectname);
 
 	bool	printalter = true;
 
-	if (strcmp(a.incvalue, b.incvalue) != 0)
+	if (strcmp(a->incvalue, b->incvalue) != 0)
 	{
 		if (printalter)
 		{
@@ -335,10 +335,10 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 		}
 		printalter = false;
 
-		fprintf(output, " INCREMENT BY %s", b.incvalue);
+		fprintf(output, " INCREMENT BY %s", b->incvalue);
 	}
 
-	if (strcmp(a.minvalue, b.minvalue) != 0)
+	if (strcmp(a->minvalue, b->minvalue) != 0)
 	{
 		if (printalter)
 		{
@@ -347,10 +347,10 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 		}
 		printalter = false;
 
-		fprintf(output, " MINVALUE %s", b.minvalue);
+		fprintf(output, " MINVALUE %s", b->minvalue);
 	}
 
-	if (strcmp(a.maxvalue, b.maxvalue) != 0)
+	if (strcmp(a->maxvalue, b->maxvalue) != 0)
 	{
 		if (printalter)
 		{
@@ -359,10 +359,10 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 		}
 		printalter = false;
 
-		fprintf(output, " MAXVALUE %s", b.maxvalue);
+		fprintf(output, " MAXVALUE %s", b->maxvalue);
 	}
 
-	if (strcmp(a.startvalue, b.startvalue) != 0)
+	if (strcmp(a->startvalue, b->startvalue) != 0)
 	{
 		if (printalter)
 		{
@@ -371,10 +371,10 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 		}
 		printalter = false;
 
-		fprintf(output, " START WITH %s RESTART WITH %s", b.startvalue, b.startvalue);
+		fprintf(output, " START WITH %s RESTART WITH %s", b->startvalue, b->startvalue);
 	}
 
-	if (strcmp(a.cache, b.cache) != 0)
+	if (strcmp(a->cache, b->cache) != 0)
 	{
 		if (printalter)
 		{
@@ -383,10 +383,10 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 		}
 		printalter = false;
 
-		fprintf(output, " CACHE %s", b.cache);
+		fprintf(output, " CACHE %s", b->cache);
 	}
 
-	if (a.cycle != b.cycle)
+	if (a->cycle != b->cycle)
 	{
 		if (printalter)
 		{
@@ -395,7 +395,7 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 		}
 		printalter = false;
 
-		if (b.cycle)
+		if (b->cycle)
 			fprintf(output, " CYCLE");
 		else
 			fprintf(output, " NO CYCLE");
@@ -407,14 +407,14 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 	/* comment */
 	if (options.comment)
 	{
-		if ((a.comment == NULL && b.comment != NULL) ||
-				(a.comment != NULL && b.comment != NULL &&
-				 strcmp(a.comment, b.comment) != 0))
+		if ((a->comment == NULL && b->comment != NULL) ||
+				(a->comment != NULL && b->comment != NULL &&
+				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON SEQUENCE %s.%s IS '%s';", schema2, seqname2, b.comment);
+			fprintf(output, "COMMENT ON SEQUENCE %s.%s IS '%s';", schema2, seqname2, b->comment);
 		}
-		else if (a.comment != NULL && b.comment == NULL)
+		else if (a->comment != NULL && b->comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON SEQUENCE %s.%s IS NULL;", schema2, seqname2);
@@ -424,90 +424,90 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 	/* security labels */
 	if (options.securitylabels)
 	{
-		if (a.seclabels == NULL && b.seclabels != NULL)
+		if (a->seclabels == NULL && b->seclabels != NULL)
 		{
 			int	i;
 
-			for (i = 0; i < b.nseclabels; i++)
+			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
-						b.seclabels[i].provider,
+						b->seclabels[i].provider,
 						schema2,
 						seqname2,
-						b.seclabels[i].label);
+						b->seclabels[i].label);
 			}
 		}
-		else if (a.seclabels != NULL && b.seclabels == NULL)
+		else if (a->seclabels != NULL && b->seclabels == NULL)
 		{
 			int	i;
 
-			for (i = 0; i < a.nseclabels; i++)
+			for (i = 0; i < a->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS NULL;",
-						a.seclabels[i].provider,
+						a->seclabels[i].provider,
 						schema1,
 						seqname1);
 			}
 		}
-		else if (a.seclabels != NULL && b.seclabels != NULL)
+		else if (a->seclabels != NULL && b->seclabels != NULL)
 		{
 			int	i, j;
 
 			i = j = 0;
-			while (i < a.nseclabels || j < b.nseclabels)
+			while (i < a->nseclabels || j < b->nseclabels)
 			{
-				if (i == a.nseclabels)
+				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
-							b.seclabels[j].provider,
+							b->seclabels[j].provider,
 							schema2,
 							seqname2,
-							b.seclabels[j].label);
+							b->seclabels[j].label);
 					j++;
 				}
-				else if (j == b.nseclabels)
+				else if (j == b->nseclabels)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS NULL;",
-							a.seclabels[i].provider,
+							a->seclabels[i].provider,
 							schema1,
 							seqname1);
 					i++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) == 0)
 				{
-					if (strcmp(a.seclabels[i].label, b.seclabels[j].label) != 0)
+					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
 						fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
-								b.seclabels[j].provider,
+								b->seclabels[j].provider,
 								schema2,
 								seqname2,
-								b.seclabels[j].label);
+								b->seclabels[j].label);
 					}
 					i++;
 					j++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) < 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) < 0)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS NULL;",
-							a.seclabels[i].provider,
+							a->seclabels[i].provider,
 							schema1,
 							seqname1);
 					i++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
-							b.seclabels[j].provider,
+							b->seclabels[j].provider,
 							schema2,
 							seqname2,
-							b.seclabels[j].label);
+							b->seclabels[j].label);
 					j++;
 				}
 			}
@@ -517,18 +517,18 @@ dumpAlterSequence(FILE *output, PQLSequence a, PQLSequence b)
 	/* owner */
 	if (options.owner)
 	{
-		if (strcmp(a.owner, b.owner) != 0)
+		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER SEQUENCE %s.%s OWNER TO %s;", schema2, seqname2, b.owner);
+			fprintf(output, "ALTER SEQUENCE %s.%s OWNER TO %s;", schema2, seqname2, b->owner);
 		}
 	}
 
 	/* privileges */
 	if (options.privileges)
 	{
-		if (a.acl != NULL || b.acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_SEQUENCE, a.obj, b.obj, a.acl, b.acl, NULL);
+		if (a->acl != NULL || b->acl != NULL)
+			dumpGrantAndRevoke(output, PGQ_SEQUENCE, &a->obj, &b->obj, a->acl, b->acl, NULL);
 	}
 
 	free(schema1);

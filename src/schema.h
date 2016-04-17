@@ -20,9 +20,9 @@ typedef struct PQLSchema
 PQLSchema *getSchemas(PGconn *c, int *n);
 void getSchemaSecurityLabels(PGconn *c, PQLSchema *s);
 
-void dumpDropSchema(FILE *output, PQLSchema s);
-void dumpCreateSchema(FILE *output, PQLSchema s);
-void dumpAlterSchema(FILE *output, PQLSchema a, PQLSchema b);
+void dumpDropSchema(FILE *output, PQLSchema *s);
+void dumpCreateSchema(FILE *output, PQLSchema *s);
+void dumpAlterSchema(FILE *output, PQLSchema *a, PQLSchema *b);
 
 void freeSchemas(PQLSchema *s, int n);
 

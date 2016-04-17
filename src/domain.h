@@ -28,9 +28,9 @@ PQLDomain *getDomains(PGconn *c, int *n);
 void getDomainConstraints(PGconn *c, PQLDomain *d);
 void getDomainSecurityLabels(PGconn *c, PQLDomain *d);
 
-void dumpDropDomain(FILE *output, PQLDomain d);
-void dumpCreateDomain(FILE *output, PQLDomain d);
-void dumpAlterDomain(FILE *output, PQLDomain a, PQLDomain b);
+void dumpDropDomain(FILE *output, PQLDomain *d);
+void dumpCreateDomain(FILE *output, PQLDomain *d);
+void dumpAlterDomain(FILE *output, PQLDomain *a, PQLDomain *b);
 
 void freeDomains(PQLDomain *d, int n);
 

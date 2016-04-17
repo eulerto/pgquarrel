@@ -30,12 +30,12 @@ typedef struct PQLFunction
 } PQLFunction;
 
 PQLFunction *getFunctions(PGconn *c, int *n);
-int compareFunctions(PQLFunction a, PQLFunction b);
+int compareFunctions(PQLFunction *a, PQLFunction *b);
 void getFunctionSecurityLabels(PGconn *c, PQLFunction *f);
 
-void dumpDropFunction(FILE *output, PQLFunction f);
-void dumpCreateFunction(FILE *output, PQLFunction f, bool orreplace);
-void dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b);
+void dumpDropFunction(FILE *output, PQLFunction *f);
+void dumpCreateFunction(FILE *output, PQLFunction *f, bool orreplace);
+void dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b);
 
 void freeFunctions(PQLFunction *f, int n);
 

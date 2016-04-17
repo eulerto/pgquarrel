@@ -7,15 +7,15 @@
  */
 
 int
-compareUserMappings(PQLUserMapping a, PQLUserMapping b)
+compareUserMappings(PQLUserMapping *a, PQLUserMapping *b)
 {
 	int		c;
 
-	c = strcmp(a.user, b.user);
+	c = strcmp(a->user, b->user);
 
 	/* compare server names iif user names are equal */
 	if (c == 0)
-		c = strcmp(a.server, b.server);
+		c = strcmp(a->server, b->server);
 
 	return c;
 }
@@ -89,26 +89,26 @@ freeUserMappings(PQLUserMapping *u, int n)
 }
 
 void
-dumpDropUserMapping(FILE *output, PQLUserMapping u)
+dumpDropUserMapping(FILE *output, PQLUserMapping *u)
 {
 	fprintf(output, "\n\n");
-	fprintf(output, "DROP USER MAPPING FOR %s SERVER %s;", u.user, u.server);
+	fprintf(output, "DROP USER MAPPING FOR %s SERVER %s;", u->user, u->server);
 }
 
 void
-dumpCreateUserMapping(FILE *output, PQLUserMapping u)
+dumpCreateUserMapping(FILE *output, PQLUserMapping *u)
 {
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE USER MAPPING FOR %s SERVER %s", u.user, u.server);
+	fprintf(output, "CREATE USER MAPPING FOR %s SERVER %s", u->user, u->server);
 
 	/* options (optional) */
-	if (u.options)
+	if (u->options)
 	{
 		stringList		*sl;
 		stringListCell	*cell;
 		bool			first = true;
 
-		sl = buildStringList(u.options);
+		sl = buildStringList(u->options);
 		fprintf(output, " OPTIONS (");
 		for (cell = sl->head; cell; cell = cell->next)
 		{
@@ -136,18 +136,18 @@ dumpCreateUserMapping(FILE *output, PQLUserMapping u)
 }
 
 void
-dumpAlterUserMapping(FILE *output, PQLUserMapping a, PQLUserMapping b)
+dumpAlterUserMapping(FILE *output, PQLUserMapping *a, PQLUserMapping *b)
 {
 	/* options */
-	if (a.options == NULL && b.options != NULL)
+	if (a->options == NULL && b->options != NULL)
 	{
 		stringList		*sl;
 		stringListCell	*cell;
 		bool			first = true;
 
-		sl = buildStringList(b.options);
+		sl = buildStringList(b->options);
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER USER MAPPING FOR %s SERVER %s OPTIONS (", b.user, b.server);
+		fprintf(output, "ALTER USER MAPPING FOR %s SERVER %s OPTIONS (", b->user, b->server);
 		for (cell = sl->head; cell; cell = cell->next)
 		{
 			char	*str;
@@ -169,15 +169,15 @@ dumpAlterUserMapping(FILE *output, PQLUserMapping a, PQLUserMapping b)
 
 		freeStringList(sl);
 	}
-	else if (a.options != NULL && b.options == NULL)
+	else if (a->options != NULL && b->options == NULL)
 	{
 		stringList		*sl;
 		stringListCell	*cell;
 		bool			first = true;
 
-		sl = buildStringList(a.options);
+		sl = buildStringList(a->options);
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER USER MAPPING FOR %s SERVER %s OPTIONS (", a.user, a.server);
+		fprintf(output, "ALTER USER MAPPING FOR %s SERVER %s OPTIONS (", a->user, a->server);
 		for (cell = sl->head; cell; cell = cell->next)
 		{
 			char	*str;
@@ -199,19 +199,19 @@ dumpAlterUserMapping(FILE *output, PQLUserMapping a, PQLUserMapping b)
 
 		freeStringList(sl);
 	}
-	else if (a.options != NULL && b.options != NULL && strcmp(a.options, b.options) != 0)
+	else if (a->options != NULL && b->options != NULL && strcmp(a->options, b->options) != 0)
 	{
 		stringList	*rlist, *ilist, *slist;
 		bool		first = true;
 
 		/* reset options that are only presented in the first set */
-		rlist = setOperationOptions(a.options, b.options, PGQ_SETDIFFERENCE, false, true);
+		rlist = setOperationOptions(a->options, b->options, PGQ_SETDIFFERENCE, false, true);
 		if (rlist)
 		{
 			stringListCell	*cell;
 
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER USER MAPPING FOR %s SERVER %s OPTIONS (", a.user, a.server);
+			fprintf(output, "ALTER USER MAPPING FOR %s SERVER %s OPTIONS (", a->user, a->server);
 			for (cell = rlist->head; cell; cell = cell->next)
 			{
 				if (first)
@@ -233,13 +233,13 @@ dumpAlterUserMapping(FILE *output, PQLUserMapping a, PQLUserMapping b)
 		 * Include intersection between option sets. However, exclude options
 		 * that don't change.
 		 */
-		ilist = setOperationOptions(a.options, b.options, PGQ_INTERSECT, true, true);
+		ilist = setOperationOptions(a->options, b->options, PGQ_INTERSECT, true, true);
 		if (ilist)
 		{
 			stringListCell	*cell;
 
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER USER MAPPING FOR %s SERVER %s OPTIONS (", a.user, a.server);
+			fprintf(output, "ALTER USER MAPPING FOR %s SERVER %s OPTIONS (", a->user, a->server);
 			for (cell = ilist->head; cell; cell = cell->next)
 			{
 				char	*str;
@@ -265,14 +265,14 @@ dumpAlterUserMapping(FILE *output, PQLUserMapping a, PQLUserMapping b)
 		/*
 		 * Set options that are only presented in the second set.
 		 */
-		slist = setOperationOptions(b.options, a.options, PGQ_SETDIFFERENCE, true, true);
+		slist = setOperationOptions(b->options, a->options, PGQ_SETDIFFERENCE, true, true);
 		if (slist)
 		{
 			stringListCell	*cell;
 			bool			first = true;
 
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER USER MAPPING FOR %s SERVER %s OPTIONS (", a.user, a.server);
+			fprintf(output, "ALTER USER MAPPING FOR %s SERVER %s OPTIONS (", a->user, a->server);
 			for (cell = slist->head; cell; cell = cell->next)
 			{
 				char	*str;

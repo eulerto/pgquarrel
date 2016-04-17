@@ -85,9 +85,9 @@ freeExtensions(PQLExtension *e, int n)
 }
 
 void
-dumpDropExtension(FILE *output, PQLExtension e)
+dumpDropExtension(FILE *output, PQLExtension *e)
 {
-	char	*extname = formatObjectIdentifier(e.extensionname);
+	char	*extname = formatObjectIdentifier(e->extensionname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP EXTENSION %s;", extname);
@@ -96,58 +96,58 @@ dumpDropExtension(FILE *output, PQLExtension e)
 }
 
 void
-dumpCreateExtension(FILE *output, PQLExtension e)
+dumpCreateExtension(FILE *output, PQLExtension *e)
 {
-	char	*extname = formatObjectIdentifier(e.extensionname);
+	char	*extname = formatObjectIdentifier(e->extensionname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE EXTENSION %s", extname);
 
-	if (e.relocatable)
-		fprintf(output, " WITH SCHEMA %s", e.schemaname);
+	if (e->relocatable)
+		fprintf(output, " WITH SCHEMA %s", e->schemaname);
 
-	fprintf(output, " VERSION '%s'", e.version);
+	fprintf(output, " VERSION '%s'", e->version);
 
 	fprintf(output, ";");
 
 	/* comment */
-	if (options.comment && e.comment != NULL)
+	if (options.comment && e->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON EXTENSION %s IS '%s';", extname, e.comment);
+		fprintf(output, "COMMENT ON EXTENSION %s IS '%s';", extname, e->comment);
 	}
 
 	free(extname);
 }
 
 void
-dumpAlterExtension(FILE *output, PQLExtension a, PQLExtension b)
+dumpAlterExtension(FILE *output, PQLExtension *a, PQLExtension *b)
 {
-	char	*extname2 = formatObjectIdentifier(b.extensionname);
+	char	*extname2 = formatObjectIdentifier(b->extensionname);
 
-	if (strcmp(a.version, b.version) != 0)
+	if (strcmp(a->version, b->version) != 0)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER EXTENSION %s UPDATE TO %s;", extname2, b.version);
+		fprintf(output, "ALTER EXTENSION %s UPDATE TO %s;", extname2, b->version);
 	}
 
-	if (strcmp(a.schemaname, b.schemaname) != 0)
+	if (strcmp(a->schemaname, b->schemaname) != 0)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER EXTENSION %s SET SCHEMA %s;", extname2, b.schemaname);
+		fprintf(output, "ALTER EXTENSION %s SET SCHEMA %s;", extname2, b->schemaname);
 	}
 
 	/* comment */
 	if (options.comment)
 	{
-		if ((a.comment == NULL && b.comment != NULL) ||
-				(a.comment != NULL && b.comment != NULL &&
-				 strcmp(a.comment, b.comment) != 0))
+		if ((a->comment == NULL && b->comment != NULL) ||
+				(a->comment != NULL && b->comment != NULL &&
+				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON EXTENSION %s IS '%s';", extname2, b.comment);
+			fprintf(output, "COMMENT ON EXTENSION %s IS '%s';", extname2, b->comment);
 		}
-		else if (a.comment != NULL && b.comment == NULL)
+		else if (a->comment != NULL && b->comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON EXTENSION %s IS NULL;", extname2);

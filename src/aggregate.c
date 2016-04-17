@@ -135,20 +135,20 @@ getAggregates(PGconn *c, int *n)
  * TODO this function is similar to compareFunctions(). Combine them.
  */
 int
-compareAggregates(PQLAggregate a, PQLAggregate b)
+compareAggregates(PQLAggregate *a, PQLAggregate *b)
 {
 	int		c;
 
-	c = strcmp(a.obj.schemaname, b.obj.schemaname);
+	c = strcmp(a->obj.schemaname, b->obj.schemaname);
 
 	/* compare relation names iif schema names are equal */
 	if (c == 0)
 	{
-		c = strcmp(a.obj.objectname, b.obj.objectname);
+		c = strcmp(a->obj.objectname, b->obj.objectname);
 
 		/* compare arguments iif schema-qualified names are equal */
 		if (c == 0)
-			c = strcmp(a.arguments, b.arguments);
+			c = strcmp(a->arguments, b->arguments);
 	}
 
 	return c;
@@ -253,59 +253,59 @@ freeAggregates(PQLAggregate *a, int n)
 }
 
 void
-dumpDropAggregate(FILE *output, PQLAggregate a)
+dumpDropAggregate(FILE *output, PQLAggregate *a)
 {
-	char	*schema = formatObjectIdentifier(a.obj.schemaname);
-	char	*aggname = formatObjectIdentifier(a.obj.objectname);
+	char	*schema = formatObjectIdentifier(a->obj.schemaname);
+	char	*aggname = formatObjectIdentifier(a->obj.objectname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP AGGREGATE %s.%s(%s);",
-			schema, aggname, a.arguments);
+			schema, aggname, a->arguments);
 
 	free(schema);
 	free(aggname);
 }
 
 void
-dumpCreateAggregate(FILE *output, PQLAggregate a)
+dumpCreateAggregate(FILE *output, PQLAggregate *a)
 {
-	char	*schema = formatObjectIdentifier(a.obj.schemaname);
-	char	*aggname = formatObjectIdentifier(a.obj.objectname);
+	char	*schema = formatObjectIdentifier(a->obj.schemaname);
+	char	*aggname = formatObjectIdentifier(a->obj.objectname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE AGGREGATE %s.%s(%s) (",
-			schema, aggname, a.arguments);
-	fprintf(output, "\nSFUNC = %s", a.sfunc);
-	fprintf(output, ",\nSTYPE = %s,", a.stype);
-	if (a.sspace)
-		fprintf(output, ",\nSSPACE = %s", a.sspace);
-	if (a.finalfunc)
+			schema, aggname, a->arguments);
+	fprintf(output, "\nSFUNC = %s", a->sfunc);
+	fprintf(output, ",\nSTYPE = %s,", a->stype);
+	if (a->sspace)
+		fprintf(output, ",\nSSPACE = %s", a->sspace);
+	if (a->finalfunc)
 	{
-		fprintf(output, ",\nFINALFUNC = %s", a.finalfunc);
-		if (a.finalfuncextra)
+		fprintf(output, ",\nFINALFUNC = %s", a->finalfunc);
+		if (a->finalfuncextra)
 			fprintf(output, ",\nFINALFUNC_EXTRA");
 	}
-	if (a.initcond)
-		fprintf(output, ",\nINITCOND = %s", a.initcond);
-	if (a.msfunc)
-		fprintf(output, ",\nMSFUNC = %s", a.msfunc);
-	if (a.minvfunc)
-		fprintf(output, ",\nMINVFUNC = %s", a.minvfunc);
-	if (a.mstype)
-		fprintf(output, ",\nMSTYPE = %s,", a.mstype);
-	if (a.msspace)
-		fprintf(output, ",\nMSSPACE = %s", a.msspace);
-	if (a.mfinalfunc)
+	if (a->initcond)
+		fprintf(output, ",\nINITCOND = %s", a->initcond);
+	if (a->msfunc)
+		fprintf(output, ",\nMSFUNC = %s", a->msfunc);
+	if (a->minvfunc)
+		fprintf(output, ",\nMINVFUNC = %s", a->minvfunc);
+	if (a->mstype)
+		fprintf(output, ",\nMSTYPE = %s,", a->mstype);
+	if (a->msspace)
+		fprintf(output, ",\nMSSPACE = %s", a->msspace);
+	if (a->mfinalfunc)
 	{
-		fprintf(output, ",\nMFINALFUNC = %s", a.mfinalfunc);
-		if (a.mfinalfuncextra)
+		fprintf(output, ",\nMFINALFUNC = %s", a->mfinalfunc);
+		if (a->mfinalfuncextra)
 			fprintf(output, ",\nMFINALFUNC_EXTRA");
 	}
-	if (a.minitcond)
-		fprintf(output, ",\nMINITCOND = %s", a.minitcond);
-	if (a.sortop)
-		fprintf(output, ",\nSORTOP = %s", a.sortop);
-	if (a.hypothetical)
+	if (a->minitcond)
+		fprintf(output, ",\nMINITCOND = %s", a->minitcond);
+	if (a->sortop)
+		fprintf(output, ",\nSORTOP = %s", a->sortop);
+	if (a->hypothetical)
 			fprintf(output, ",\nHYPOTHETICAL");
 
 	fprintf(output, ");");
@@ -315,126 +315,126 @@ dumpCreateAggregate(FILE *output, PQLAggregate a)
 }
 
 void
-dumpAlterAggregate(FILE *output, PQLAggregate a, PQLAggregate b)
+dumpAlterAggregate(FILE *output, PQLAggregate *a, PQLAggregate *b)
 {
-	char	*schema1 = formatObjectIdentifier(a.obj.schemaname);
-	char	*aggname1 = formatObjectIdentifier(a.obj.objectname);
-	char	*schema2 = formatObjectIdentifier(b.obj.schemaname);
-	char	*aggname2 = formatObjectIdentifier(b.obj.objectname);
+	char	*schema1 = formatObjectIdentifier(a->obj.schemaname);
+	char	*aggname1 = formatObjectIdentifier(a->obj.objectname);
+	char	*schema2 = formatObjectIdentifier(b->obj.schemaname);
+	char	*aggname2 = formatObjectIdentifier(b->obj.objectname);
 
 	/* comment */
 	if (options.comment)
 	{
-		if ((a.comment == NULL && b.comment != NULL) ||
-				(a.comment != NULL && b.comment != NULL &&
-				 strcmp(a.comment, b.comment) != 0))
+		if ((a->comment == NULL && b->comment != NULL) ||
+				(a->comment != NULL && b->comment != NULL &&
+				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON AGGREGATE %s.%s(%s) IS '%s';",
-					schema2, aggname2, b.arguments, b.comment);
+					schema2, aggname2, b->arguments, b->comment);
 		}
-		else if (a.comment != NULL && b.comment == NULL)
+		else if (a->comment != NULL && b->comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON AGGREGATE %s.%s(%s) IS NULL;",
-					schema2, aggname2, b.arguments);
+					schema2, aggname2, b->arguments);
 		}
 	}
 
 	/* security labels */
 	if (options.securitylabels)
 	{
-		if (a.seclabels == NULL && b.seclabels != NULL)
+		if (a->seclabels == NULL && b->seclabels != NULL)
 		{
 			int	i;
 
-			for (i = 0; i < b.nseclabels; i++)
+			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS '%s';",
-						b.seclabels[i].provider,
+						b->seclabels[i].provider,
 						schema2,
 						aggname2,
-						b.arguments,
-						b.seclabels[i].label);
+						b->arguments,
+						b->seclabels[i].label);
 			}
 		}
-		else if (a.seclabels != NULL && b.seclabels == NULL)
+		else if (a->seclabels != NULL && b->seclabels == NULL)
 		{
 			int	i;
 
-			for (i = 0; i < a.nseclabels; i++)
+			for (i = 0; i < a->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS NULL;",
-						a.seclabels[i].provider,
+						a->seclabels[i].provider,
 						schema1,
 						aggname1,
-						a.arguments);
+						a->arguments);
 			}
 		}
-		else if (a.seclabels != NULL && b.seclabels != NULL)
+		else if (a->seclabels != NULL && b->seclabels != NULL)
 		{
 			int	i, j;
 
 			i = j = 0;
-			while (i < a.nseclabels || j < b.nseclabels)
+			while (i < a->nseclabels || j < b->nseclabels)
 			{
-				if (i == a.nseclabels)
+				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS '%s';",
-							b.seclabels[j].provider,
+							b->seclabels[j].provider,
 							schema2,
 							aggname2,
-							b.arguments,
-							b.seclabels[j].label);
+							b->arguments,
+							b->seclabels[j].label);
 					j++;
 				}
-				else if (j == b.nseclabels)
+				else if (j == b->nseclabels)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS NULL;",
-							a.seclabels[i].provider,
+							a->seclabels[i].provider,
 							schema1,
 							aggname1,
-							a.arguments);
+							a->arguments);
 					i++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) == 0)
 				{
-					if (strcmp(a.seclabels[i].label, b.seclabels[j].label) != 0)
+					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
 						fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS '%s';",
-								b.seclabels[j].provider,
+								b->seclabels[j].provider,
 								schema2,
 								aggname2,
-								b.arguments,
-								b.seclabels[j].label);
+								b->arguments,
+								b->seclabels[j].label);
 					}
 					i++;
 					j++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) < 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) < 0)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS NULL;",
-							a.seclabels[i].provider,
+							a->seclabels[i].provider,
 							schema1,
 							aggname1,
-							a.arguments);
+							a->arguments);
 					i++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS '%s';",
-							b.seclabels[j].provider,
+							b->seclabels[j].provider,
 							schema2,
 							aggname2,
-							b.arguments,
-							b.seclabels[j].label);
+							b->arguments,
+							b->seclabels[j].label);
 					j++;
 				}
 			}
@@ -444,14 +444,14 @@ dumpAlterAggregate(FILE *output, PQLAggregate a, PQLAggregate b)
 	/* owner */
 	if (options.owner)
 	{
-		if (strcmp(a.owner, b.owner) != 0)
+		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER AGGREGATE %s.%s(%s) OWNER TO %s;",
 					schema2,
 					aggname2,
-					b.arguments,
-					b.owner);
+					b->arguments,
+					b->owner);
 		}
 	}
 

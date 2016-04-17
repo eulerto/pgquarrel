@@ -116,9 +116,9 @@ freeForeignDataWrappers(PQLForeignDataWrapper *f, int n)
 }
 
 void
-dumpDropForeignDataWrapper(FILE *output, PQLForeignDataWrapper f)
+dumpDropForeignDataWrapper(FILE *output, PQLForeignDataWrapper *f)
 {
-	char	*fdwname = formatObjectIdentifier(f.fdwname);
+	char	*fdwname = formatObjectIdentifier(f->fdwname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP FOREIGN DATA WRAPPER %s;", fdwname);
@@ -127,26 +127,26 @@ dumpDropForeignDataWrapper(FILE *output, PQLForeignDataWrapper f)
 }
 
 void
-dumpCreateForeignDataWrapper(FILE *output, PQLForeignDataWrapper f)
+dumpCreateForeignDataWrapper(FILE *output, PQLForeignDataWrapper *f)
 {
-	char	*fdwname = formatObjectIdentifier(f.fdwname);
+	char	*fdwname = formatObjectIdentifier(f->fdwname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE FOREIGN DATA WRAPPER %s", fdwname);
 
-	if (f.handler.objectname)
-		fprintf(output, " HANDLER %s.%s", f.handler.schemaname, f.handler.objectname);
+	if (f->handler.objectname)
+		fprintf(output, " HANDLER %s.%s", f->handler.schemaname, f->handler.objectname);
 
-	if (f.validator.objectname)
-		fprintf(output, " VALIDATOR %s.%s", f.validator.schemaname, f.validator.objectname);
+	if (f->validator.objectname)
+		fprintf(output, " VALIDATOR %s.%s", f->validator.schemaname, f->validator.objectname);
 
-	if (f.options)
+	if (f->options)
 	{
 		stringList		*sl;
 		stringListCell	*cell;
 		bool			first = true;
 
-		sl = buildStringList(f.options);
+		sl = buildStringList(f->options);
 		fprintf(output, " OPTIONS (");
 		for (cell = sl->head; cell; cell = cell->next)
 		{
@@ -173,17 +173,17 @@ dumpCreateForeignDataWrapper(FILE *output, PQLForeignDataWrapper f)
 	fprintf(output, ";");
 
 	/* comment */
-	if (options.comment && f.comment != NULL)
+	if (options.comment && f->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON FOREIGN DATA WRAPPER %s IS '%s';", fdwname, f.comment);
+		fprintf(output, "COMMENT ON FOREIGN DATA WRAPPER %s IS '%s';", fdwname, f->comment);
 	}
 
 	/* owner */
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OWNER TO %s;", fdwname, f.owner);
+		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OWNER TO %s;", fdwname, f->owner);
 	}
 
 	/* privileges */
@@ -193,62 +193,62 @@ dumpCreateForeignDataWrapper(FILE *output, PQLForeignDataWrapper f)
 		PQLObject tmp;
 
 		tmp.schemaname = NULL;
-		tmp.objectname = f.fdwname;
+		tmp.objectname = f->fdwname;
 
-		dumpGrantAndRevoke(output, PGQ_FOREIGN_DATA_WRAPPER, tmp, tmp, NULL, f.acl, NULL);
+		dumpGrantAndRevoke(output, PGQ_FOREIGN_DATA_WRAPPER, &tmp, &tmp, NULL, f->acl, NULL);
 	}
 
 	free(fdwname);
 }
 
 void
-dumpAlterForeignDataWrapper(FILE *output, PQLForeignDataWrapper a, PQLForeignDataWrapper b)
+dumpAlterForeignDataWrapper(FILE *output, PQLForeignDataWrapper *a, PQLForeignDataWrapper *b)
 {
-	char	*fdwname1 = formatObjectIdentifier(a.fdwname);
-	char	*fdwname2 = formatObjectIdentifier(b.fdwname);
+	char	*fdwname1 = formatObjectIdentifier(a->fdwname);
+	char	*fdwname2 = formatObjectIdentifier(b->fdwname);
 
 	/* handler */
-	if (a.handler.objectname == NULL && b.handler.objectname != NULL)
+	if (a->handler.objectname == NULL && b->handler.objectname != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s HANDLER %s.%s;", fdwname2, b.handler.schemaname, b.handler.objectname);
+		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s HANDLER %s.%s;", fdwname2, b->handler.schemaname, b->handler.objectname);
 	}
-	else if (a.handler.objectname != NULL && b.handler.objectname == NULL)
+	else if (a->handler.objectname != NULL && b->handler.objectname == NULL)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s NO HANDLER;", fdwname1);
 	}
-	else if (a.handler.objectname != NULL && b.handler.objectname != NULL && compareRelations(a.handler, b.handler) != 0)
+	else if (a->handler.objectname != NULL && b->handler.objectname != NULL && compareRelations(&a->handler, &b->handler) != 0)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s HANDLER %s.%s;", fdwname2, b.handler.schemaname, b.handler.objectname);
+		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s HANDLER %s.%s;", fdwname2, b->handler.schemaname, b->handler.objectname);
 	}
 
 	/* validator */
-	if (a.validator.objectname == NULL && b.validator.objectname != NULL)
+	if (a->validator.objectname == NULL && b->validator.objectname != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s VALIDATOR %s.%s;", fdwname2, b.validator.schemaname, b.validator.objectname);
+		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s VALIDATOR %s.%s;", fdwname2, b->validator.schemaname, b->validator.objectname);
 	}
-	else if (a.validator.objectname != NULL && b.validator.objectname == NULL)
+	else if (a->validator.objectname != NULL && b->validator.objectname == NULL)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s NO VALIDATOR;", fdwname1);
 	}
-	else if (a.validator.objectname != NULL && b.validator.objectname != NULL && compareRelations(a.validator, b.validator) != 0)
+	else if (a->validator.objectname != NULL && b->validator.objectname != NULL && compareRelations(&a->validator, &b->validator) != 0)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s VALIDATOR %s.%s;", fdwname2, b.validator.schemaname, b.validator.objectname);
+		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s VALIDATOR %s.%s;", fdwname2, b->validator.schemaname, b->validator.objectname);
 	}
 
 	/* options */
-	if (a.options == NULL && b.options != NULL)
+	if (a->options == NULL && b->options != NULL)
 	{
 		stringList		*sl;
 		stringListCell	*cell;
 		bool			first = true;
 
-		sl = buildStringList(b.options);
+		sl = buildStringList(b->options);
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OPTIONS (", fdwname2);
 		for (cell = sl->head; cell; cell = cell->next)
@@ -272,13 +272,13 @@ dumpAlterForeignDataWrapper(FILE *output, PQLForeignDataWrapper a, PQLForeignDat
 
 		freeStringList(sl);
 	}
-	else if (a.options != NULL && b.options == NULL)
+	else if (a->options != NULL && b->options == NULL)
 	{
 		stringList		*sl;
 		stringListCell	*cell;
 		bool			first = true;
 
-		sl = buildStringList(a.options);
+		sl = buildStringList(a->options);
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OPTIONS (", fdwname1);
 		for (cell = sl->head; cell; cell = cell->next)
@@ -302,13 +302,13 @@ dumpAlterForeignDataWrapper(FILE *output, PQLForeignDataWrapper a, PQLForeignDat
 
 		freeStringList(sl);
 	}
-	else if (a.options != NULL && b.options != NULL && strcmp(a.options, b.options) != 0)
+	else if (a->options != NULL && b->options != NULL && strcmp(a->options, b->options) != 0)
 	{
 		stringList	*rlist, *ilist, *slist;
 		bool		first = true;
 
 		/* reset options that are only presented in the first set */
-		rlist = setOperationOptions(a.options, b.options, PGQ_SETDIFFERENCE, false, true);
+		rlist = setOperationOptions(a->options, b->options, PGQ_SETDIFFERENCE, false, true);
 		if (rlist)
 		{
 			stringListCell	*cell;
@@ -336,7 +336,7 @@ dumpAlterForeignDataWrapper(FILE *output, PQLForeignDataWrapper a, PQLForeignDat
 		 * Include intersection between option sets. However, exclude options
 		 * that don't change.
 		 */
-		ilist = setOperationOptions(a.options, b.options, PGQ_INTERSECT, true, true);
+		ilist = setOperationOptions(a->options, b->options, PGQ_INTERSECT, true, true);
 		if (ilist)
 		{
 			stringListCell	*cell;
@@ -368,7 +368,7 @@ dumpAlterForeignDataWrapper(FILE *output, PQLForeignDataWrapper a, PQLForeignDat
 		/*
 		 * Set options that are only presented in the second set.
 		 */
-		slist = setOperationOptions(b.options, a.options, PGQ_SETDIFFERENCE, true, true);
+		slist = setOperationOptions(b->options, a->options, PGQ_SETDIFFERENCE, true, true);
 		if (slist)
 		{
 			stringListCell	*cell;
@@ -402,14 +402,14 @@ dumpAlterForeignDataWrapper(FILE *output, PQLForeignDataWrapper a, PQLForeignDat
 	/* comment */
 	if (options.comment)
 	{
-		if ((a.comment == NULL && b.comment != NULL) ||
-				(a.comment != NULL && b.comment != NULL &&
-				 strcmp(a.comment, b.comment) != 0))
+		if ((a->comment == NULL && b->comment != NULL) ||
+				(a->comment != NULL && b->comment != NULL &&
+				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON FOREIGN DATA WRAPPER %s IS '%s';", fdwname2, b.comment);
+			fprintf(output, "COMMENT ON FOREIGN DATA WRAPPER %s IS '%s';", fdwname2, b->comment);
 		}
-		else if (a.comment != NULL && b.comment == NULL)
+		else if (a->comment != NULL && b->comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON FOREIGN DATA WRAPPER %s IS NULL;", fdwname2);
@@ -419,10 +419,10 @@ dumpAlterForeignDataWrapper(FILE *output, PQLForeignDataWrapper a, PQLForeignDat
 	/* owner */
 	if (options.owner)
 	{
-		if (strcmp(a.owner, b.owner) != 0)
+		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OWNER TO %s;", fdwname2, b.owner);
+			fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OWNER TO %s;", fdwname2, b->owner);
 		}
 	}
 
@@ -432,12 +432,12 @@ dumpAlterForeignDataWrapper(FILE *output, PQLForeignDataWrapper a, PQLForeignDat
 		PQLObject tmpa, tmpb;
 
 		tmpa.schemaname = NULL;
-		tmpa.objectname = a.fdwname;
+		tmpa.objectname = a->fdwname;
 		tmpb.schemaname = NULL;
-		tmpb.objectname = b.fdwname;
+		tmpb.objectname = b->fdwname;
 
-		if (a.acl != NULL || b.acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_FOREIGN_DATA_WRAPPER, tmpa, tmpb, a.acl, b.acl, NULL);
+		if (a->acl != NULL || b->acl != NULL)
+			dumpGrantAndRevoke(output, PGQ_FOREIGN_DATA_WRAPPER, &tmpa, &tmpb, a->acl, b->acl, NULL);
 	}
 
 	free(fdwname1);

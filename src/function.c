@@ -94,20 +94,20 @@ getFunctions(PGconn *c, int *n)
 }
 
 int
-compareFunctions(PQLFunction a, PQLFunction b)
+compareFunctions(PQLFunction *a, PQLFunction *b)
 {
 	int		c;
 
-	c = strcmp(a.obj.schemaname, b.obj.schemaname);
+	c = strcmp(a->obj.schemaname, b->obj.schemaname);
 
 	/* compare relation names iif schema names are equal */
 	if (c == 0)
 	{
-		c = strcmp(a.obj.objectname, b.obj.objectname);
+		c = strcmp(a->obj.objectname, b->obj.objectname);
 
 		/* compare arguments iif schema-qualified names are equal */
 		if (c == 0)
-			c = strcmp(a.arguments, b.arguments);
+			c = strcmp(a->arguments, b->arguments);
 	}
 
 	return c;
@@ -199,70 +199,70 @@ freeFunctions(PQLFunction *f, int n)
 }
 
 void
-dumpDropFunction(FILE *output, PQLFunction f)
+dumpDropFunction(FILE *output, PQLFunction *f)
 {
-	char	*schema = formatObjectIdentifier(f.obj.schemaname);
-	char	*funcname = formatObjectIdentifier(f.obj.objectname);
+	char	*schema = formatObjectIdentifier(f->obj.schemaname);
+	char	*funcname = formatObjectIdentifier(f->obj.objectname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP FUNCTION %s.%s(%s);",
 			schema,
 			funcname,
-			f.arguments);
+			f->arguments);
 
 	free(schema);
 	free(funcname);
 }
 void
-dumpCreateFunction(FILE *output, PQLFunction f, bool orreplace)
+dumpCreateFunction(FILE *output, PQLFunction *f, bool orreplace)
 {
-	char	*schema = formatObjectIdentifier(f.obj.schemaname);
-	char	*funcname = formatObjectIdentifier(f.obj.objectname);
+	char	*schema = formatObjectIdentifier(f->obj.schemaname);
+	char	*funcname = formatObjectIdentifier(f->obj.objectname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE %sFUNCTION %s.%s(%s) RETURNS %s",
 			orreplace ? "OR REPLACE " : "",
-			schema, funcname, f.arguments, f.returntype);
-	fprintf(output, "\n    LANGUAGE %s", f.language);
-	if (f.iswindow)
+			schema, funcname, f->arguments, f->returntype);
+	fprintf(output, "\n    LANGUAGE %s", f->language);
+	if (f->iswindow)
 		fprintf(output, " WINDOW");
-	if (f.funcvolatile == 'i')
+	if (f->funcvolatile == 'i')
 		fprintf(output, " IMMUTABLE");
-	else if (f.funcvolatile == 's')
+	else if (f->funcvolatile == 's')
 		fprintf(output, " STABLE");
-	else if (f.funcvolatile == 'v')
+	else if (f->funcvolatile == 'v')
 		fprintf(output, " VOLATILE");
 	else	/* can't happen */
 		logError("unrecognized volatile value for function %s.%s(%s)",
-				schema, funcname, f.arguments);
+				schema, funcname, f->arguments);
 
-	if (f.isstrict)
+	if (f->isstrict)
 		fprintf(output, " STRICT");
-	if (f.secdefiner)
+	if (f->secdefiner)
 		fprintf(output, " SECURITY DEFINER");
-	if (f.leakproof)
+	if (f->leakproof)
 		fprintf(output, " LEAKPROOF");
 
-	if ((strcmp(f.language, "internal") == 0) || (strcmp(f.language, "c") == 0))
+	if ((strcmp(f->language, "internal") == 0) || (strcmp(f->language, "c") == 0))
 	{
-		if (strcmp(f.cost, "1") != 0)
-			fprintf(output, " COST %s", f.cost);
+		if (strcmp(f->cost, "1") != 0)
+			fprintf(output, " COST %s", f->cost);
 	}
 	else
 	{
-		if (strcmp(f.cost, "100") != 0)
-			fprintf(output, " COST %s", f.cost);
+		if (strcmp(f->cost, "100") != 0)
+			fprintf(output, " COST %s", f->cost);
 	}
 
-	if (strcmp(f.rows, "0") != 0)
-		fprintf(output, " ROWS %s", f.rows);
+	if (strcmp(f->rows, "0") != 0)
+		fprintf(output, " ROWS %s", f->rows);
 
-	if (f.configparams != NULL)
+	if (f->configparams != NULL)
 	{
 		stringList		*sl;
 		stringListCell	*cell;
 
-		sl = buildStringList(f.configparams);
+		sl = buildStringList(f->configparams);
 		for (cell = sl->head; cell; cell = cell->next)
 		{
 			char	*str;
@@ -284,33 +284,33 @@ dumpCreateFunction(FILE *output, PQLFunction f, bool orreplace)
 		freeStringList(sl);
 	}
 
-	fprintf(output, "\nAS $$%s$$;", f.body);
+	fprintf(output, "\nAS $$%s$$;", f->body);
 
 	/* comment */
-	if (options.comment && f.comment != NULL)
+	if (options.comment && f->comment != NULL)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "COMMENT ON FUNCTION %s.%s(%s) IS '%s';",
 				schema,
 				funcname,
-				f.arguments,
-				f.comment);
+				f->arguments,
+				f->comment);
 	}
 
 	/* security labels */
-	if (options.securitylabels && f.nseclabels > 0)
+	if (options.securitylabels && f->nseclabels > 0)
 	{
 		int	i;
 
-		for (i = 0; i < f.nseclabels; i++)
+		for (i = 0; i < f->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
-					f.seclabels[i].provider,
+					f->seclabels[i].provider,
 					schema,
 					funcname,
-					f.arguments,
-					f.seclabels[i].label);
+					f->arguments,
+					f->seclabels[i].label);
 		}
 	}
 
@@ -321,139 +321,139 @@ dumpCreateFunction(FILE *output, PQLFunction f, bool orreplace)
 		fprintf(output, "ALTER FUNCTION %s.%s(%s) OWNER TO %s;",
 				schema,
 				funcname,
-				f.arguments,
-				f.owner);
+				f->arguments,
+				f->owner);
 	}
 
 	/* privileges */
-	/* XXX second f.obj isn't used. Add an invalid PQLObject? */
+	/* XXX second f->obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
-		dumpGrantAndRevoke(output, PGQ_FUNCTION, f.obj, f.obj, NULL, f.acl,
-						   f.arguments);
+		dumpGrantAndRevoke(output, PGQ_FUNCTION, &f->obj, &f->obj, NULL, f->acl,
+						   f->arguments);
 
 	free(schema);
 	free(funcname);
 }
 
 void
-dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
+dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 {
-	char	*schema1 = formatObjectIdentifier(a.obj.schemaname);
-	char	*funcname1 = formatObjectIdentifier(a.obj.objectname);
-	char	*schema2 = formatObjectIdentifier(b.obj.schemaname);
-	char	*funcname2 = formatObjectIdentifier(b.obj.objectname);
+	char	*schema1 = formatObjectIdentifier(a->obj.schemaname);
+	char	*funcname1 = formatObjectIdentifier(a->obj.objectname);
+	char	*schema2 = formatObjectIdentifier(b->obj.schemaname);
+	char	*funcname2 = formatObjectIdentifier(b->obj.objectname);
 
 	bool	printalter = true;
 
-	if (a.funcvolatile != b.funcvolatile)
+	if (a->funcvolatile != b->funcvolatile)
 	{
 		if (printalter)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b.arguments);
+					schema2, funcname2, b->arguments);
 		}
 		printalter = false;
 
-		if (b.funcvolatile == 'i')
+		if (b->funcvolatile == 'i')
 			fprintf(output, " IMMUTABLE");
-		else if (b.funcvolatile == 's')
+		else if (b->funcvolatile == 's')
 			fprintf(output, " STABLE");
-		else if (b.funcvolatile == 'v')
+		else if (b->funcvolatile == 'v')
 			fprintf(output, " VOLATILE");
 		else
-			logError("volatile cannot be '%s'", b.funcvolatile);
+			logError("volatile cannot be '%s'", b->funcvolatile);
 	}
 
-	if (a.isstrict != b.isstrict)
+	if (a->isstrict != b->isstrict)
 	{
 		if (printalter)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b.arguments);
+					schema2, funcname2, b->arguments);
 		}
 		printalter = false;
 
-		if (b.isstrict)
+		if (b->isstrict)
 			fprintf(output, " STRICT");
 		else
 			fprintf(output, "CALLED ON NULL INPUT");
 	}
 
-	if (a.secdefiner != b.secdefiner)
+	if (a->secdefiner != b->secdefiner)
 	{
 		if (printalter)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b.arguments);
+					schema2, funcname2, b->arguments);
 		}
 		printalter = false;
 
-		if (b.secdefiner)
+		if (b->secdefiner)
 			fprintf(output, " SECURITY DEFINER");
 		else
 			fprintf(output, " SECURITY INVOKER");
 	}
 
 	/* FIXME leakproof new in 9.2 */
-	if (a.leakproof != b.leakproof)
+	if (a->leakproof != b->leakproof)
 	{
 		if (printalter)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b.arguments);
+					schema2, funcname2, b->arguments);
 		}
 		printalter = false;
 
-		if (b.leakproof)
+		if (b->leakproof)
 			fprintf(output, " LEAKPROOF");
 		else
 			fprintf(output, " NOT LEAKPROOF");
 	}
 
-	if (strcmp(a.cost, b.cost) != 0)
+	if (strcmp(a->cost, b->cost) != 0)
 	{
 		if (printalter)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b.arguments);
+					schema2, funcname2, b->arguments);
 		}
 		printalter = false;
 
-		fprintf(output, " COST %s", b.cost);
+		fprintf(output, " COST %s", b->cost);
 	}
 
-	if (strcmp(a.rows, b.rows) != 0)
+	if (strcmp(a->rows, b->rows) != 0)
 	{
 		if (printalter)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b.arguments);
+					schema2, funcname2, b->arguments);
 		}
 		printalter = false;
 
-		fprintf(output, " ROWS %s", b.rows);
+		fprintf(output, " ROWS %s", b->rows);
 	}
 
 	/* configuration parameters */
-	if (a.configparams != NULL && b.configparams == NULL)
+	if (a->configparams != NULL && b->configparams == NULL)
 	{
 		if (printalter)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b.arguments);
+					schema2, funcname2, b->arguments);
 		}
 		printalter = false;
 
 		fprintf(output, " RESET ALL");
 	}
-	else if (a.configparams == NULL && b.configparams != NULL)
+	else if (a->configparams == NULL && b->configparams != NULL)
 	{
 		stringList	*sl;
 
@@ -461,11 +461,11 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b.arguments);
+					schema2, funcname2, b->arguments);
 		}
 		printalter = false;
 
-		sl = buildStringList(b.configparams);
+		sl = buildStringList(b->configparams);
 		if (sl)
 		{
 			stringListCell	*cell;
@@ -491,8 +491,8 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 			freeStringList(sl);
 		}
 	}
-	else if (a.configparams != NULL && b.configparams != NULL &&
-			 strcmp(a.configparams, b.configparams) != 0)
+	else if (a->configparams != NULL && b->configparams != NULL &&
+			 strcmp(a->configparams, b->configparams) != 0)
 	{
 		stringList	*rlist, *ilist, *slist;
 
@@ -500,14 +500,14 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b.arguments);
+					schema2, funcname2, b->arguments);
 		}
 		printalter = false;
 
 		/*
 		 * Reset options that are only presented in the first set.
 		 */
-		rlist = setOperationOptions(a.configparams, b.configparams, PGQ_SETDIFFERENCE, false, true);
+		rlist = setOperationOptions(a->configparams, b->configparams, PGQ_SETDIFFERENCE, false, true);
 		if (rlist)
 		{
 			stringListCell	*cell;
@@ -522,7 +522,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 		 * Include intersection between parameter sets. However, exclude
 		 * options that don't change.
 		 */
-		ilist = setOperationOptions(a.configparams, b.configparams, PGQ_INTERSECT, true, true);
+		ilist = setOperationOptions(a->configparams, b->configparams, PGQ_INTERSECT, true, true);
 		if (ilist)
 		{
 			stringListCell	*cell;
@@ -551,7 +551,7 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 		/*
 		 * Set options that are only presented in the second set.
 		 */
-		slist = setOperationOptions(b.configparams, a.configparams, PGQ_SETDIFFERENCE, true, true);
+		slist = setOperationOptions(b->configparams, a->configparams, PGQ_SETDIFFERENCE, true, true);
 		if (slist)
 		{
 			stringListCell	*cell;
@@ -581,104 +581,104 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 	if (!printalter)
 		fprintf(output, ";");
 
-	if (strcmp(a.body, b.body) != 0)
+	if (strcmp(a->body, b->body) != 0)
 		dumpCreateFunction(output, b, true);
 
 	/* comment */
 	if (options.comment)
 	{
-		if ((a.comment == NULL && b.comment != NULL) ||
-				(a.comment != NULL && b.comment != NULL &&
-				 strcmp(a.comment, b.comment) != 0))
+		if ((a->comment == NULL && b->comment != NULL) ||
+				(a->comment != NULL && b->comment != NULL &&
+				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON FUNCTION %s.%s(%s) IS '%s';",
-					schema2, funcname2, b.arguments, b.comment);
+					schema2, funcname2, b->arguments, b->comment);
 		}
-		else if (a.comment != NULL && b.comment == NULL)
+		else if (a->comment != NULL && b->comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON FUNCTION %s.%s(%s) IS NULL;",
-					schema2, funcname2, b.arguments);
+					schema2, funcname2, b->arguments);
 		}
 	}
 
 	/* security labels */
 	if (options.securitylabels)
 	{
-		if (a.seclabels == NULL && b.seclabels != NULL)
+		if (a->seclabels == NULL && b->seclabels != NULL)
 		{
 			int	i;
 
-			for (i = 0; i < b.nseclabels; i++)
+			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
-						b.seclabels[i].provider,
-						schema2, funcname2, b.arguments, b.seclabels[i].label);
+						b->seclabels[i].provider,
+						schema2, funcname2, b->arguments, b->seclabels[i].label);
 			}
 		}
-		else if (a.seclabels != NULL && b.seclabels == NULL)
+		else if (a->seclabels != NULL && b->seclabels == NULL)
 		{
 			int	i;
 
-			for (i = 0; i < a.nseclabels; i++)
+			for (i = 0; i < a->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS NULL;",
-						a.seclabels[i].provider,
-						schema1, funcname1, a.arguments);
+						a->seclabels[i].provider,
+						schema1, funcname1, a->arguments);
 			}
 		}
-		else if (a.seclabels != NULL && b.seclabels != NULL)
+		else if (a->seclabels != NULL && b->seclabels != NULL)
 		{
 			int	i, j;
 
 			i = j = 0;
-			while (i < a.nseclabels || j < b.nseclabels)
+			while (i < a->nseclabels || j < b->nseclabels)
 			{
-				if (i == a.nseclabels)
+				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
-							b.seclabels[j].provider,
-							schema2, funcname2, b.arguments, b.seclabels[j].label);
+							b->seclabels[j].provider,
+							schema2, funcname2, b->arguments, b->seclabels[j].label);
 					j++;
 				}
-				else if (j == b.nseclabels)
+				else if (j == b->nseclabels)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS NULL;",
-							a.seclabels[i].provider,
-							schema1, funcname1, a.arguments);
+							a->seclabels[i].provider,
+							schema1, funcname1, a->arguments);
 					i++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) == 0)
 				{
-					if (strcmp(a.seclabels[i].label, b.seclabels[j].label) != 0)
+					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
 						fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
-								b.seclabels[j].provider,
-								schema2, funcname2, b.arguments, b.seclabels[j].label);
+								b->seclabels[j].provider,
+								schema2, funcname2, b->arguments, b->seclabels[j].label);
 					}
 					i++;
 					j++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) < 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) < 0)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS NULL;",
-							a.seclabels[i].provider,
-							schema1, funcname1, a.arguments);
+							a->seclabels[i].provider,
+							schema1, funcname1, a->arguments);
 					i++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
-							b.seclabels[j].provider,
-							schema2, funcname2, b.arguments, b.seclabels[j].label);
+							b->seclabels[j].provider,
+							schema2, funcname2, b->arguments, b->seclabels[j].label);
 					j++;
 				}
 			}
@@ -688,20 +688,20 @@ dumpAlterFunction(FILE *output, PQLFunction a, PQLFunction b)
 	/* owner */
 	if (options.owner)
 	{
-		if (strcmp(a.owner, b.owner) != 0)
+		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s) OWNER TO %s;",
-					schema2, funcname2, b.arguments, b.owner);
+					schema2, funcname2, b->arguments, b->owner);
 		}
 	}
 
 	/* privileges */
 	if (options.privileges)
 	{
-		if (a.acl != NULL || b.acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_FUNCTION, a.obj, b.obj, a.acl, b.acl,
-							   a.arguments);
+		if (a->acl != NULL || b->acl != NULL)
+			dumpGrantAndRevoke(output, PGQ_FUNCTION, &a->obj, &b->obj, a->acl, b->acl,
+							   a->arguments);
 	}
 
 	free(schema1);

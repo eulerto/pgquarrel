@@ -14,12 +14,12 @@ typedef struct PQLUserMapping
 
 PQLUserMapping *getUserMappings(PGconn *c, int *n);
 
-void dumpDropUserMapping(FILE *output, PQLUserMapping s);
-void dumpCreateUserMapping(FILE *output, PQLUserMapping s);
-void dumpAlterUserMapping(FILE *output, PQLUserMapping a,
-							   PQLUserMapping b);
+void dumpDropUserMapping(FILE *output, PQLUserMapping *u);
+void dumpCreateUserMapping(FILE *output, PQLUserMapping *u);
+void dumpAlterUserMapping(FILE *output, PQLUserMapping *a,
+							   PQLUserMapping *b);
 
-int compareUserMappings(PQLUserMapping a, PQLUserMapping b);
-void freeUserMappings(PQLUserMapping *s, int n);
+int compareUserMappings(PQLUserMapping *a, PQLUserMapping *b);
+void freeUserMappings(PQLUserMapping *u, int n);
 
 #endif	/* USER_MAPPING_H */

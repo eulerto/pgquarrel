@@ -94,10 +94,10 @@ freeIndexes(PQLIndex *i, int n)
 }
 
 void
-dumpDropIndex(FILE *output, PQLIndex i)
+dumpDropIndex(FILE *output, PQLIndex *i)
 {
-	char	*schema = formatObjectIdentifier(i.obj.schemaname);
-	char	*idxname = formatObjectIdentifier(i.obj.objectname);
+	char	*schema = formatObjectIdentifier(i->obj.schemaname);
+	char	*idxname = formatObjectIdentifier(i->obj.objectname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP INDEX %s.%s;", schema, idxname);
@@ -107,20 +107,20 @@ dumpDropIndex(FILE *output, PQLIndex i)
 }
 
 void
-dumpCreateIndex(FILE *output, PQLIndex i)
+dumpCreateIndex(FILE *output, PQLIndex *i)
 {
-	char	*schema = formatObjectIdentifier(i.obj.schemaname);
-	char	*idxname = formatObjectIdentifier(i.obj.objectname);
+	char	*schema = formatObjectIdentifier(i->obj.schemaname);
+	char	*idxname = formatObjectIdentifier(i->obj.objectname);
 
 	fprintf(output, "\n\n");
-	fprintf(output, "%s;", i.indexdef);
+	fprintf(output, "%s;", i->indexdef);
 
 	/* comment */
-	if (options.comment && i.comment != NULL)
+	if (options.comment && i->comment != NULL)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "COMMENT ON INDEX %s.%s IS '%s';",
-				schema, idxname, i.comment);
+				schema, idxname, i->comment);
 	}
 
 	free(schema);
@@ -128,14 +128,14 @@ dumpCreateIndex(FILE *output, PQLIndex i)
 }
 
 void
-dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
+dumpAlterIndex(FILE *output, PQLIndex *a, PQLIndex *b)
 {
-	char	*schema1 = formatObjectIdentifier(a.obj.schemaname);
-	char	*idxname1 = formatObjectIdentifier(a.obj.objectname);
-	char	*schema2 = formatObjectIdentifier(b.obj.schemaname);
-	char	*idxname2 = formatObjectIdentifier(b.obj.objectname);
+	char	*schema1 = formatObjectIdentifier(a->obj.schemaname);
+	char	*idxname1 = formatObjectIdentifier(a->obj.objectname);
+	char	*schema2 = formatObjectIdentifier(b->obj.schemaname);
+	char	*idxname2 = formatObjectIdentifier(b->obj.objectname);
 
-	if (compareRelations(a.obj, b.obj) != 0)
+	if (compareRelations(&a->obj, &b->obj) != 0)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER INDEX %s.%s RENAME TO %s;",
@@ -146,34 +146,34 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 	 * If the new tablespace is NULL, it means it is in the default tablespace
 	 * (pg_default) so move it.
 	 */
-	if (a.tbspcname != NULL && b.tbspcname == NULL)
+	if (a->tbspcname != NULL && b->tbspcname == NULL)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER INDEX %s.%s SET TABLESPACE pg_default;",
 				schema1, idxname1);
 	}
-	else if ((a.tbspcname == NULL && b.tbspcname != NULL) ||
-			 (a.tbspcname != NULL && b.tbspcname != NULL &&
-			  strcmp(a.tbspcname, b.tbspcname) != 0))
+	else if ((a->tbspcname == NULL && b->tbspcname != NULL) ||
+			 (a->tbspcname != NULL && b->tbspcname != NULL &&
+			  strcmp(a->tbspcname, b->tbspcname) != 0))
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER INDEX %s.%s SET TABLESPACE %s;",
-				schema1, idxname1, b.tbspcname);
+				schema1, idxname1, b->tbspcname);
 	}
 
 	/* reloptions */
-	if (a.reloptions == NULL && b.reloptions != NULL)
+	if (a->reloptions == NULL && b->reloptions != NULL)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER INDEX %s.%s SET (%s);",
-				schema1, idxname1, b.reloptions);
+				schema1, idxname1, b->reloptions);
 	}
-	else if (a.reloptions != NULL && b.reloptions == NULL)
+	else if (a->reloptions != NULL && b->reloptions == NULL)
 	{
 		stringList	*rlist;
 
 		/* reset all options */
-		rlist = setOperationOptions(a.reloptions, b.reloptions, PGQ_SETDIFFERENCE, false, true);
+		rlist = setOperationOptions(a->reloptions, b->reloptions, PGQ_SETDIFFERENCE, false, true);
 		if (rlist)
 		{
 			char	*resetlist;
@@ -187,13 +187,13 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 			freeStringList(rlist);
 		}
 	}
-	else if (a.reloptions != NULL && b.reloptions != NULL &&
-			 strcmp(a.reloptions, b.reloptions) != 0)
+	else if (a->reloptions != NULL && b->reloptions != NULL &&
+			 strcmp(a->reloptions, b->reloptions) != 0)
 	{
 		stringList	*rlist, *ilist, *slist;
 
 		/* reset options that are only presented in the first set */
-		rlist = setOperationOptions(a.reloptions, b.reloptions, PGQ_SETDIFFERENCE, false, true);
+		rlist = setOperationOptions(a->reloptions, b->reloptions, PGQ_SETDIFFERENCE, false, true);
 		if (rlist)
 		{
 			char	*resetlist;
@@ -211,7 +211,7 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 		 * Include intersection between option sets. However, exclude options
 		 * that don't change.
 		 */
-		ilist = setOperationOptions(a.reloptions, b.reloptions, PGQ_INTERSECT, true, true);
+		ilist = setOperationOptions(a->reloptions, b->reloptions, PGQ_INTERSECT, true, true);
 		if (ilist)
 		{
 			char	*setlist;
@@ -228,7 +228,7 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 		/*
 		 * Set options that are only presented in the second set.
 		 */
-		slist = setOperationOptions(b.reloptions, a.reloptions, PGQ_SETDIFFERENCE, true, true);
+		slist = setOperationOptions(b->reloptions, a->reloptions, PGQ_SETDIFFERENCE, true, true);
 		if (slist)
 		{
 			char	*setlist;
@@ -246,15 +246,15 @@ dumpAlterIndex(FILE *output, PQLIndex a, PQLIndex b)
 	/* comment */
 	if (options.comment)
 	{
-		if ((a.comment == NULL && b.comment != NULL) ||
-				(a.comment != NULL && b.comment != NULL &&
-				 strcmp(a.comment, b.comment) != 0))
+		if ((a->comment == NULL && b->comment != NULL) ||
+				(a->comment != NULL && b->comment != NULL &&
+				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON INDEX %s.%s IS '%s';",
-					schema2, idxname2, b.comment);
+					schema2, idxname2, b->comment);
 		}
-		else if (a.comment != NULL && b.comment == NULL)
+		else if (a->comment != NULL && b->comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON INDEX %s.%s IS NULL;",

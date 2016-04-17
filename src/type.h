@@ -99,21 +99,21 @@ void getCompositeTypeSecurityLabels(PGconn *c, PQLCompositeType *t);
 void getEnumTypeSecurityLabels(PGconn *c, PQLEnumType *t);
 void getRangeTypeSecurityLabels(PGconn *c, PQLRangeType *t);
 
-void dumpDropBaseType(FILE *output, PQLBaseType t);
-void dumpDropCompositeType(FILE *output, PQLCompositeType t);
-void dumpDropEnumType(FILE *output, PQLEnumType t);
-void dumpDropRangeType(FILE *output, PQLRangeType t);
+void dumpDropBaseType(FILE *output, PQLBaseType *t);
+void dumpDropCompositeType(FILE *output, PQLCompositeType *t);
+void dumpDropEnumType(FILE *output, PQLEnumType *t);
+void dumpDropRangeType(FILE *output, PQLRangeType *t);
 
-void dumpCreateBaseType(FILE *output, PQLBaseType t);
-void dumpCreateCompositeType(FILE *output, PQLCompositeType t);
-void dumpCreateEnumType(FILE *output, PQLEnumType t);
-void dumpCreateRangeType(FILE *output, PQLRangeType t);
+void dumpCreateBaseType(FILE *output, PQLBaseType *t);
+void dumpCreateCompositeType(FILE *output, PQLCompositeType *t);
+void dumpCreateEnumType(FILE *output, PQLEnumType *t);
+void dumpCreateRangeType(FILE *output, PQLRangeType *t);
 
-void dumpAlterBaseType(FILE *output, PQLBaseType a, PQLBaseType b);
-void dumpAlterCompositeType(FILE *output, PQLCompositeType a,
-							PQLCompositeType b);
-void dumpAlterEnumType(FILE *output, PQLEnumType a, PQLEnumType b);
-void dumpAlterRangeType(FILE *output, PQLRangeType a, PQLRangeType b);
+void dumpAlterBaseType(FILE *output, PQLBaseType *a, PQLBaseType *b);
+void dumpAlterCompositeType(FILE *output, PQLCompositeType *a,
+							PQLCompositeType *b);
+void dumpAlterEnumType(FILE *output, PQLEnumType *a, PQLEnumType *b);
+void dumpAlterRangeType(FILE *output, PQLRangeType *a, PQLRangeType *b);
 
 void freeBaseTypes(PQLBaseType *t, int n);
 void freeCompositeTypes(PQLCompositeType *t, int n);

@@ -14,9 +14,9 @@ typedef struct PQLTrigger
 
 PQLTrigger *getTriggers(PGconn *c, int *n);
 
-void dumpDropTrigger(FILE *output, PQLTrigger t);
-void dumpCreateTrigger(FILE *output, PQLTrigger t);
-void dumpAlterTrigger(FILE *output, PQLTrigger a, PQLTrigger b);
+void dumpDropTrigger(FILE *output, PQLTrigger *t);
+void dumpCreateTrigger(FILE *output, PQLTrigger *t);
+void dumpAlterTrigger(FILE *output, PQLTrigger *a, PQLTrigger *b);
 
 void freeTriggers(PQLTrigger *t, int n);
 

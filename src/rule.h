@@ -13,9 +13,9 @@ typedef struct PQLRule
 } PQLRule;
 
 PQLRule *getRules(PGconn *c, int *n);
-void dumpDropRule(FILE *output, PQLRule s);
-void dumpCreateRule(FILE *output, PQLRule s);
-void dumpAlterRule(FILE *output, PQLRule a, PQLRule b);
+void dumpDropRule(FILE *output, PQLRule *r);
+void dumpCreateRule(FILE *output, PQLRule *r);
+void dumpAlterRule(FILE *output, PQLRule *a, PQLRule *b);
 
 void freeRules(PQLRule *r, int n);
 

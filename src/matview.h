@@ -28,10 +28,10 @@ PQLMaterializedView *getMaterializedViews(PGconn *c, int *n);
 void getMaterializedViewAttributes(PGconn *c, PQLMaterializedView *v);
 void getMaterializedViewSecurityLabels(PGconn *c, PQLMaterializedView *v);
 
-void dumpDropMaterializedView(FILE *output, PQLMaterializedView v);
-void dumpCreateMaterializedView(FILE *output, PQLMaterializedView v);
-void dumpAlterMaterializedView(FILE *output, PQLMaterializedView a,
-							   PQLMaterializedView b);
+void dumpDropMaterializedView(FILE *output, PQLMaterializedView *v);
+void dumpCreateMaterializedView(FILE *output, PQLMaterializedView *v);
+void dumpAlterMaterializedView(FILE *output, PQLMaterializedView *a,
+							   PQLMaterializedView *b);
 
 void freeMaterializedViews(PQLMaterializedView *v, int n);
 

@@ -149,26 +149,26 @@ freeEventTriggers(PQLEventTrigger *e, int n)
 }
 
 void
-dumpCreateEventTrigger(FILE *output, PQLEventTrigger e)
+dumpCreateEventTrigger(FILE *output, PQLEventTrigger *e)
 {
-	char	*evtname = formatObjectIdentifier(e.trgname);
+	char	*evtname = formatObjectIdentifier(e->trgname);
 
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE EVENT TRIGGER %s ON %s", evtname, e.event);
+	fprintf(output, "CREATE EVENT TRIGGER %s ON %s", evtname, e->event);
 
-	if (e.tags != NULL)
-		fprintf(output, "\n    WHEN TAG IN (%s)", e.tags);
+	if (e->tags != NULL)
+		fprintf(output, "\n    WHEN TAG IN (%s)", e->tags);
 
-	fprintf(output, "\n    EXECUTE PROCEDURE %s()", e.functionname);
+	fprintf(output, "\n    EXECUTE PROCEDURE %s()", e->functionname);
 
 	fprintf(output, ";");
 
-	if (e.enabled != 'O')
+	if (e->enabled != 'O')
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER EVENT TRIGGER %s", evtname);
 
-		switch (e.enabled)
+		switch (e->enabled)
 		{
 			case 'D':
 				fprintf(output, " DISABLE");
@@ -188,24 +188,24 @@ dumpCreateEventTrigger(FILE *output, PQLEventTrigger e)
 	}
 
 	/* comment */
-	if (options.comment && e.comment != NULL)
+	if (options.comment && e->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON EVENT TRIGGER %s IS '%s';", evtname, e.comment);
+		fprintf(output, "COMMENT ON EVENT TRIGGER %s IS '%s';", evtname, e->comment);
 	}
 
 	/* security labels */
-	if (options.securitylabels && e.nseclabels > 0)
+	if (options.securitylabels && e->nseclabels > 0)
 	{
 		int	i;
 
-		for (i = 0; i < e.nseclabels; i++)
+		for (i = 0; i < e->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS '%s';",
-					e.seclabels[i].provider,
+					e->seclabels[i].provider,
 					evtname,
-					e.seclabels[i].label);
+					e->seclabels[i].label);
 		}
 	}
 
@@ -215,16 +215,16 @@ dumpCreateEventTrigger(FILE *output, PQLEventTrigger e)
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER EVENT TRIGGER %s OWNER TO %s;",
 				evtname,
-				e.owner);
+				e->owner);
 	}
 
 	free(evtname);
 }
 
 void
-dumpDropEventTrigger(FILE *output, PQLEventTrigger e)
+dumpDropEventTrigger(FILE *output, PQLEventTrigger *e)
 {
-	char	*evtname = formatObjectIdentifier(e.trgname);
+	char	*evtname = formatObjectIdentifier(e->trgname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP EVENT TRIGGER %s;", evtname);
@@ -233,17 +233,17 @@ dumpDropEventTrigger(FILE *output, PQLEventTrigger e)
 }
 
 void
-dumpAlterEventTrigger(FILE *output, PQLEventTrigger a, PQLEventTrigger b)
+dumpAlterEventTrigger(FILE *output, PQLEventTrigger *a, PQLEventTrigger *b)
 {
-	char	*evtname1 = formatObjectIdentifier(a.trgname);
-	char	*evtname2 = formatObjectIdentifier(b.trgname);
+	char	*evtname1 = formatObjectIdentifier(a->trgname);
+	char	*evtname2 = formatObjectIdentifier(b->trgname);
 
-	if (a.enabled != b.enabled)
+	if (a->enabled != b->enabled)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER EVENT TRIGGER %s", evtname2);
 
-		switch (b.enabled)
+		switch (b->enabled)
 		{
 			case 'D':
 				fprintf(output, " DISABLE");
@@ -262,7 +262,7 @@ dumpAlterEventTrigger(FILE *output, PQLEventTrigger a, PQLEventTrigger b)
 		fprintf(output, ";");
 	}
 
-	if (strcmp(a.trgname, b.trgname) != 0)
+	if (strcmp(a->trgname, b->trgname) != 0)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER EVENT TRIGGER %s RENAME TO %s;", evtname1, evtname2);
@@ -271,14 +271,14 @@ dumpAlterEventTrigger(FILE *output, PQLEventTrigger a, PQLEventTrigger b)
 	/* comment */
 	if (options.comment)
 	{
-		if ((a.comment == NULL && b.comment != NULL) ||
-				(a.comment != NULL && b.comment != NULL &&
-				 strcmp(a.comment, b.comment) != 0))
+		if ((a->comment == NULL && b->comment != NULL) ||
+				(a->comment != NULL && b->comment != NULL &&
+				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON EVENT TRIGGER %s IS '%s';", evtname2, b.comment);
+			fprintf(output, "COMMENT ON EVENT TRIGGER %s IS '%s';", evtname2, b->comment);
 		}
-		else if (a.comment != NULL && b.comment == NULL)
+		else if (a->comment != NULL && b->comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON EVENT TRIGGER %s IS NULL;", evtname2);
@@ -288,81 +288,81 @@ dumpAlterEventTrigger(FILE *output, PQLEventTrigger a, PQLEventTrigger b)
 	/* security labels */
 	if (options.securitylabels)
 	{
-		if (a.seclabels == NULL && b.seclabels != NULL)
+		if (a->seclabels == NULL && b->seclabels != NULL)
 		{
 			int	i;
 
-			for (i = 0; i < b.nseclabels; i++)
+			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS '%s';",
-						b.seclabels[i].provider,
+						b->seclabels[i].provider,
 						evtname2,
-						b.seclabels[i].label);
+						b->seclabels[i].label);
 			}
 		}
-		else if (a.seclabels != NULL && b.seclabels == NULL)
+		else if (a->seclabels != NULL && b->seclabels == NULL)
 		{
 			int	i;
 
-			for (i = 0; i < a.nseclabels; i++)
+			for (i = 0; i < a->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS NULL;",
-						a.seclabels[i].provider,
+						a->seclabels[i].provider,
 						evtname1);
 			}
 		}
-		else if (a.seclabels != NULL && b.seclabels != NULL)
+		else if (a->seclabels != NULL && b->seclabels != NULL)
 		{
 			int	i, j;
 
 			i = j = 0;
-			while (i < a.nseclabels || j < b.nseclabels)
+			while (i < a->nseclabels || j < b->nseclabels)
 			{
-				if (i == a.nseclabels)
+				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS '%s';",
-							b.seclabels[j].provider,
+							b->seclabels[j].provider,
 							evtname2,
-							b.seclabels[j].label);
+							b->seclabels[j].label);
 					j++;
 				}
-				else if (j == b.nseclabels)
+				else if (j == b->nseclabels)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS NULL;",
-							a.seclabels[i].provider, evtname1);
+							a->seclabels[i].provider, evtname1);
 					i++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) == 0)
 				{
-					if (strcmp(a.seclabels[i].label, b.seclabels[j].label) != 0)
+					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
 						fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS '%s';",
-								b.seclabels[j].provider,
+								b->seclabels[j].provider,
 								evtname2,
-								b.seclabels[j].label);
+								b->seclabels[j].label);
 					}
 					i++;
 					j++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) < 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) < 0)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS NULL;",
-							a.seclabels[i].provider, evtname1);
+							a->seclabels[i].provider, evtname1);
 					i++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS '%s';",
-							b.seclabels[j].provider,
+							b->seclabels[j].provider,
 							evtname2,
-							b.seclabels[j].label);
+							b->seclabels[j].label);
 					j++;
 				}
 			}
@@ -372,12 +372,12 @@ dumpAlterEventTrigger(FILE *output, PQLEventTrigger a, PQLEventTrigger b)
 	/* owner */
 	if (options.owner)
 	{
-		if (strcmp(a.owner, b.owner) != 0)
+		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER EVENT TRIGGER %s OWNER TO %s;",
 					evtname2,
-					b.owner);
+					b->owner);
 		}
 	}
 

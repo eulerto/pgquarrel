@@ -46,31 +46,31 @@ logGeneric(enum PQLLogLevel level, const char *fmt, ...)
 }
 
 int
-compareRelations(PQLObject a, PQLObject b)
+compareRelations(PQLObject *a, PQLObject *b)
 {
 	int		c;
 
-	c = strcmp(a.schemaname, b.schemaname);
+	c = strcmp(a->schemaname, b->schemaname);
 
 	/* compare relation names iif schema names are equal */
 	if (c == 0)
-		c = strcmp(a.objectname, b.objectname);
+		c = strcmp(a->objectname, b->objectname);
 
 	return c;
 }
 
 int
-compareNamesAndRelations(PQLObject a, PQLObject b, char *aname, char *bname)
+compareNamesAndRelations(PQLObject *a, PQLObject *b, char *aname, char *bname)
 {
 	int		c;
 
-	c = strcmp(a.schemaname, b.schemaname);
+	c = strcmp(a->schemaname, b->schemaname);
 
 	/* compare relation names iif schema names are equal */
 	if (c == 0)
 	{
 		/* compare trigger/rule names iif schema.relation names are equal */
-		c = strcmp(a.objectname, b.objectname);
+		c = strcmp(a->objectname, b->objectname);
 		if (c == 0)
 			c = strcmp(aname, bname);
 	}

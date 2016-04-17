@@ -30,12 +30,12 @@ typedef struct PQLCast
 	char			*comment;
 } PQLCast;
 
-int compareCasts(PQLCast a, PQLCast b);
+int compareCasts(PQLCast *a, PQLCast *b);
 PQLCast *getCasts(PGconn *c, int *n);
 
-void dumpDropCast(FILE *output, PQLCast d);
-void dumpCreateCast(FILE *output, PQLCast d);
-void dumpAlterCast(FILE *output, PQLCast a, PQLCast b);
+void dumpDropCast(FILE *output, PQLCast *c);
+void dumpCreateCast(FILE *output, PQLCast *c);
+void dumpAlterCast(FILE *output, PQLCast *a, PQLCast *b);
 
 void freeCasts(PQLCast *c, int n);
 

@@ -17,9 +17,9 @@ typedef struct PQLConversion
 
 PQLConversion *getConversions(PGconn *c, int *n);
 
-void dumpDropConversion(FILE *output, PQLConversion d);
-void dumpCreateConversion(FILE *output, PQLConversion d);
-void dumpAlterConversion(FILE *output, PQLConversion a, PQLConversion b);
+void dumpDropConversion(FILE *output, PQLConversion *c);
+void dumpCreateConversion(FILE *output, PQLConversion *c);
+void dumpAlterConversion(FILE *output, PQLConversion *a, PQLConversion *b);
 
 void freeConversions(PQLConversion *c, int n);
 

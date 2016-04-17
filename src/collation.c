@@ -110,10 +110,10 @@ freeCollations(PQLCollation *c, int n)
 }
 
 void
-dumpCreateCollation(FILE *output, PQLCollation c)
+dumpCreateCollation(FILE *output, PQLCollation *c)
 {
-	char	*schema = formatObjectIdentifier(c.obj.schemaname);
-	char	*collname = formatObjectIdentifier(c.obj.objectname);
+	char	*schema = formatObjectIdentifier(c->obj.schemaname);
+	char	*collname = formatObjectIdentifier(c->obj.objectname);
 
 	/*
 	 * All pg_conversion columns are not null, specifying collate and ctype are
@@ -124,17 +124,17 @@ dumpCreateCollation(FILE *output, PQLCollation c)
 	fprintf(output, "CREATE COLLATION %s.%s (LC_COLLATE = '%s', LC_CTYPE = '%s');",
 			schema,
 			collname,
-			c.collate,
-			c.ctype);
+			c->collate,
+			c->ctype);
 
 	/* comment */
-	if (options.comment && c.comment != NULL)
+	if (options.comment && c->comment != NULL)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "COMMENT ON COLLATION %s.%s IS '%s';",
 				schema,
 				collname,
-				c.comment);
+				c->comment);
 	}
 
 	/* owner */
@@ -144,7 +144,7 @@ dumpCreateCollation(FILE *output, PQLCollation c)
 		fprintf(output, "ALTER COLLATION %s.%s OWNER TO %s;",
 				schema,
 				collname,
-				c.owner);
+				c->owner);
 	}
 
 	free(schema);
@@ -152,10 +152,10 @@ dumpCreateCollation(FILE *output, PQLCollation c)
 }
 
 void
-dumpDropCollation(FILE *output, PQLCollation c)
+dumpDropCollation(FILE *output, PQLCollation *c)
 {
-	char	*schema = formatObjectIdentifier(c.obj.schemaname);
-	char	*collname = formatObjectIdentifier(c.obj.objectname);
+	char	*schema = formatObjectIdentifier(c->obj.schemaname);
+	char	*collname = formatObjectIdentifier(c->obj.objectname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP COLLATION %s.%s;",
@@ -166,25 +166,25 @@ dumpDropCollation(FILE *output, PQLCollation c)
 }
 
 void
-dumpAlterCollation(FILE *output, PQLCollation a, PQLCollation b)
+dumpAlterCollation(FILE *output, PQLCollation *a, PQLCollation *b)
 {
-	char	*schema2 = formatObjectIdentifier(b.obj.schemaname);
-	char	*collname2 = formatObjectIdentifier(b.obj.objectname);
+	char	*schema2 = formatObjectIdentifier(b->obj.schemaname);
+	char	*collname2 = formatObjectIdentifier(b->obj.objectname);
 
 	/* comment */
 	if (options.comment)
 	{
-		if ((a.comment == NULL && b.comment != NULL) ||
-				(a.comment != NULL && b.comment != NULL &&
-				 strcmp(a.comment, b.comment) != 0))
+		if ((a->comment == NULL && b->comment != NULL) ||
+				(a->comment != NULL && b->comment != NULL &&
+				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON COLLATION %s.%s IS '%s';",
 					schema2,
 					collname2,
-					b.comment);
+					b->comment);
 		}
-		else if (a.comment != NULL && b.comment == NULL)
+		else if (a->comment != NULL && b->comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON COLLATION %s.%s IS NULL;",
@@ -196,13 +196,13 @@ dumpAlterCollation(FILE *output, PQLCollation a, PQLCollation b)
 	/* owner */
 	if (options.owner)
 	{
-		if (strcmp(a.owner, b.owner) != 0)
+		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER COLLATION %s.%s OWNER TO %s;",
 					schema2,
 					collname2,
-					b.owner);
+					b->owner);
 		}
 	}
 

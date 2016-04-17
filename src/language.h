@@ -25,9 +25,9 @@ typedef struct PQLLanguage
 PQLLanguage *getLanguages(PGconn *c, int *n);
 void getLanguageSecurityLabels(PGconn *c, PQLLanguage *l);
 
-void dumpDropLanguage(FILE *output, PQLLanguage s);
-void dumpCreateLanguage(FILE *output, PQLLanguage s);
-void dumpAlterLanguage(FILE *output, PQLLanguage a, PQLLanguage b);
+void dumpDropLanguage(FILE *output, PQLLanguage *l);
+void dumpCreateLanguage(FILE *output, PQLLanguage *l);
+void dumpAlterLanguage(FILE *output, PQLLanguage *a, PQLLanguage *b);
 
 void freeLanguages(PQLLanguage *l, int n);
 

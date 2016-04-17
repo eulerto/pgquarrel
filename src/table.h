@@ -48,9 +48,9 @@ void getFKConstraints(PGconn *c, PQLTable *t, int n);
 void getPKConstraints(PGconn *c, PQLTable *t, int n);
 void getTableSecurityLabels(PGconn *c, PQLTable *t);
 
-void dumpDropTable(FILE *output, PQLTable t);
-void dumpCreateTable(FILE *output, PQLTable t);
-void dumpAlterTable(FILE *output, PQLTable a, PQLTable b);
+void dumpDropTable(FILE *output, PQLTable *t);
+void dumpCreateTable(FILE *output, PQLTable *t);
+void dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b);
 
 void freeTables(PQLTable *t, int n);
 

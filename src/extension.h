@@ -14,9 +14,9 @@ typedef struct PQLExtension
 } PQLExtension;
 
 PQLExtension *getExtensions(PGconn *c, int *n);
-void dumpDropExtension(FILE *output, PQLExtension e);
-void dumpCreateExtension(FILE *output, PQLExtension e);
-void dumpAlterExtension(FILE *output, PQLExtension a, PQLExtension b);
+void dumpDropExtension(FILE *output, PQLExtension *e);
+void dumpCreateExtension(FILE *output, PQLExtension *e);
+void dumpAlterExtension(FILE *output, PQLExtension *a, PQLExtension *b);
 
 void freeExtensions(PQLExtension *e, int n);
 

@@ -107,9 +107,9 @@ freeForeignServers(PQLForeignServer *s, int n)
 }
 
 void
-dumpDropForeignServer(FILE *output, PQLForeignServer s)
+dumpDropForeignServer(FILE *output, PQLForeignServer *s)
 {
-	char	*srvname = formatObjectIdentifier(s.servername);
+	char	*srvname = formatObjectIdentifier(s->servername);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP SERVER %s;", srvname);
@@ -118,32 +118,32 @@ dumpDropForeignServer(FILE *output, PQLForeignServer s)
 }
 
 void
-dumpCreateForeignServer(FILE *output, PQLForeignServer s)
+dumpCreateForeignServer(FILE *output, PQLForeignServer *s)
 {
-	char	*srvname = formatObjectIdentifier(s.servername);
+	char	*srvname = formatObjectIdentifier(s->servername);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE SERVER %s", srvname);
 
 	/* type (optional) */
-	if (s.servertype)
-		fprintf(output, " TYPE '%s'", s.servertype);
+	if (s->servertype)
+		fprintf(output, " TYPE '%s'", s->servertype);
 
 	/* version (optional) */
-	if (s.serverversion)
-		fprintf(output, " VERSION '%s'", s.serverversion);
+	if (s->serverversion)
+		fprintf(output, " VERSION '%s'", s->serverversion);
 
 	/* foreign data wrapper */
-	fprintf(output, " FOREIGN DATA WRAPPER %s", s.serverfdw);
+	fprintf(output, " FOREIGN DATA WRAPPER %s", s->serverfdw);
 
 	/* options (optional) */
-	if (s.options)
+	if (s->options)
 	{
 		stringList		*sl;
 		stringListCell	*cell;
 		bool			first = true;
 
-		sl = buildStringList(s.options);
+		sl = buildStringList(s->options);
 		fprintf(output, " OPTIONS(");
 		for (cell = sl->head; cell; cell = cell->next)
 		{
@@ -170,17 +170,17 @@ dumpCreateForeignServer(FILE *output, PQLForeignServer s)
 	fprintf(output, ";");
 
 	/* comment */
-	if (options.comment && s.comment != NULL)
+	if (options.comment && s->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON SERVER %s IS '%s';", srvname, s.comment);
+		fprintf(output, "COMMENT ON SERVER %s IS '%s';", srvname, s->comment);
 	}
 
 	/* owner */
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER SERVER %s OWNER TO %s;", srvname, s.owner);
+		fprintf(output, "ALTER SERVER %s OWNER TO %s;", srvname, s->owner);
 	}
 
 	/* privileges */
@@ -190,45 +190,45 @@ dumpCreateForeignServer(FILE *output, PQLForeignServer s)
 		PQLObject tmp;
 
 		tmp.schemaname = NULL;
-		tmp.objectname = s.servername;
+		tmp.objectname = s->servername;
 
-		dumpGrantAndRevoke(output, PGQ_FOREIGN_SERVER, tmp, tmp, NULL, s.acl, NULL);
+		dumpGrantAndRevoke(output, PGQ_FOREIGN_SERVER, &tmp, &tmp, NULL, s->acl, NULL);
 	}
 
 	free(srvname);
 }
 
 void
-dumpAlterForeignServer(FILE *output, PQLForeignServer a, PQLForeignServer b)
+dumpAlterForeignServer(FILE *output, PQLForeignServer *a, PQLForeignServer *b)
 {
-	char	*srvname1 = formatObjectIdentifier(a.servername);
-	char	*srvname2 = formatObjectIdentifier(b.servername);
+	char	*srvname1 = formatObjectIdentifier(a->servername);
+	char	*srvname2 = formatObjectIdentifier(b->servername);
 
 	/* version */
-	if (a.serverversion == NULL && b.serverversion != NULL)
+	if (a->serverversion == NULL && b->serverversion != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER SERVER %s VERSION '%s';", srvname2, b.serverversion);
+		fprintf(output, "ALTER SERVER %s VERSION '%s';", srvname2, b->serverversion);
 	}
-	else if (a.serverversion != NULL && b.serverversion == NULL)
+	else if (a->serverversion != NULL && b->serverversion == NULL)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER SERVER %s VERSION NULL;", srvname2);
 	}
-	else if (a.serverversion != NULL && b.serverversion != NULL && strcmp(a.serverversion, b.serverversion) != 0)
+	else if (a->serverversion != NULL && b->serverversion != NULL && strcmp(a->serverversion, b->serverversion) != 0)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER SERVER %s VERSION '%s';", srvname2, b.serverversion);
+		fprintf(output, "ALTER SERVER %s VERSION '%s';", srvname2, b->serverversion);
 	}
 
 	/* options */
-	if (a.options == NULL && b.options != NULL)
+	if (a->options == NULL && b->options != NULL)
 	{
 		stringList		*sl;
 		stringListCell	*cell;
 		bool			first = true;
 
-		sl = buildStringList(b.options);
+		sl = buildStringList(b->options);
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER SERVER %s OPTIONS (", srvname2);
 		for (cell = sl->head; cell; cell = cell->next)
@@ -252,13 +252,13 @@ dumpAlterForeignServer(FILE *output, PQLForeignServer a, PQLForeignServer b)
 
 		freeStringList(sl);
 	}
-	else if (a.options != NULL && b.options == NULL)
+	else if (a->options != NULL && b->options == NULL)
 	{
 		stringList		*sl;
 		stringListCell	*cell;
 		bool			first = true;
 
-		sl = buildStringList(a.options);
+		sl = buildStringList(a->options);
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER SERVER %s OPTIONS (", srvname1);
 		for (cell = sl->head; cell; cell = cell->next)
@@ -282,13 +282,13 @@ dumpAlterForeignServer(FILE *output, PQLForeignServer a, PQLForeignServer b)
 
 		freeStringList(sl);
 	}
-	else if (a.options != NULL && b.options != NULL && strcmp(a.options, b.options) != 0)
+	else if (a->options != NULL && b->options != NULL && strcmp(a->options, b->options) != 0)
 	{
 		stringList	*rlist, *ilist, *slist;
 		bool		first = true;
 
 		/* reset options that are only presented in the first set */
-		rlist = setOperationOptions(a.options, b.options, PGQ_SETDIFFERENCE, false, true);
+		rlist = setOperationOptions(a->options, b->options, PGQ_SETDIFFERENCE, false, true);
 		if (rlist)
 		{
 			stringListCell	*cell;
@@ -316,7 +316,7 @@ dumpAlterForeignServer(FILE *output, PQLForeignServer a, PQLForeignServer b)
 		 * Include intersection between option sets. However, exclude options
 		 * that don't change.
 		 */
-		ilist = setOperationOptions(a.options, b.options, PGQ_INTERSECT, true, true);
+		ilist = setOperationOptions(a->options, b->options, PGQ_INTERSECT, true, true);
 		if (ilist)
 		{
 			stringListCell	*cell;
@@ -348,7 +348,7 @@ dumpAlterForeignServer(FILE *output, PQLForeignServer a, PQLForeignServer b)
 		/*
 		 * Set options that are only presented in the second set.
 		 */
-		slist = setOperationOptions(b.options, a.options, PGQ_SETDIFFERENCE, true, true);
+		slist = setOperationOptions(b->options, a->options, PGQ_SETDIFFERENCE, true, true);
 		if (slist)
 		{
 			stringListCell	*cell;
@@ -382,14 +382,14 @@ dumpAlterForeignServer(FILE *output, PQLForeignServer a, PQLForeignServer b)
 	/* comment */
 	if (options.comment)
 	{
-		if ((a.comment == NULL && b.comment != NULL) ||
-				(a.comment != NULL && b.comment != NULL &&
-				 strcmp(a.comment, b.comment) != 0))
+		if ((a->comment == NULL && b->comment != NULL) ||
+				(a->comment != NULL && b->comment != NULL &&
+				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON SERVER %s IS '%s';", srvname2, b.comment);
+			fprintf(output, "COMMENT ON SERVER %s IS '%s';", srvname2, b->comment);
 		}
-		else if (a.comment != NULL && b.comment == NULL)
+		else if (a->comment != NULL && b->comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON SERVER %s IS NULL;", srvname2);
@@ -399,10 +399,10 @@ dumpAlterForeignServer(FILE *output, PQLForeignServer a, PQLForeignServer b)
 	/* owner */
 	if (options.owner)
 	{
-		if (strcmp(a.owner, b.owner) != 0)
+		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER SERVER %s OWNER TO %s;", srvname2, b.owner);
+			fprintf(output, "ALTER SERVER %s OWNER TO %s;", srvname2, b->owner);
 		}
 	}
 
@@ -412,12 +412,12 @@ dumpAlterForeignServer(FILE *output, PQLForeignServer a, PQLForeignServer b)
 		PQLObject tmpa, tmpb;
 
 		tmpa.schemaname = NULL;
-		tmpa.objectname = a.servername;
+		tmpa.objectname = a->servername;
 		tmpb.schemaname = NULL;
-		tmpb.objectname = b.servername;
+		tmpb.objectname = b->servername;
 
-		if (a.acl != NULL || b.acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_FOREIGN_SERVER, tmpa, tmpb, a.acl, b.acl, NULL);
+		if (a->acl != NULL || b->acl != NULL)
+			dumpGrantAndRevoke(output, PGQ_FOREIGN_SERVER, &tmpa, &tmpb, a->acl, b->acl, NULL);
 	}
 
 	free(srvname1);

@@ -112,19 +112,19 @@ freeConversions(PQLConversion *c, int n)
 }
 
 void
-dumpCreateConversion(FILE *output, PQLConversion c)
+dumpCreateConversion(FILE *output, PQLConversion *c)
 {
-	char	*schema = formatObjectIdentifier(c.obj.schemaname);
-	char	*convname = formatObjectIdentifier(c.obj.objectname);
+	char	*schema = formatObjectIdentifier(c->obj.schemaname);
+	char	*convname = formatObjectIdentifier(c->obj.objectname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE%s CONVERSION %s.%s FOR '%s' TO '%s' FROM %s",
-			((c.convdefault) ? " DEFAULT" : ""),
+			((c->convdefault) ? " DEFAULT" : ""),
 			schema,
 			convname,
-			c.forencoding,
-			c.toencoding,
-			c.funcname);
+			c->forencoding,
+			c->toencoding,
+			c->funcname);
 	fprintf(output, ";");
 
 	/* owner */
@@ -134,7 +134,7 @@ dumpCreateConversion(FILE *output, PQLConversion c)
 		fprintf(output, "ALTER CONVERSION %s.%s OWNER TO %s;",
 				schema,
 				convname,
-				c.owner);
+				c->owner);
 	}
 
 	free(schema);
@@ -142,10 +142,10 @@ dumpCreateConversion(FILE *output, PQLConversion c)
 }
 
 void
-dumpDropConversion(FILE *output, PQLConversion c)
+dumpDropConversion(FILE *output, PQLConversion *c)
 {
-	char	*schema = formatObjectIdentifier(c.obj.schemaname);
-	char	*convname = formatObjectIdentifier(c.obj.objectname);
+	char	*schema = formatObjectIdentifier(c->obj.schemaname);
+	char	*convname = formatObjectIdentifier(c->obj.objectname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP CONVERSION %s.%s;",
@@ -157,38 +157,38 @@ dumpDropConversion(FILE *output, PQLConversion c)
 }
 
 void
-dumpAlterConversion(FILE *output, PQLConversion a, PQLConversion b)
+dumpAlterConversion(FILE *output, PQLConversion *a, PQLConversion *b)
 {
-	char	*schema2 = formatObjectIdentifier(b.obj.schemaname);
-	char	*convname2 = formatObjectIdentifier(b.obj.objectname);
+	char	*schema2 = formatObjectIdentifier(b->obj.schemaname);
+	char	*convname2 = formatObjectIdentifier(b->obj.objectname);
 
 	/* owner */
 	if (options.owner)
 	{
-		if (strcmp(a.owner, b.owner) != 0)
+		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER CONVERSION %s.%s OWNER TO %s;",
 					schema2,
 					convname2,
-					b.owner);
+					b->owner);
 		}
 	}
 
 	/* comment */
 	if (options.comment)
 	{
-		if ((a.comment == NULL && b.comment != NULL) ||
-				(a.comment != NULL && b.comment != NULL &&
-				 strcmp(a.comment, b.comment) != 0))
+		if ((a->comment == NULL && b->comment != NULL) ||
+				(a->comment != NULL && b->comment != NULL &&
+				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON CONVERSION %s.%s IS '%s';",
 					schema2,
 					convname2,
-					b.comment);
+					b->comment);
 		}
-		else if (a.comment != NULL && b.comment == NULL)
+		else if (a->comment != NULL && b->comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON CONVERSION %s.%s IS NULL;",

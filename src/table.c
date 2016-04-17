@@ -32,15 +32,15 @@
  * ALTER TABLE ... REPLICA IDENTITY
  */
 
-static void dumpAddColumn(FILE *output, PQLTable t, int i);
-static void dumpRemoveColumn(FILE *output, PQLTable t, int i);
-static void dumpAlterColumn(FILE *output, PQLTable a, int i, PQLTable b, int j);
-static void dumpAlterColumnSetStatistics(FILE *output, PQLTable a, int i,
+static void dumpAddColumn(FILE *output, PQLTable *t, int i);
+static void dumpRemoveColumn(FILE *output, PQLTable *t, int i);
+static void dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b, int j);
+static void dumpAlterColumnSetStatistics(FILE *output, PQLTable *a, int i,
 		bool force);
-static void dumpAlterColumnSetStorage(FILE *output, PQLTable a, int i,
+static void dumpAlterColumnSetStorage(FILE *output, PQLTable *a, int i,
 									  bool force);
-static void dumpAlterColumnSetOptions(FILE *output, PQLTable a, int i,
-									  PQLTable b, int j);
+static void dumpAlterColumnSetOptions(FILE *output, PQLTable *a, int i,
+									  PQLTable *b, int j);
 
 PQLTable *
 getTables(PGconn *c, int *n)
@@ -784,10 +784,10 @@ getOwnedBySequences(PGconn *c, PQLTable *t)
 }
 
 void
-dumpDropTable(FILE *output, PQLTable t)
+dumpDropTable(FILE *output, PQLTable *t)
 {
-	char	*schema = formatObjectIdentifier(t.obj.schemaname);
-	char	*tabname = formatObjectIdentifier(t.obj.objectname);
+	char	*schema = formatObjectIdentifier(t->obj.schemaname);
+	char	*tabname = formatObjectIdentifier(t->obj.objectname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP TABLE %s.%s;", schema, tabname);
@@ -797,18 +797,18 @@ dumpDropTable(FILE *output, PQLTable t)
 }
 
 void
-dumpCreateTable(FILE *output, PQLTable t)
+dumpCreateTable(FILE *output, PQLTable *t)
 {
-	char	*schema = formatObjectIdentifier(t.obj.schemaname);
-	char	*tabname = formatObjectIdentifier(t.obj.objectname);
+	char	*schema = formatObjectIdentifier(t->obj.schemaname);
+	char	*tabname = formatObjectIdentifier(t->obj.objectname);
 
 	int		i;
 
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE %sTABLE %s.%s (", t.unlogged ? "UNLOGGED " : "", schema, tabname);
+	fprintf(output, "CREATE %sTABLE %s.%s (", t->unlogged ? "UNLOGGED " : "", schema, tabname);
 
 	/* print attributes */
-	for (i = 0; i < t.nattributes; i++)
+	for (i = 0; i < t->nattributes; i++)
 	{
 		if (i == 0)
 			fprintf(output, "\n");
@@ -816,42 +816,42 @@ dumpCreateTable(FILE *output, PQLTable t)
 			fprintf(output, ",\n");
 
 		/* attribute name and type */
-		fprintf(output, "%s %s", t.attributes[i].attname, t.attributes[i].atttypname);
+		fprintf(output, "%s %s", t->attributes[i].attname, t->attributes[i].atttypname);
 
 		/* collate */
 		/* XXX schema-qualified? */
-		if (t.attributes[i].attcollation != NULL)
-			fprintf(output, " COLLATE \"%s\"", t.attributes[i].attcollation);
+		if (t->attributes[i].attcollation != NULL)
+			fprintf(output, " COLLATE \"%s\"", t->attributes[i].attcollation);
 
 		/* default value? */
-		if (t.attributes[i].attdefexpr != NULL)
-			fprintf(output, " DEFAULT %s", t.attributes[i].attdefexpr);
+		if (t->attributes[i].attdefexpr != NULL)
+			fprintf(output, " DEFAULT %s", t->attributes[i].attdefexpr);
 
 		/* not null? */
-		if (t.attributes[i].attnotnull)
+		if (t->attributes[i].attnotnull)
 			fprintf(output, " NOT NULL");
 	}
 
 	/* print check constraints */
-	for (i = 0; i < t.ncheck; i++)
+	for (i = 0; i < t->ncheck; i++)
 	{
 		fprintf(output, ",\n");
-		fprintf(output, "CONSTRAINT %s %s", t.check[i].conname, t.check[i].condef);
+		fprintf(output, "CONSTRAINT %s %s", t->check[i].conname, t->check[i].condef);
 	}
 
 	fprintf(output, "\n)");
 
 	/* reloptions */
-	if (t.reloptions != NULL)
-		fprintf(output, "\nWITH (%s)", t.reloptions);
+	if (t->reloptions != NULL)
+		fprintf(output, "\nWITH (%s)", t->reloptions);
 
 	fprintf(output, ";");
 
 	/* replica identity */
-	if (t.relreplident != 'v')		/* 'v' (void) means < 9.4 */
+	if (t->relreplident != 'v')		/* 'v' (void) means < 9.4 */
 	{
 
-		switch (t.relreplident)
+		switch (t->relreplident)
 		{
 			char	*replident;
 
@@ -867,48 +867,48 @@ dumpCreateTable(FILE *output, PQLTable t)
 				fprintf(output, "ALTER TABLE ONLY %s.%s REPLICA IDENTITY FULL;", schema, tabname);
 				break;
 			case 'i':
-				replident = formatObjectIdentifier(t.relreplidentidx);
+				replident = formatObjectIdentifier(t->relreplidentidx);
 				fprintf(output, "\n\n");
 				fprintf(output, "ALTER TABLE ONLY %s.%s REPLICA IDENTITY USING INDEX %s;", schema, tabname, replident);
 				free(replident);
 				break;
 			default:
-				logWarning("replica identity %c is invalid", t.relreplident);
+				logWarning("replica identity %c is invalid", t->relreplident);
 		}
 	}
 
 	/* statistics target */
-	for (i = 0; i < t.nattributes; i++)
+	for (i = 0; i < t->nattributes; i++)
 	{
 		dumpAlterColumnSetStatistics(output, t, i, false);
 		dumpAlterColumnSetStorage(output, t, i, false);
 	}
 
 	/* print primary key */
-	if (t.pk.conname != NULL)
+	if (t->pk.conname != NULL)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER TABLE ONLY %s.%s\n", schema, tabname);
-		fprintf(output, "\tADD CONSTRAINT %s %s", t.pk.conname, t.pk.condef);
+		fprintf(output, "\tADD CONSTRAINT %s %s", t->pk.conname, t->pk.condef);
 		fprintf(output, ";");
 	}
 
 	/* print foreign key constraints */
-	for (i = 0; i < t.nfk; i++)
+	for (i = 0; i < t->nfk; i++)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER TABLE ONLY %s.%s\n", schema, tabname);
-		fprintf(output, "\tADD CONSTRAINT %s %s", t.fk[i].conname, t.fk[i].condef);
+		fprintf(output, "\tADD CONSTRAINT %s %s", t->fk[i].conname, t->fk[i].condef);
 		fprintf(output, ";");
 	}
 
 	/* XXX Should it belong to sequence.c? */
 	/* print owned by sequences */
-	for (i = 0; i < t.nownedby; i++)
+	for (i = 0; i < t->nownedby; i++)
 	{
-		char	*seqschema = formatObjectIdentifier(t.seqownedby[i].schemaname);
-		char	*seqname = formatObjectIdentifier(t.seqownedby[i].objectname);
-		char	*attname = formatObjectIdentifier(t.attownedby[i]);
+		char	*seqschema = formatObjectIdentifier(t->seqownedby[i].schemaname);
+		char	*seqname = formatObjectIdentifier(t->seqownedby[i].objectname);
+		char	*attname = formatObjectIdentifier(t->attownedby[i]);
 
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER SEQUENCE %s.%s OWNED BY %s.%s;", seqschema, seqname, tabname, attname);
@@ -921,60 +921,60 @@ dumpCreateTable(FILE *output, PQLTable t)
 	/* comment */
 	if (options.comment)
 	{
-		if (t.comment != NULL)
+		if (t->comment != NULL)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TABLE %s.%s IS '%s';", schema, tabname, t.comment);
+			fprintf(output, "COMMENT ON TABLE %s.%s IS '%s';", schema, tabname, t->comment);
 		}
 
 		/* columns */
-		for (i = 0; i < t.nattributes; i++)
+		for (i = 0; i < t->nattributes; i++)
 		{
-			if (t.attributes[i].comment != NULL)
+			if (t->attributes[i].comment != NULL)
 			{
-				char	*attname = formatObjectIdentifier(t.attributes[i].attname);
+				char	*attname = formatObjectIdentifier(t->attributes[i].attname);
 
 				fprintf(output, "\n\n");
-				fprintf(output, "COMMENT ON COLUMN %s.%s.%s IS '%s';", schema, tabname, attname, t.attributes[i].comment);
+				fprintf(output, "COMMENT ON COLUMN %s.%s.%s IS '%s';", schema, tabname, attname, t->attributes[i].comment);
 
 				free(attname);
 			}
 		}
 
 		/* primary key */
-		if (t.pk.comment != NULL)
+		if (t->pk.comment != NULL)
 		{
-			char	*pkname = formatObjectIdentifier(t.pk.conname);
+			char	*pkname = formatObjectIdentifier(t->pk.conname);
 
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS '%s';", pkname, schema, tabname, t.pk.comment);
+			fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS '%s';", pkname, schema, tabname, t->pk.comment);
 
 			free(pkname);
 		}
 
 		/* foreign key */
-		for (i = 0; i < t.nfk; i++)
+		for (i = 0; i < t->nfk; i++)
 		{
-			if (t.fk[i].comment != NULL)
+			if (t->fk[i].comment != NULL)
 			{
-				char	*fkname = formatObjectIdentifier(t.fk[i].conname);
+				char	*fkname = formatObjectIdentifier(t->fk[i].conname);
 
 				fprintf(output, "\n\n");
-				fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS '%s';", fkname, schema, tabname, t.fk[i].comment);
+				fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS '%s';", fkname, schema, tabname, t->fk[i].comment);
 
 				free(fkname);
 			}
 		}
 
 		/* check constraint */
-		for (i = 0; i < t.ncheck; i++)
+		for (i = 0; i < t->ncheck; i++)
 		{
-			if (t.check[i].comment != NULL)
+			if (t->check[i].comment != NULL)
 			{
-				char	*ckname = formatObjectIdentifier(t.check[i].conname);
+				char	*ckname = formatObjectIdentifier(t->check[i].conname);
 
 				fprintf(output, "\n\n");
-				fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS '%s';", ckname, schema, tabname, t.check[i].comment);
+				fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS '%s';", ckname, schema, tabname, t->check[i].comment);
 
 				free(ckname);
 			}
@@ -982,49 +982,49 @@ dumpCreateTable(FILE *output, PQLTable t)
 	}
 
 	/* attribute options */
-	for (i = 0; i < t.nattributes; i++)
+	for (i = 0; i < t->nattributes; i++)
 	{
-		if (t.attributes[i].attoptions)
+		if (t->attributes[i].attoptions)
 		{
-			char	*attname = formatObjectIdentifier(t.attributes[i].attname);
+			char	*attname = formatObjectIdentifier(t->attributes[i].attname);
 
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET (%s)", schema, tabname, attname, t.attributes[i].attoptions);
+			fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET (%s)", schema, tabname, attname, t->attributes[i].attoptions);
 
 			free(attname);
 		}
 	}
 
 	/* security labels */
-	if (options.securitylabels && t.nseclabels > 0)
+	if (options.securitylabels && t->nseclabels > 0)
 	{
-		for (i = 0; i < t.nseclabels; i++)
+		for (i = 0; i < t->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS '%s';",
-					t.seclabels[i].provider,
+					t->seclabels[i].provider,
 					schema,
 					tabname,
-					t.seclabels[i].label);
+					t->seclabels[i].label);
 		}
 
 		/* attributes */
-		for (i = 0; i < t.nattributes; i++)
+		for (i = 0; i < t->nattributes; i++)
 		{
-			if (t.attributes[i].nseclabels > 0)
+			if (t->attributes[i].nseclabels > 0)
 			{
-				char	*attname = formatObjectIdentifier(t.attributes[i].attname);
+				char	*attname = formatObjectIdentifier(t->attributes[i].attname);
 				int	j;
 
-				for (j = 0; j < t.attributes[i].nseclabels; j++)
+				for (j = 0; j < t->attributes[i].nseclabels; j++)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
-							t.attributes[i].seclabels[j].provider,
+							t->attributes[i].seclabels[j].provider,
 							schema,
 							tabname,
 							attname,
-							t.attributes[i].seclabels[j].label);
+							t->attributes[i].seclabels[j].label);
 				}
 
 				free(attname);
@@ -1036,36 +1036,36 @@ dumpCreateTable(FILE *output, PQLTable t)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TABLE %s.%s OWNER TO %s;", schema, tabname, t.owner);
+		fprintf(output, "ALTER TABLE %s.%s OWNER TO %s;", schema, tabname, t->owner);
 	}
 
 	/* privileges */
-	/* XXX second t.obj isn't used. Add an invalid PQLObject? */
+	/* XXX second t->obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
-		dumpGrantAndRevoke(output, PGQ_TABLE, t.obj, t.obj, NULL, t.acl, NULL);
+		dumpGrantAndRevoke(output, PGQ_TABLE, &t->obj, &t->obj, NULL, t->acl, NULL);
 
 	free(schema);
 	free(tabname);
 }
 
 static void
-dumpAddColumn(FILE *output, PQLTable t, int i)
+dumpAddColumn(FILE *output, PQLTable *t, int i)
 {
-	char	*schema = formatObjectIdentifier(t.obj.schemaname);
-	char	*tabname = formatObjectIdentifier(t.obj.objectname);
-	char	*attname = formatObjectIdentifier(t.attributes[i].attname);
+	char	*schema = formatObjectIdentifier(t->obj.schemaname);
+	char	*tabname = formatObjectIdentifier(t->obj.objectname);
+	char	*attname = formatObjectIdentifier(t->attributes[i].attname);
 
 	fprintf(output, "\n\n");
-	fprintf(output, "ALTER TABLE ONLY %s.%s ADD COLUMN %s %s", schema, tabname, attname, t.attributes[i].atttypname);
+	fprintf(output, "ALTER TABLE ONLY %s.%s ADD COLUMN %s %s", schema, tabname, attname, t->attributes[i].atttypname);
 
 	/* collate */
 	/* XXX schema-qualified? */
-	if (t.attributes[i].attcollation != NULL)
-		fprintf(output, " COLLATE \"%s\"", t.attributes[i].attcollation);
+	if (t->attributes[i].attcollation != NULL)
+		fprintf(output, " COLLATE \"%s\"", t->attributes[i].attcollation);
 
 	/* default value? */
-	if (t.attributes[i].attdefexpr != NULL)
-		fprintf(output, " DEFAULT %s", t.attributes[i].attdefexpr);
+	if (t->attributes[i].attdefexpr != NULL)
+		fprintf(output, " DEFAULT %s", t->attributes[i].attdefexpr);
 
 	/* not null? */
 	/*
@@ -1074,36 +1074,36 @@ dumpAddColumn(FILE *output, PQLTable t, int i)
 	 * XXX smarter to warn the OP that postgres cannot automagically set not
 	 * XXX null in a table that already contains data.
 	 */
-	if (t.attributes[i].attnotnull)
+	if (t->attributes[i].attnotnull)
 		fprintf(output, " NOT NULL");
 
 	/* attribute options */
-	if (t.attributes[i].attoptions)
-		fprintf(output, " SET (%s)", t.attributes[i].attoptions);
+	if (t->attributes[i].attoptions)
+		fprintf(output, " SET (%s)", t->attributes[i].attoptions);
 
 	fprintf(output, ";");
 
 	/* comment */
-	if (options.comment && t.attributes[i].comment != NULL)
+	if (options.comment && t->attributes[i].comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON COLUMN %s.%s.%s IS '%s';", schema, tabname, attname, t.attributes[i].comment);
+		fprintf(output, "COMMENT ON COLUMN %s.%s.%s IS '%s';", schema, tabname, attname, t->attributes[i].comment);
 	}
 
 	/* security labels */
-	if (options.securitylabels && t.attributes[i].nseclabels > 0)
+	if (options.securitylabels && t->attributes[i].nseclabels > 0)
 	{
 		int	j;
 
-		for (j = 0; j < t.attributes[i].nseclabels; j++)
+		for (j = 0; j < t->attributes[i].nseclabels; j++)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
-					t.attributes[i].seclabels[j].provider,
+					t->attributes[i].seclabels[j].provider,
 					schema,
 					tabname,
 					attname,
-					t.attributes[i].seclabels[j].label);
+					t->attributes[i].seclabels[j].label);
 		}
 	}
 
@@ -1113,11 +1113,11 @@ dumpAddColumn(FILE *output, PQLTable t, int i)
 }
 
 static void
-dumpRemoveColumn(FILE *output, PQLTable t, int i)
+dumpRemoveColumn(FILE *output, PQLTable *t, int i)
 {
-	char	*schema = formatObjectIdentifier(t.obj.schemaname);
-	char	*tabname = formatObjectIdentifier(t.obj.objectname);
-	char	*attname = formatObjectIdentifier(t.attributes[i].attname);
+	char	*schema = formatObjectIdentifier(t->obj.schemaname);
+	char	*tabname = formatObjectIdentifier(t->obj.objectname);
+	char	*attname = formatObjectIdentifier(t->attributes[i].attname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "ALTER TABLE ONLY %s.%s DROP COLUMN %s;", schema, tabname, attname);
@@ -1128,48 +1128,48 @@ dumpRemoveColumn(FILE *output, PQLTable t, int i)
 }
 
 static void
-dumpAlterColumn(FILE *output, PQLTable a, int i, PQLTable b, int j)
+dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 {
-	char	*schema1 = formatObjectIdentifier(a.obj.schemaname);
-	char	*tabname1 = formatObjectIdentifier(a.obj.objectname);
-	char	*attname1 = formatObjectIdentifier(a.attributes[i].attname);
-	char	*schema2 = formatObjectIdentifier(b.obj.schemaname);
-	char	*tabname2 = formatObjectIdentifier(b.obj.objectname);
-	char	*attname2 = formatObjectIdentifier(b.attributes[j].attname);
+	char	*schema1 = formatObjectIdentifier(a->obj.schemaname);
+	char	*tabname1 = formatObjectIdentifier(a->obj.objectname);
+	char	*attname1 = formatObjectIdentifier(a->attributes[i].attname);
+	char	*schema2 = formatObjectIdentifier(b->obj.schemaname);
+	char	*tabname2 = formatObjectIdentifier(b->obj.objectname);
+	char	*attname2 = formatObjectIdentifier(b->attributes[j].attname);
 
-	if (strcmp(a.attributes[i].atttypname, b.attributes[j].atttypname) != 0)
+	if (strcmp(a->attributes[i].atttypname, b->attributes[j].atttypname) != 0)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET DATA TYPE %s", schema2, tabname2, attname2, b.attributes[j].atttypname);
+		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET DATA TYPE %s", schema2, tabname2, attname2, b->attributes[j].atttypname);
 
 		/* collate */
 		/* XXX schema-qualified? */
-		if (b.attributes[j].attcollation != NULL)
-			fprintf(output, " COLLATE \"%s\"", b.attributes[j].attcollation);
+		if (b->attributes[j].attcollation != NULL)
+			fprintf(output, " COLLATE \"%s\"", b->attributes[j].attcollation);
 
 		fprintf(output, ";");
 	}
 
 	/* default value? */
-	if (a.attributes[i].attdefexpr == NULL && b.attributes[j].attdefexpr != NULL)
+	if (a->attributes[i].attdefexpr == NULL && b->attributes[j].attdefexpr != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET DEFAULT %s;", schema2, tabname2, attname2, b.attributes[j].attdefexpr);
+		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET DEFAULT %s;", schema2, tabname2, attname2, b->attributes[j].attdefexpr);
 	}
-	else if (a.attributes[i].attdefexpr != NULL &&
-			 b.attributes[j].attdefexpr == NULL)
+	else if (a->attributes[i].attdefexpr != NULL &&
+			 b->attributes[j].attdefexpr == NULL)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s DROP DEFAULT;", schema2, tabname2, attname2);
 	}
 
 	/* not null? */
-	if (!a.attributes[i].attnotnull && b.attributes[j].attnotnull)
+	if (!a->attributes[i].attnotnull && b->attributes[j].attnotnull)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET NOT NULL;", schema2, tabname2, attname2);
 	}
-	else if (a.attributes[i].attnotnull && !b.attributes[j].attnotnull)
+	else if (a->attributes[i].attnotnull && !b->attributes[j].attnotnull)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s DROP NOT NULL;", schema2, tabname2, attname2);
@@ -1178,14 +1178,14 @@ dumpAlterColumn(FILE *output, PQLTable a, int i, PQLTable b, int j)
 	/* comment */
 	if (options.comment)
 	{
-		if ((a.attributes[i].comment == NULL && b.attributes[j].comment != NULL) ||
-				(a.attributes[i].comment != NULL && b.attributes[j].comment != NULL &&
-				 strcmp(a.attributes[i].comment, b.attributes[j].comment) != 0))
+		if ((a->attributes[i].comment == NULL && b->attributes[j].comment != NULL) ||
+				(a->attributes[i].comment != NULL && b->attributes[j].comment != NULL &&
+				 strcmp(a->attributes[i].comment, b->attributes[j].comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON COLUMN %s.%s.%s IS '%s';", schema2, tabname2, attname2, b.attributes[j].comment);
+			fprintf(output, "COMMENT ON COLUMN %s.%s.%s IS '%s';", schema2, tabname2, attname2, b->attributes[j].comment);
 		}
-		else if (a.attributes[i].comment != NULL && b.attributes[j].comment == NULL)
+		else if (a->attributes[i].comment != NULL && b->attributes[j].comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON COLUMN %s.%s.%s IS NULL;", schema2, tabname2, attname2);
@@ -1195,97 +1195,97 @@ dumpAlterColumn(FILE *output, PQLTable a, int i, PQLTable b, int j)
 	/* security labels */
 	if (options.securitylabels)
 	{
-		if (a.attributes[i].seclabels == NULL && b.attributes[j].seclabels != NULL)
+		if (a->attributes[i].seclabels == NULL && b->attributes[j].seclabels != NULL)
 		{
 			int	k;
 
-			for (k = 0; k < b.attributes[j].nseclabels; k++)
+			for (k = 0; k < b->attributes[j].nseclabels; k++)
 			{
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
-						b.attributes[j].seclabels[k].provider,
+						b->attributes[j].seclabels[k].provider,
 						schema2,
 						tabname2,
 						attname2,
-						b.attributes[j].seclabels[k].label);
+						b->attributes[j].seclabels[k].label);
 			}
 		}
-		else if (a.attributes[i].seclabels != NULL && b.attributes[j].seclabels == NULL)
+		else if (a->attributes[i].seclabels != NULL && b->attributes[j].seclabels == NULL)
 		{
 			int	k;
 
-			for (k = 0; k < a.nseclabels; k++)
+			for (k = 0; k < a->nseclabels; k++)
 			{
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS NULL;",
-						a.attributes[i].seclabels[k].provider,
+						a->attributes[i].seclabels[k].provider,
 						schema1,
 						tabname1,
 						attname1);
 			}
 		}
-		else if (a.attributes[i].seclabels != NULL && b.attributes[j].seclabels != NULL)
+		else if (a->attributes[i].seclabels != NULL && b->attributes[j].seclabels != NULL)
 		{
 			int	k, l;
 
 			k = l = 0;
-			while (k < a.attributes[i].nseclabels || l < b.attributes[j].nseclabels)
+			while (k < a->attributes[i].nseclabels || l < b->attributes[j].nseclabels)
 			{
-				if (k == a.attributes[i].nseclabels)
+				if (k == a->attributes[i].nseclabels)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
-							b.attributes[j].seclabels[l].provider,
+							b->attributes[j].seclabels[l].provider,
 							schema2,
 							tabname2,
 							attname2,
-							b.attributes[j].seclabels[l].label);
+							b->attributes[j].seclabels[l].label);
 					l++;
 				}
-				else if (l == b.attributes[j].nseclabels)
+				else if (l == b->attributes[j].nseclabels)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS NULL;",
-							a.attributes[i].seclabels[k].provider,
+							a->attributes[i].seclabels[k].provider,
 							schema1,
 							tabname1,
 							attname1);
 					k++;
 				}
-				else if (strcmp(a.attributes[i].seclabels[k].provider, b.attributes[j].seclabels[l].provider) == 0)
+				else if (strcmp(a->attributes[i].seclabels[k].provider, b->attributes[j].seclabels[l].provider) == 0)
 				{
-					if (strcmp(a.attributes[i].seclabels[k].label, b.attributes[j].seclabels[l].label) != 0)
+					if (strcmp(a->attributes[i].seclabels[k].label, b->attributes[j].seclabels[l].label) != 0)
 					{
 						fprintf(output, "\n\n");
 						fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
-								b.attributes[j].seclabels[l].provider,
+								b->attributes[j].seclabels[l].provider,
 								schema2,
 								tabname2,
 								attname2,
-								b.attributes[j].seclabels[l].label);
+								b->attributes[j].seclabels[l].label);
 					}
 					k++;
 					l++;
 				}
-				else if (strcmp(a.attributes[i].seclabels[k].provider, b.attributes[j].seclabels[l].provider) < 0)
+				else if (strcmp(a->attributes[i].seclabels[k].provider, b->attributes[j].seclabels[l].provider) < 0)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS NULL;",
-							a.attributes[i].seclabels[k].provider,
+							a->attributes[i].seclabels[k].provider,
 							schema1,
 							tabname1,
 							attname1);
 					k++;
 				}
-				else if (strcmp(a.attributes[i].seclabels[k].provider, b.attributes[j].seclabels[l].provider) > 0)
+				else if (strcmp(a->attributes[i].seclabels[k].provider, b->attributes[j].seclabels[l].provider) > 0)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
-							b.attributes[j].seclabels[l].provider,
+							b->attributes[j].seclabels[l].provider,
 							schema2,
 							tabname2,
 							attname2,
-							b.attributes[j].seclabels[l].label);
+							b->attributes[j].seclabels[l].label);
 					l++;
 				}
 			}
@@ -1301,16 +1301,16 @@ dumpAlterColumn(FILE *output, PQLTable a, int i, PQLTable b, int j)
 }
 
 static void
-dumpAlterColumnSetStatistics(FILE *output, PQLTable a, int i, bool force)
+dumpAlterColumnSetStatistics(FILE *output, PQLTable *t, int i, bool force)
 {
-	char	*schema = formatObjectIdentifier(a.obj.schemaname);
-	char	*tabname = formatObjectIdentifier(a.obj.objectname);
-	char	*attname = formatObjectIdentifier(a.attributes[i].attname);
+	char	*schema = formatObjectIdentifier(t->obj.schemaname);
+	char	*tabname = formatObjectIdentifier(t->obj.objectname);
+	char	*attname = formatObjectIdentifier(t->attributes[i].attname);
 
-	if (a.attributes[i].attstattarget != -1 || force)
+	if (t->attributes[i].attstattarget != -1 || force)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET STATISTICS %d;", schema, tabname, attname, a.attributes[i].attstattarget);
+		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET STATISTICS %d;", schema, tabname, attname, t->attributes[i].attstattarget);
 	}
 
 	free(schema);
@@ -1319,16 +1319,16 @@ dumpAlterColumnSetStatistics(FILE *output, PQLTable a, int i, bool force)
 }
 
 static void
-dumpAlterColumnSetStorage(FILE *output, PQLTable a, int i, bool force)
+dumpAlterColumnSetStorage(FILE *output, PQLTable *t, int i, bool force)
 {
-	char	*schema = formatObjectIdentifier(a.obj.schemaname);
-	char	*tabname = formatObjectIdentifier(a.obj.objectname);
-	char	*attname = formatObjectIdentifier(a.attributes[i].attname);
+	char	*schema = formatObjectIdentifier(t->obj.schemaname);
+	char	*tabname = formatObjectIdentifier(t->obj.objectname);
+	char	*attname = formatObjectIdentifier(t->attributes[i].attname);
 
-	if (!a.attributes[i].defstorage || force)
+	if (!t->attributes[i].defstorage || force)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET STORAGE %s;", schema, tabname, attname, a.attributes[i].attstorage);
+		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET STORAGE %s;", schema, tabname, attname, t->attributes[i].attstorage);
 	}
 
 	free(schema);
@@ -1340,24 +1340,24 @@ dumpAlterColumnSetStorage(FILE *output, PQLTable a, int i, bool force)
  * Set attribute options if needed
  */
 static void
-dumpAlterColumnSetOptions(FILE *output, PQLTable a, int i, PQLTable b, int j)
+dumpAlterColumnSetOptions(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 {
-	char	*schema2 = formatObjectIdentifier(b.obj.schemaname);
-	char	*tabname2 = formatObjectIdentifier(b.obj.objectname);
-	char	*attname2 = formatObjectIdentifier(b.attributes[j].attname);
+	char	*schema2 = formatObjectIdentifier(b->obj.schemaname);
+	char	*tabname2 = formatObjectIdentifier(b->obj.objectname);
+	char	*attname2 = formatObjectIdentifier(b->attributes[j].attname);
 
-	if (a.attributes[i].attoptions == NULL && b.attributes[j].attoptions != NULL)
+	if (a->attributes[i].attoptions == NULL && b->attributes[j].attoptions != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET (%s);", schema2, tabname2, attname2, b.attributes[j].attoptions);
+		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET (%s);", schema2, tabname2, attname2, b->attributes[j].attoptions);
 	}
-	else if (a.attributes[i].attoptions != NULL &&
-			 b.attributes[j].attoptions == NULL)
+	else if (a->attributes[i].attoptions != NULL &&
+			 b->attributes[j].attoptions == NULL)
 	{
 		stringList	*rlist;
 
 		/* reset all options */
-		rlist = setOperationOptions(a.attributes[i].attoptions, b.attributes[j].attoptions,
+		rlist = setOperationOptions(a->attributes[i].attoptions, b->attributes[j].attoptions,
 							   PGQ_SETDIFFERENCE, false, true);
 		if (rlist)
 		{
@@ -1371,14 +1371,14 @@ dumpAlterColumnSetOptions(FILE *output, PQLTable a, int i, PQLTable b, int j)
 			freeStringList(rlist);
 		}
 	}
-	else if (a.attributes[i].attoptions != NULL &&
-			 b.attributes[j].attoptions != NULL &&
-			 strcmp(a.attributes[i].attoptions, b.attributes[j].attoptions) != 0)
+	else if (a->attributes[i].attoptions != NULL &&
+			 b->attributes[j].attoptions != NULL &&
+			 strcmp(a->attributes[i].attoptions, b->attributes[j].attoptions) != 0)
 	{
 		stringList	*rlist, *ilist, *slist;
 
 		/* reset options that are only presented in the first set */
-		rlist = setOperationOptions(a.attributes[i].attoptions, b.attributes[j].attoptions,
+		rlist = setOperationOptions(a->attributes[i].attoptions, b->attributes[j].attoptions,
 							   PGQ_SETDIFFERENCE, false, true);
 		if (rlist)
 		{
@@ -1396,7 +1396,7 @@ dumpAlterColumnSetOptions(FILE *output, PQLTable a, int i, PQLTable b, int j)
 		 * Include intersection between option sets. However, exclude
 		 * options that don't change.
 		 */
-		ilist = setOperationOptions(a.attributes[i].attoptions, b.attributes[j].attoptions, PGQ_INTERSECT, true, true);
+		ilist = setOperationOptions(a->attributes[i].attoptions, b->attributes[j].attoptions, PGQ_INTERSECT, true, true);
 		if (ilist)
 		{
 			char	*setlist;
@@ -1412,7 +1412,7 @@ dumpAlterColumnSetOptions(FILE *output, PQLTable a, int i, PQLTable b, int j)
 		/*
 		 * Set options that are only presented in the second set.
 		 */
-		slist = setOperationOptions(b.attributes[j].attoptions, a.attributes[i].attoptions, PGQ_SETDIFFERENCE, true, true);
+		slist = setOperationOptions(b->attributes[j].attoptions, a->attributes[i].attoptions, PGQ_SETDIFFERENCE, true, true);
 		if (slist)
 		{
 			char	*setlist;
@@ -1432,28 +1432,28 @@ dumpAlterColumnSetOptions(FILE *output, PQLTable a, int i, PQLTable b, int j)
 }
 
 void
-dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
+dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 {
-	char	*schema1 = formatObjectIdentifier(a.obj.schemaname);
-	char	*tabname1 = formatObjectIdentifier(a.obj.objectname);
-	char	*schema2 = formatObjectIdentifier(b.obj.schemaname);
-	char	*tabname2 = formatObjectIdentifier(b.obj.objectname);
+	char	*schema1 = formatObjectIdentifier(a->obj.schemaname);
+	char	*tabname1 = formatObjectIdentifier(a->obj.objectname);
+	char	*schema2 = formatObjectIdentifier(b->obj.schemaname);
+	char	*tabname2 = formatObjectIdentifier(b->obj.objectname);
 
 	int i, j;
 
 	/* the attributes are sorted by name */
 	i = j = 0;
-	while (i < a.nattributes || j < b.nattributes)
+	while (i < a->nattributes || j < b->nattributes)
 	{
 		/*
 		 * End of table a attributes. Additional columns from table b will be
 		 * added.
 		 */
-		if (i == a.nattributes)
+		if (i == a->nattributes)
 		{
 			logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) added",
-					 b.obj.schemaname, b.obj.objectname,
-					 b.attributes[j].attname, b.attributes[j].atttypname);
+					 b->obj.schemaname, b->obj.objectname,
+					 b->attributes[j].attname, b->attributes[j].atttypname);
 
 			dumpAddColumn(output, b, j);
 
@@ -1466,14 +1466,14 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 		 * End of table b attributes. Additional columns from table a will be
 		 * removed.
 		 */
-		else if (j == b.nattributes)
+		else if (j == b->nattributes)
 		{
-			logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) removed", a.obj.schemaname, a.obj.objectname, a.attributes[i].attname, a.attributes[i].atttypname);
+			logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) removed", a->obj.schemaname, a->obj.objectname, a->attributes[i].attname, a->attributes[i].atttypname);
 
 			dumpRemoveColumn(output, a, i);
 			i++;
 		}
-		else if (strcmp(a.attributes[i].attname, b.attributes[j].attname) == 0)
+		else if (strcmp(a->attributes[i].attname, b->attributes[j].attname) == 0)
 		{
 			/* same column name but different data types */
 			/*
@@ -1483,12 +1483,12 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 			 * XXX One day, this piece of code will be smarter to warn the OP
 			 * XXX that postgres cannot automagically convert that column.
 			 */
-			if (strcmp(a.attributes[i].atttypname, b.attributes[j].atttypname) != 0 ||
-					a.attributes[i].attnotnull != b.attributes[j].attnotnull)
+			if (strcmp(a->attributes[i].atttypname, b->attributes[j].atttypname) != 0 ||
+					a->attributes[i].attnotnull != b->attributes[j].attnotnull)
 			{
 				logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) altered to (%s)",
-						 a.obj.schemaname, a.obj.objectname,
-						 a.attributes[i].attname, a.attributes[i].atttypname, b.attributes[j].atttypname);
+						 a->obj.schemaname, a->obj.objectname,
+						 a->attributes[i].attname, a->attributes[i].atttypname, b->attributes[j].atttypname);
 
 				dumpAlterColumn(output, a, i, b, j);
 			}
@@ -1497,30 +1497,30 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 			dumpAlterColumnSetOptions(output, a, i, b, j);
 
 			/* column statistics changed */
-			if (a.attributes[i].attstattarget != b.attributes[j].attstattarget)
+			if (a->attributes[i].attstattarget != b->attributes[j].attstattarget)
 				dumpAlterColumnSetStatistics(output, b, j, true);
 
 			/* storage changed */
-			if (a.attributes[i].defstorage != b.attributes[j].defstorage)
+			if (a->attributes[i].defstorage != b->attributes[j].defstorage)
 				dumpAlterColumnSetStorage(output, b, j, true);
 
 			i++;
 			j++;
 		}
-		else if (strcmp(a.attributes[i].attname, b.attributes[j].attname) < 0)
+		else if (strcmp(a->attributes[i].attname, b->attributes[j].attname) < 0)
 		{
 			logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) removed",
-					 a.obj.schemaname, a.obj.objectname,
-					 a.attributes[i].attname, a.attributes[i].atttypname);
+					 a->obj.schemaname, a->obj.objectname,
+					 a->attributes[i].attname, a->attributes[i].atttypname);
 
 			dumpRemoveColumn(output, a, i);
 			i++;
 		}
-		else if (strcmp(a.attributes[i].attname, b.attributes[j].attname) > 0)
+		else if (strcmp(a->attributes[i].attname, b->attributes[j].attname) > 0)
 		{
 			logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) added",
-					 b.obj.schemaname, b.obj.objectname,
-					 b.attributes[j].attname, b.attributes[j].atttypname);
+					 b->obj.schemaname, b->obj.objectname,
+					 b->attributes[j].attname, b->attributes[j].atttypname);
 
 			dumpAddColumn(output, b, j);
 
@@ -1532,16 +1532,16 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 	}
 
 	/* reloptions */
-	if (a.reloptions == NULL && b.reloptions != NULL)
+	if (a->reloptions == NULL && b->reloptions != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TABLE %s.%s SET (%s);", schema2, tabname2, b.reloptions);
+		fprintf(output, "ALTER TABLE %s.%s SET (%s);", schema2, tabname2, b->reloptions);
 	}
-	else if (a.reloptions != NULL && b.reloptions == NULL)
+	else if (a->reloptions != NULL && b->reloptions == NULL)
 	{
 		stringList	*rlist;
 
-		rlist = setOperationOptions(a.reloptions, b.reloptions, PGQ_SETDIFFERENCE, false, true);
+		rlist = setOperationOptions(a->reloptions, b->reloptions, PGQ_SETDIFFERENCE, false, true);
 		if (rlist)
 		{
 			char	*resetlist;
@@ -1554,12 +1554,12 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 			freeStringList(rlist);
 		}
 	}
-	else if (a.reloptions != NULL && b.reloptions != NULL &&
-			 strcmp(a.reloptions, b.reloptions) != 0)
+	else if (a->reloptions != NULL && b->reloptions != NULL &&
+			 strcmp(a->reloptions, b->reloptions) != 0)
 	{
 		stringList	*rlist, *ilist, *slist;
 
-		rlist = setOperationOptions(a.reloptions, b.reloptions, PGQ_SETDIFFERENCE, false, true);
+		rlist = setOperationOptions(a->reloptions, b->reloptions, PGQ_SETDIFFERENCE, false, true);
 		if (rlist)
 		{
 			char	*resetlist;
@@ -1576,7 +1576,7 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 		 * Include intersection between option sets. However, exclude options
 		 * that don't change.
 		 */
-		ilist = setOperationOptions(a.reloptions, b.reloptions, PGQ_INTERSECT, true, true);
+		ilist = setOperationOptions(a->reloptions, b->reloptions, PGQ_INTERSECT, true, true);
 		if (ilist)
 		{
 			char	*setlist;
@@ -1592,7 +1592,7 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 		/*
 		 * Set options that are only presented in the second set.
 		 */
-		slist = setOperationOptions(b.reloptions, a.reloptions, PGQ_SETDIFFERENCE, true, true);
+		slist = setOperationOptions(b->reloptions, a->reloptions, PGQ_SETDIFFERENCE, true, true);
 		if (slist)
 		{
 			char	*setlist;
@@ -1612,11 +1612,11 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 	 * This feature is only emitted iif both servers support REPLICA IDENTITY.
 	 * Otherwise, users will be warned.
 	 */
-	if (a.relreplident != 'v' && b.relreplident != 'v')
+	if (a->relreplident != 'v' && b->relreplident != 'v')
 	{
-		if (a.relreplident != b.relreplident)
+		if (a->relreplident != b->relreplident)
 		{
-			switch (b.relreplident)
+			switch (b->relreplident)
 			{
 				char	*replident;
 				case 'n':
@@ -1632,13 +1632,13 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 					fprintf(output, "ALTER TABLE ONLY %s.%s REPLICA IDENTITY FULL;", schema2, tabname2);
 					break;
 				case 'i':
-					replident = formatObjectIdentifier(b.relreplidentidx);
+					replident = formatObjectIdentifier(b->relreplidentidx);
 					fprintf(output, "\n\n");
 					fprintf(output, "ALTER TABLE ONLY %s.%s REPLICA IDENTITY USING INDEX %s;", schema2, tabname2, replident);
 					free(replident);
 					break;
 				default:
-					logWarning("replica identity %c is invalid", b.relreplident);
+					logWarning("replica identity %c is invalid", b->relreplident);
 			}
 		}
 	}
@@ -1650,14 +1650,14 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 	/* comment */
 	if (options.comment)
 	{
-		if ((a.comment == NULL && b.comment != NULL) ||
-				(a.comment != NULL && b.comment != NULL &&
-				 strcmp(a.comment, b.comment) != 0))
+		if ((a->comment == NULL && b->comment != NULL) ||
+				(a->comment != NULL && b->comment != NULL &&
+				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TABLE %s.%s IS '%s';", schema2, tabname2, b.comment);
+			fprintf(output, "COMMENT ON TABLE %s.%s IS '%s';", schema2, tabname2, b->comment);
 		}
-		else if (a.comment != NULL && b.comment == NULL)
+		else if (a->comment != NULL && b->comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON TABLE %s.%s IS NULL;", schema2, tabname2);
@@ -1667,84 +1667,84 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 	/* security labels */
 	if (options.securitylabels)
 	{
-		if (a.seclabels == NULL && b.seclabels != NULL)
+		if (a->seclabels == NULL && b->seclabels != NULL)
 		{
-			for (i = 0; i < b.nseclabels; i++)
+			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS '%s';",
-						b.seclabels[i].provider,
+						b->seclabels[i].provider,
 						schema2,
 						tabname2,
-						b.seclabels[i].label);
+						b->seclabels[i].label);
 			}
 		}
-		else if (a.seclabels != NULL && b.seclabels == NULL)
+		else if (a->seclabels != NULL && b->seclabels == NULL)
 		{
-			for (i = 0; i < a.nseclabels; i++)
+			for (i = 0; i < a->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS NULL;",
-						a.seclabels[i].provider,
+						a->seclabels[i].provider,
 						schema1,
 						tabname1);
 			}
 		}
-		else if (a.seclabels != NULL && b.seclabels != NULL)
+		else if (a->seclabels != NULL && b->seclabels != NULL)
 		{
 			i = j = 0;
-			while (i < a.nseclabels || j < b.nseclabels)
+			while (i < a->nseclabels || j < b->nseclabels)
 			{
-				if (i == a.nseclabels)
+				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS '%s';",
-							b.seclabels[j].provider,
+							b->seclabels[j].provider,
 							schema2,
 							tabname2,
-							b.seclabels[j].label);
+							b->seclabels[j].label);
 					j++;
 				}
-				else if (j == b.nseclabels)
+				else if (j == b->nseclabels)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS NULL;",
-							a.seclabels[i].provider,
+							a->seclabels[i].provider,
 							schema1,
 							tabname1);
 					i++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) == 0)
 				{
-					if (strcmp(a.seclabels[i].label, b.seclabels[j].label) != 0)
+					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
 						fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS '%s';",
-								b.seclabels[j].provider,
+								b->seclabels[j].provider,
 								schema2,
 								tabname2,
-								b.seclabels[j].label);
+								b->seclabels[j].label);
 					}
 					i++;
 					j++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) < 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) < 0)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS NULL;",
-							a.seclabels[i].provider,
+							a->seclabels[i].provider,
 							schema1,
 							tabname1);
 					i++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS '%s';",
-							b.seclabels[j].provider,
+							b->seclabels[j].provider,
 							schema2,
 							tabname2,
-							b.seclabels[j].label);
+							b->seclabels[j].label);
 					j++;
 				}
 			}
@@ -1754,18 +1754,18 @@ dumpAlterTable(FILE *output, PQLTable a, PQLTable b)
 	/* owner */
 	if (options.owner)
 	{
-		if (strcmp(a.owner, b.owner) != 0)
+		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER TABLE %s.%s OWNER TO %s;", schema2, tabname2, b.owner);
+			fprintf(output, "ALTER TABLE %s.%s OWNER TO %s;", schema2, tabname2, b->owner);
 		}
 	}
 
 	/* privileges */
 	if (options.privileges)
 	{
-		if (a.acl != NULL || b.acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_TABLE, a.obj, b.obj, a.acl, b.acl, NULL);
+		if (a->acl != NULL || b->acl != NULL)
+			dumpGrantAndRevoke(output, PGQ_TABLE, &a->obj, &b->obj, a->acl, b->acl, NULL);
 	}
 
 	free(schema1);

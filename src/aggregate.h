@@ -32,12 +32,12 @@ typedef struct PQLAggregate
 } PQLAggregate;
 
 PQLAggregate *getAggregates(PGconn *c, int *n);
-int compareAggregates(PQLAggregate a, PQLAggregate b);
+int compareAggregates(PQLAggregate *a, PQLAggregate *b);
 void getAggregateSecurityLabels(PGconn *c, PQLAggregate *a);
 
-void dumpDropAggregate(FILE *output, PQLAggregate a);
-void dumpCreateAggregate(FILE *output, PQLAggregate a);
-void dumpAlterAggregate(FILE *output, PQLAggregate a, PQLAggregate b);
+void dumpDropAggregate(FILE *output, PQLAggregate *a);
+void dumpCreateAggregate(FILE *output, PQLAggregate *a);
+void dumpAlterAggregate(FILE *output, PQLAggregate *a, PQLAggregate *b);
 
 void freeAggregates(PQLAggregate *a, int n);
 

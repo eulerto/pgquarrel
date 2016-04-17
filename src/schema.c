@@ -148,9 +148,9 @@ freeSchemas(PQLSchema *s, int n)
 }
 
 void
-dumpDropSchema(FILE *output, PQLSchema s)
+dumpDropSchema(FILE *output, PQLSchema *s)
 {
-	char	*schemaname = formatObjectIdentifier(s.schemaname);
+	char	*schemaname = formatObjectIdentifier(s->schemaname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP SCHEMA %s;", schemaname);
@@ -159,32 +159,32 @@ dumpDropSchema(FILE *output, PQLSchema s)
 }
 
 void
-dumpCreateSchema(FILE *output, PQLSchema s)
+dumpCreateSchema(FILE *output, PQLSchema *s)
 {
-	char	*schemaname = formatObjectIdentifier(s.schemaname);
+	char	*schemaname = formatObjectIdentifier(s->schemaname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE SCHEMA %s;", schemaname);
 
 	/* comment */
-	if (options.comment && s.comment != NULL)
+	if (options.comment && s->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON SCHEMA %s IS '%s';", schemaname, s.comment);
+		fprintf(output, "COMMENT ON SCHEMA %s IS '%s';", schemaname, s->comment);
 	}
 
 	/* security labels */
-	if (options.securitylabels && s.nseclabels > 0)
+	if (options.securitylabels && s->nseclabels > 0)
 	{
 		int	i;
 
-		for (i = 0; i < s.nseclabels; i++)
+		for (i = 0; i < s->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "SECURITY LABEL FOR %s ON SCHEMA %s IS '%s';",
-					s.seclabels[i].provider,
+					s->seclabels[i].provider,
 					schemaname,
-					s.seclabels[i].label);
+					s->seclabels[i].label);
 		}
 	}
 
@@ -192,11 +192,11 @@ dumpCreateSchema(FILE *output, PQLSchema s)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER SCHEMA %s OWNER TO %s;", schemaname, s.owner);
+		fprintf(output, "ALTER SCHEMA %s OWNER TO %s;", schemaname, s->owner);
 	}
 
 	/* privileges */
-	/* XXX second s.obj isn't used. Add an invalid PQLObject? */
+	/* XXX second s->obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
 	{
 		PQLObject tmp;
@@ -206,21 +206,21 @@ dumpCreateSchema(FILE *output, PQLSchema s)
 		 * objectname as name.
 		 * */
 		tmp.schemaname = NULL;
-		tmp.objectname = s.schemaname;
+		tmp.objectname = s->schemaname;
 
-		dumpGrantAndRevoke(output, PGQ_SCHEMA, tmp, tmp, NULL, s.acl, NULL);
+		dumpGrantAndRevoke(output, PGQ_SCHEMA, &tmp, &tmp, NULL, s->acl, NULL);
 	}
 
 	free(schemaname);
 }
 
 void
-dumpAlterSchema(FILE *output, PQLSchema a, PQLSchema b)
+dumpAlterSchema(FILE *output, PQLSchema *a, PQLSchema *b)
 {
-	char	*schemaname1 = formatObjectIdentifier(a.schemaname);
-	char	*schemaname2 = formatObjectIdentifier(b.schemaname);
+	char	*schemaname1 = formatObjectIdentifier(a->schemaname);
+	char	*schemaname2 = formatObjectIdentifier(b->schemaname);
 
-	if (strcmp(a.schemaname, b.schemaname) != 0)
+	if (strcmp(a->schemaname, b->schemaname) != 0)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER SCHEMA %s RENAME TO %s;", schemaname1, schemaname2);
@@ -229,14 +229,14 @@ dumpAlterSchema(FILE *output, PQLSchema a, PQLSchema b)
 	/* comment */
 	if (options.comment)
 	{
-		if ((a.comment == NULL && b.comment != NULL) ||
-				(a.comment != NULL && b.comment != NULL &&
-				 strcmp(a.comment, b.comment) != 0))
+		if ((a->comment == NULL && b->comment != NULL) ||
+				(a->comment != NULL && b->comment != NULL &&
+				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON SCHEMA %s IS '%s';", schemaname2, b.comment);
+			fprintf(output, "COMMENT ON SCHEMA %s IS '%s';", schemaname2, b->comment);
 		}
-		else if (a.comment != NULL && b.comment == NULL)
+		else if (a->comment != NULL && b->comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON SCHEMA %s IS NULL;", schemaname2);
@@ -246,83 +246,83 @@ dumpAlterSchema(FILE *output, PQLSchema a, PQLSchema b)
 	/* security labels */
 	if (options.securitylabels)
 	{
-		if (a.seclabels == NULL && b.seclabels != NULL)
+		if (a->seclabels == NULL && b->seclabels != NULL)
 		{
 			int	i;
 
-			for (i = 0; i < b.nseclabels; i++)
+			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON SCHEMA %s IS '%s';",
-						b.seclabels[i].provider,
+						b->seclabels[i].provider,
 						schemaname2,
-						b.seclabels[i].label);
+						b->seclabels[i].label);
 			}
 		}
-		else if (a.seclabels != NULL && b.seclabels == NULL)
+		else if (a->seclabels != NULL && b->seclabels == NULL)
 		{
 			int	i;
 
-			for (i = 0; i < a.nseclabels; i++)
+			for (i = 0; i < a->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON SCHEMA %s IS NULL;",
-						a.seclabels[i].provider,
+						a->seclabels[i].provider,
 						schemaname1);
 			}
 		}
-		else if (a.seclabels != NULL && b.seclabels != NULL)
+		else if (a->seclabels != NULL && b->seclabels != NULL)
 		{
 			int	i, j;
 
 			i = j = 0;
-			while (i < a.nseclabels || j < b.nseclabels)
+			while (i < a->nseclabels || j < b->nseclabels)
 			{
-				if (i == a.nseclabels)
+				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON SCHEMA %s IS '%s';",
-							b.seclabels[j].provider,
+							b->seclabels[j].provider,
 							schemaname2,
-							b.seclabels[j].label);
+							b->seclabels[j].label);
 					j++;
 				}
-				else if (j == b.nseclabels)
+				else if (j == b->nseclabels)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON SCHEMA %s IS NULL;",
-							a.seclabels[i].provider,
+							a->seclabels[i].provider,
 							schemaname1);
 					i++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) == 0)
 				{
-					if (strcmp(a.seclabels[i].label, b.seclabels[j].label) != 0)
+					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
 						fprintf(output, "SECURITY LABEL FOR %s ON SCHEMA %s IS '%s';",
-								b.seclabels[j].provider,
+								b->seclabels[j].provider,
 								schemaname2,
-								b.seclabels[j].label);
+								b->seclabels[j].label);
 					}
 					i++;
 					j++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) < 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) < 0)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON SCHEMA %s IS NULL;",
-							a.seclabels[i].provider,
+							a->seclabels[i].provider,
 							schemaname1);
 					i++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON SCHEMA %s IS '%s';",
-							b.seclabels[j].provider,
+							b->seclabels[j].provider,
 							schemaname2,
-							b.seclabels[j].label);
+							b->seclabels[j].label);
 					j++;
 				}
 			}
@@ -332,10 +332,10 @@ dumpAlterSchema(FILE *output, PQLSchema a, PQLSchema b)
 	/* owner */
 	if (options.owner)
 	{
-		if (strcmp(a.owner, b.owner) != 0)
+		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER SCHEMA %s OWNER TO %s;", schemaname2, b.owner);
+			fprintf(output, "ALTER SCHEMA %s OWNER TO %s;", schemaname2, b->owner);
 		}
 	}
 
@@ -349,12 +349,12 @@ dumpAlterSchema(FILE *output, PQLSchema a, PQLSchema b)
 		 * objectname as name.
 		 * */
 		tmpa.schemaname = NULL;
-		tmpa.objectname = a.schemaname;
+		tmpa.objectname = a->schemaname;
 		tmpb.schemaname = NULL;
-		tmpb.objectname = b.schemaname;
+		tmpb.objectname = b->schemaname;
 
-		if (a.acl != NULL || b.acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_SCHEMA, tmpa, tmpb, a.acl, b.acl, NULL);
+		if (a->acl != NULL || b->acl != NULL)
+			dumpGrantAndRevoke(output, PGQ_SCHEMA, &tmpa, &tmpb, a->acl, b->acl, NULL);
 	}
 
 	free(schemaname1);

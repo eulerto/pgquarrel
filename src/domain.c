@@ -266,59 +266,59 @@ freeDomains(PQLDomain *d, int n)
 }
 
 void
-dumpCreateDomain(FILE *output, PQLDomain d)
+dumpCreateDomain(FILE *output, PQLDomain *d)
 {
 	int		i;
-	char	*schema = formatObjectIdentifier(d.obj.schemaname);
-	char	*domname = formatObjectIdentifier(d.obj.objectname);
+	char	*schema = formatObjectIdentifier(d->obj.schemaname);
+	char	*domname = formatObjectIdentifier(d->obj.objectname);
 
 
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE DOMAIN %s.%s AS %s",
 			schema,
 			domname,
-			d.domaindef);
+			d->domaindef);
 
-	if (d.collation != NULL)
+	if (d->collation != NULL)
 	{
 		/* collation namespace is already included */
-		fprintf(output, " COLLATE %s", d.collation);
+		fprintf(output, " COLLATE %s", d->collation);
 	}
 
-	if (d.notnull)
+	if (d->notnull)
 		fprintf(output, " NOT NULL");
 
-	if (d.ddefault != NULL)
-		fprintf(output, " DEFAULT %s", d.ddefault);
+	if (d->ddefault != NULL)
+		fprintf(output, " DEFAULT %s", d->ddefault);
 
 	/* CHECK constraint */
 	/* XXX consider dump it separately? */
-	for (i = 0; i < d.ncheck; i++)
-		fprintf(output, "\n\tCONSTRAINT %s %s", d.check[i].conname, d.check[i].condef);
+	for (i = 0; i < d->ncheck; i++)
+		fprintf(output, "\n\tCONSTRAINT %s %s", d->check[i].conname, d->check[i].condef);
 
 	fprintf(output, ";");
 
 	/* comment */
-	if (options.comment && d.comment != NULL)
+	if (options.comment && d->comment != NULL)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "COMMENT ON DOMAIN %s.%s IS '%s';",
 				schema,
 				domname,
-				d.comment);
+				d->comment);
 	}
 
 	/* security labels */
-	if (options.securitylabels && d.nseclabels > 0)
+	if (options.securitylabels && d->nseclabels > 0)
 	{
-		for (i = 0; i < d.nseclabels; i++)
+		for (i = 0; i < d->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
-					d.seclabels[i].provider,
+					d->seclabels[i].provider,
 					schema,
 					domname,
-					d.seclabels[i].label);
+					d->seclabels[i].label);
 		}
 	}
 
@@ -329,23 +329,23 @@ dumpCreateDomain(FILE *output, PQLDomain d)
 		fprintf(output, "ALTER DOMAIN %s.%s OWNER TO %s;",
 				schema,
 				domname,
-				d.owner);
+				d->owner);
 	}
 
 	/* privileges */
-	/* XXX second s.obj isn't used. Add an invalid PQLObject? */
+	/* XXX second d->obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
-		dumpGrantAndRevoke(output, PGQ_DOMAIN, d.obj, d.obj, NULL, d.acl, NULL);
+		dumpGrantAndRevoke(output, PGQ_DOMAIN, &d->obj, &d->obj, NULL, d->acl, NULL);
 
 	free(schema);
 	free(domname);
 }
 
 void
-dumpDropDomain(FILE *output, PQLDomain d)
+dumpDropDomain(FILE *output, PQLDomain *d)
 {
-	char	*schema = formatObjectIdentifier(d.obj.schemaname);
-	char	*domname = formatObjectIdentifier(d.obj.objectname);
+	char	*schema = formatObjectIdentifier(d->obj.schemaname);
+	char	*domname = formatObjectIdentifier(d->obj.objectname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP DOMAIN %s.%s;", schema, domname);
@@ -355,35 +355,35 @@ dumpDropDomain(FILE *output, PQLDomain d)
 }
 
 void
-dumpAlterDomain(FILE *output, PQLDomain a, PQLDomain b)
+dumpAlterDomain(FILE *output, PQLDomain *a, PQLDomain *b)
 {
-	char	*schema1 = formatObjectIdentifier(a.obj.schemaname);
-	char	*domname1 = formatObjectIdentifier(a.obj.objectname);
-	char	*schema2 = formatObjectIdentifier(b.obj.schemaname);
-	char	*domname2 = formatObjectIdentifier(b.obj.objectname);
+	char	*schema1 = formatObjectIdentifier(a->obj.schemaname);
+	char	*domname1 = formatObjectIdentifier(a->obj.objectname);
+	char	*schema2 = formatObjectIdentifier(b->obj.schemaname);
+	char	*domname2 = formatObjectIdentifier(b->obj.objectname);
 
-	if ((a.ddefault == NULL && b.ddefault != NULL) ||
-			(a.ddefault != NULL && b.ddefault == NULL) ||
-			(a.ddefault != NULL && b.ddefault != NULL &&
-			 strcmp(a.ddefault, b.ddefault) != 0))
+	if ((a->ddefault == NULL && b->ddefault != NULL) ||
+			(a->ddefault != NULL && b->ddefault == NULL) ||
+			(a->ddefault != NULL && b->ddefault != NULL &&
+			 strcmp(a->ddefault, b->ddefault) != 0))
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER DOMAIN %s.%s", schema2, domname2);
 
-		if (b.ddefault != NULL)
-			fprintf(output, " SET DEFAULT %s", b.ddefault);
+		if (b->ddefault != NULL)
+			fprintf(output, " SET DEFAULT %s", b->ddefault);
 		else
 			fprintf(output, " DROP DEFAULT");
 
 		fprintf(output, ";");
 	}
 
-	if (a.notnull != b.notnull)
+	if (a->notnull != b->notnull)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER DOMAIN %s.%s", schema2, domname2);
 
-		if (b.notnull)
+		if (b->notnull)
 			fprintf(output, " SET NOT NULL");
 		else
 			fprintf(output, " DROP NOT NULL");
@@ -394,17 +394,17 @@ dumpAlterDomain(FILE *output, PQLDomain a, PQLDomain b)
 	/* comment */
 	if (options.comment)
 	{
-		if ((a.comment == NULL && b.comment != NULL) ||
-				(a.comment != NULL && b.comment != NULL &&
-				 strcmp(a.comment, b.comment) != 0))
+		if ((a->comment == NULL && b->comment != NULL) ||
+				(a->comment != NULL && b->comment != NULL &&
+				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON DOMAIN %s.%s IS '%s';",
 					schema2,
 					domname2,
-					b.comment);
+					b->comment);
 		}
-		else if (a.comment != NULL && b.comment == NULL)
+		else if (a->comment != NULL && b->comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON DOMAIN %s.%s IS NULL;",
@@ -416,90 +416,90 @@ dumpAlterDomain(FILE *output, PQLDomain a, PQLDomain b)
 	/* security labels */
 	if (options.securitylabels)
 	{
-		if (a.seclabels == NULL && b.seclabels != NULL)
+		if (a->seclabels == NULL && b->seclabels != NULL)
 		{
 			int	i;
 
-			for (i = 0; i < b.nseclabels; i++)
+			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
-						b.seclabels[i].provider,
+						b->seclabels[i].provider,
 						schema2,
 						domname2,
-						b.seclabels[i].label);
+						b->seclabels[i].label);
 			}
 		}
-		else if (a.seclabels != NULL && b.seclabels == NULL)
+		else if (a->seclabels != NULL && b->seclabels == NULL)
 		{
 			int	i;
 
-			for (i = 0; i < a.nseclabels; i++)
+			for (i = 0; i < a->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS NULL;",
-						a.seclabels[i].provider,
+						a->seclabels[i].provider,
 						schema1,
 						domname1);
 			}
 		}
-		else if (a.seclabels != NULL && b.seclabels != NULL)
+		else if (a->seclabels != NULL && b->seclabels != NULL)
 		{
 			int	i, j;
 
 			i = j = 0;
-			while (i < a.nseclabels || j < b.nseclabels)
+			while (i < a->nseclabels || j < b->nseclabels)
 			{
-				if (i == a.nseclabels)
+				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
-							b.seclabels[j].provider,
+							b->seclabels[j].provider,
 							schema2,
 							domname2,
-							b.seclabels[j].label);
+							b->seclabels[j].label);
 					j++;
 				}
-				else if (j == b.nseclabels)
+				else if (j == b->nseclabels)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS NULL;",
-							a.seclabels[i].provider,
+							a->seclabels[i].provider,
 							schema1,
 							domname1);
 					i++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) == 0)
 				{
-					if (strcmp(a.seclabels[i].label, b.seclabels[j].label) != 0)
+					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
 						fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
-								b.seclabels[j].provider,
+								b->seclabels[j].provider,
 								schema2,
 								domname2,
-								b.seclabels[j].label);
+								b->seclabels[j].label);
 					}
 					i++;
 					j++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) < 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) < 0)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS NULL;",
-							a.seclabels[i].provider,
+							a->seclabels[i].provider,
 							schema1,
 							domname1);
 					i++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
-							b.seclabels[j].provider,
+							b->seclabels[j].provider,
 							schema2,
 							domname2,
-							b.seclabels[j].label);
+							b->seclabels[j].label);
 					j++;
 				}
 			}
@@ -509,21 +509,21 @@ dumpAlterDomain(FILE *output, PQLDomain a, PQLDomain b)
 	/* owner */
 	if (options.owner)
 	{
-		if (strcmp(a.owner, b.owner) != 0)
+		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER DOMAIN %s.%s OWNER TO %s;",
 					schema2,
 					domname2,
-					b.owner);
+					b->owner);
 		}
 	}
 
 	/* privileges */
 	if (options.privileges)
 	{
-		if (a.acl != NULL || b.acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_DOMAIN, a.obj, b.obj, a.acl, b.acl, NULL);
+		if (a->acl != NULL || b->acl != NULL)
+			dumpGrantAndRevoke(output, PGQ_DOMAIN, &a->obj, &b->obj, a->acl, b->acl, NULL);
 	}
 
 	free(schema1);

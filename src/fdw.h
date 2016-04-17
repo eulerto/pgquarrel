@@ -19,10 +19,10 @@ typedef struct PQLForeignDataWrapper
 
 PQLForeignDataWrapper *getForeignDataWrappers(PGconn *c, int *n);
 
-void dumpDropForeignDataWrapper(FILE *output, PQLForeignDataWrapper f);
-void dumpCreateForeignDataWrapper(FILE *output, PQLForeignDataWrapper f);
-void dumpAlterForeignDataWrapper(FILE *output, PQLForeignDataWrapper a,
-							   PQLForeignDataWrapper b);
+void dumpDropForeignDataWrapper(FILE *output, PQLForeignDataWrapper *f);
+void dumpCreateForeignDataWrapper(FILE *output, PQLForeignDataWrapper *f);
+void dumpAlterForeignDataWrapper(FILE *output, PQLForeignDataWrapper *a,
+							   PQLForeignDataWrapper *b);
 
 void freeForeignDataWrappers(PQLForeignDataWrapper *f, int n);
 

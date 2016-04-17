@@ -426,7 +426,7 @@ quarrelAggregates()
 
 			getAggregateSecurityLabels(conn2, &aggregates2[j]);
 
-			dumpCreateAggregate(fpre, aggregates2[j]);
+			dumpCreateAggregate(fpre, &aggregates2[j]);
 
 			j++;
 			qstat.aggadded++;
@@ -437,12 +437,12 @@ quarrelAggregates()
 			logDebug("aggregate %s.%s(%s): server1", aggregates1[i].obj.schemaname,
 					 aggregates1[i].obj.objectname, aggregates1[i].arguments);
 
-			dumpDropAggregate(fpost, aggregates1[i]);
+			dumpDropAggregate(fpost, &aggregates1[i]);
 
 			i++;
 			qstat.aggremoved++;
 		}
-		else if (compareAggregates(aggregates1[i], aggregates2[j]) == 0)
+		else if (compareAggregates(&aggregates1[i], &aggregates2[j]) == 0)
 		{
 			logDebug("aggregate %s.%s(%s): server1 server2", aggregates1[i].obj.schemaname,
 					 aggregates1[i].obj.objectname, aggregates1[i].arguments);
@@ -450,29 +450,29 @@ quarrelAggregates()
 			getAggregateSecurityLabels(conn1, &aggregates1[i]);
 			getAggregateSecurityLabels(conn2, &aggregates2[j]);
 
-			dumpAlterAggregate(fpre, aggregates1[i], aggregates2[j]);
+			dumpAlterAggregate(fpre, &aggregates1[i], &aggregates2[j]);
 
 			i++;
 			j++;
 		}
-		else if (compareAggregates(aggregates1[i], aggregates2[j]) < 0)
+		else if (compareAggregates(&aggregates1[i], &aggregates2[j]) < 0)
 		{
 			logDebug("aggregate %s.%s(%s): server1", aggregates1[i].obj.schemaname,
 					 aggregates1[i].obj.objectname, aggregates1[i].arguments);
 
-			dumpDropAggregate(fpost, aggregates1[i]);
+			dumpDropAggregate(fpost, &aggregates1[i]);
 
 			i++;
 			qstat.aggremoved++;
 		}
-		else if (compareAggregates(aggregates1[i], aggregates2[j]) > 0)
+		else if (compareAggregates(&aggregates1[i], &aggregates2[j]) > 0)
 		{
 			logDebug("aggregate %s.%s(%s): server2", aggregates2[j].obj.schemaname,
 					 aggregates2[j].obj.objectname, aggregates2[j].arguments);
 
 			getAggregateSecurityLabels(conn2, &aggregates2[j]);
 
-			dumpCreateAggregate(fpre, aggregates2[j]);
+			dumpCreateAggregate(fpre, &aggregates2[j]);
 
 			j++;
 			qstat.aggadded++;
@@ -516,7 +516,7 @@ quarrelCasts()
 		{
 			logDebug("cast %s AS %s: server2", casts2[j].source, casts2[j].target);
 
-			dumpCreateCast(fpre, casts2[j]);
+			dumpCreateCast(fpre, &casts2[j]);
 
 			j++;
 			qstat.castadded++;
@@ -526,34 +526,34 @@ quarrelCasts()
 		{
 			logDebug("cast %s AS %s: server1", casts1[i].source, casts1[i].target);
 
-			dumpDropCast(fpost, casts1[i]);
+			dumpDropCast(fpost, &casts1[i]);
 
 			i++;
 			qstat.castremoved++;
 		}
-		else if (compareCasts(casts1[i], casts2[j]) == 0)
+		else if (compareCasts(&casts1[i], &casts2[j]) == 0)
 		{
 			logDebug("cast %s AS %s: server1 server2", casts1[i].source, casts1[i].target);
 
-			dumpAlterCast(fpre, casts1[i], casts2[j]);
+			dumpAlterCast(fpre, &casts1[i], &casts2[j]);
 
 			i++;
 			j++;
 		}
-		else if (compareCasts(casts1[i], casts2[j]) < 0)
+		else if (compareCasts(&casts1[i], &casts2[j]) < 0)
 		{
 			logDebug("cast %s AS %s: server1", casts1[i].source, casts1[i].target);
 
-			dumpDropCast(fpost, casts1[i]);
+			dumpDropCast(fpost, &casts1[i]);
 
 			i++;
 			qstat.castremoved++;
 		}
-		else if (compareCasts(casts1[i], casts2[j]) > 0)
+		else if (compareCasts(&casts1[i], &casts2[j]) > 0)
 		{
 			logDebug("cast %s AS %s: server2", casts2[j].source, casts2[j].target);
 
-			dumpCreateCast(fpre, casts2[j]);
+			dumpCreateCast(fpre, &casts2[j]);
 
 			j++;
 			qstat.castadded++;
@@ -600,7 +600,7 @@ quarrelCollations()
 			logDebug("collation %s.%s: server2", collations2[j].obj.schemaname,
 					 collations2[j].obj.objectname);
 
-			dumpCreateCollation(fpre, collations2[j]);
+			dumpCreateCollation(fpre, &collations2[j]);
 
 			j++;
 			qstat.collationadded++;
@@ -611,37 +611,37 @@ quarrelCollations()
 			logDebug("collation %s.%s: server1", collations1[i].obj.schemaname,
 					 collations1[i].obj.objectname);
 
-			dumpDropCollation(fpost, collations1[i]);
+			dumpDropCollation(fpost, &collations1[i]);
 
 			i++;
 			qstat.collationremoved++;
 		}
-		else if (compareRelations(collations1[i].obj, collations2[j].obj) == 0)
+		else if (compareRelations(&collations1[i].obj, &collations2[j].obj) == 0)
 		{
 			logDebug("collation %s.%s: server1 server2", collations1[i].obj.schemaname,
 					 collations1[i].obj.objectname);
 
-			dumpAlterCollation(fpre, collations1[i], collations2[j]);
+			dumpAlterCollation(fpre, &collations1[i], &collations2[j]);
 
 			i++;
 			j++;
 		}
-		else if (compareRelations(collations1[i].obj, collations2[j].obj) < 0)
+		else if (compareRelations(&collations1[i].obj, &collations2[j].obj) < 0)
 		{
 			logDebug("collation %s.%s: server1", collations1[i].obj.schemaname,
 					 collations1[i].obj.objectname);
 
-			dumpDropCollation(fpost, collations1[i]);
+			dumpDropCollation(fpost, &collations1[i]);
 
 			i++;
 			qstat.collationremoved++;
 		}
-		else if (compareRelations(collations1[i].obj, collations2[j].obj) > 0)
+		else if (compareRelations(&collations1[i].obj, &collations2[j].obj) > 0)
 		{
 			logDebug("collation %s.%s: server2", collations2[j].obj.schemaname,
 					 collations2[j].obj.objectname);
 
-			dumpCreateCollation(fpre, collations2[j]);
+			dumpCreateCollation(fpre, &collations2[j]);
 
 			j++;
 			qstat.collationadded++;
@@ -687,7 +687,7 @@ quarrelConversions()
 			logDebug("conversion %s.%s: server2", conversions2[j].obj.schemaname,
 					 conversions2[j].obj.objectname);
 
-			dumpCreateConversion(fpre, conversions2[j]);
+			dumpCreateConversion(fpre, &conversions2[j]);
 
 			j++;
 			qstat.conversionadded++;
@@ -698,37 +698,37 @@ quarrelConversions()
 			logDebug("conversion %s.%s: server1", conversions1[i].obj.schemaname,
 					 conversions1[i].obj.objectname);
 
-			dumpDropConversion(fpost, conversions1[i]);
+			dumpDropConversion(fpost, &conversions1[i]);
 
 			i++;
 			qstat.conversionremoved++;
 		}
-		else if (compareRelations(conversions1[i].obj, conversions2[j].obj) == 0)
+		else if (compareRelations(&conversions1[i].obj, &conversions2[j].obj) == 0)
 		{
 			logDebug("conversion %s.%s: server1 server2", conversions1[i].obj.schemaname,
 					 conversions1[i].obj.objectname);
 
-			dumpAlterConversion(fpre, conversions1[i], conversions2[j]);
+			dumpAlterConversion(fpre, &conversions1[i], &conversions2[j]);
 
 			i++;
 			j++;
 		}
-		else if (compareRelations(conversions1[i].obj, conversions2[j].obj) < 0)
+		else if (compareRelations(&conversions1[i].obj, &conversions2[j].obj) < 0)
 		{
 			logDebug("conversion %s.%s: server1", conversions1[i].obj.schemaname,
 					 conversions1[i].obj.objectname);
 
-			dumpDropConversion(fpost, conversions1[i]);
+			dumpDropConversion(fpost, &conversions1[i]);
 
 			i++;
 			qstat.conversionremoved++;
 		}
-		else if (compareRelations(conversions1[i].obj, conversions2[j].obj) > 0)
+		else if (compareRelations(&conversions1[i].obj, &conversions2[j].obj) > 0)
 		{
 			logDebug("conversion %s.%s: server2", conversions2[j].obj.schemaname,
 					 conversions2[j].obj.objectname);
 
-			dumpCreateConversion(fpre, conversions2[j]);
+			dumpCreateConversion(fpre, &conversions2[j]);
 
 			j++;
 			qstat.conversionadded++;
@@ -778,7 +778,7 @@ quarrelDomains()
 			getDomainConstraints(conn2, &domains2[j]);
 			getDomainSecurityLabels(conn2, &domains2[j]);
 
-			dumpCreateDomain(fpre, domains2[j]);
+			dumpCreateDomain(fpre, &domains2[j]);
 
 			j++;
 			qstat.domainadded++;
@@ -789,12 +789,12 @@ quarrelDomains()
 			logDebug("domain %s.%s: server1", domains1[i].obj.schemaname,
 					 domains1[i].obj.objectname);
 
-			dumpDropDomain(fpost, domains1[i]);
+			dumpDropDomain(fpost, &domains1[i]);
 
 			i++;
 			qstat.domainremoved++;
 		}
-		else if (compareRelations(domains1[i].obj, domains2[j].obj) == 0)
+		else if (compareRelations(&domains1[i].obj, &domains2[j].obj) == 0)
 		{
 			logDebug("domain %s.%s: server1 server2", domains1[i].obj.schemaname,
 					 domains1[i].obj.objectname);
@@ -804,22 +804,22 @@ quarrelDomains()
 			getDomainSecurityLabels(conn1, &domains1[i]);
 			getDomainSecurityLabels(conn2, &domains2[j]);
 
-			dumpAlterDomain(fpre, domains1[i], domains2[j]);
+			dumpAlterDomain(fpre, &domains1[i], &domains2[j]);
 
 			i++;
 			j++;
 		}
-		else if (compareRelations(domains1[i].obj, domains2[j].obj) < 0)
+		else if (compareRelations(&domains1[i].obj, &domains2[j].obj) < 0)
 		{
 			logDebug("domain %s.%s: server1", domains1[i].obj.schemaname,
 					 domains1[i].obj.objectname);
 
-			dumpDropDomain(fpost, domains1[i]);
+			dumpDropDomain(fpost, &domains1[i]);
 
 			i++;
 			qstat.domainremoved++;
 		}
-		else if (compareRelations(domains1[i].obj, domains2[j].obj) > 0)
+		else if (compareRelations(&domains1[i].obj, &domains2[j].obj) > 0)
 		{
 			logDebug("domain %s.%s: server2", domains2[j].obj.schemaname,
 					 domains2[j].obj.objectname);
@@ -827,7 +827,7 @@ quarrelDomains()
 			getDomainConstraints(conn2, &domains2[j]);
 			getDomainSecurityLabels(conn2, &domains2[j]);
 
-			dumpCreateDomain(fpre, domains2[j]);
+			dumpCreateDomain(fpre, &domains2[j]);
 
 			j++;
 			qstat.domainadded++;
@@ -872,7 +872,7 @@ quarrelEventTriggers()
 
 			getEventTriggerSecurityLabels(conn2, &evttrgs2[j]);
 
-			dumpCreateEventTrigger(fpre, evttrgs2[j]);
+			dumpCreateEventTrigger(fpre, &evttrgs2[j]);
 
 			j++;
 			qstat.evttrgadded++;
@@ -882,7 +882,7 @@ quarrelEventTriggers()
 		{
 			logDebug("event trigger %s: server1", evttrgs1[i].trgname);
 
-			dumpDropEventTrigger(fpost, evttrgs1[i]);
+			dumpDropEventTrigger(fpost, &evttrgs1[i]);
 
 			i++;
 			qstat.evttrgremoved++;
@@ -894,7 +894,7 @@ quarrelEventTriggers()
 			getEventTriggerSecurityLabels(conn1, &evttrgs1[i]);
 			getEventTriggerSecurityLabels(conn2, &evttrgs2[j]);
 
-			dumpAlterEventTrigger(fpre, evttrgs1[i], evttrgs2[j]);
+			dumpAlterEventTrigger(fpre, &evttrgs1[i], &evttrgs2[j]);
 
 			i++;
 			j++;
@@ -903,7 +903,7 @@ quarrelEventTriggers()
 		{
 			logDebug("event trigger %s: server1", evttrgs1[i].trgname);
 
-			dumpDropEventTrigger(fpost, evttrgs1[i]);
+			dumpDropEventTrigger(fpost, &evttrgs1[i]);
 
 			i++;
 			qstat.evttrgremoved++;
@@ -914,7 +914,7 @@ quarrelEventTriggers()
 
 			getEventTriggerSecurityLabels(conn2, &evttrgs2[j]);
 
-			dumpCreateEventTrigger(fpre, evttrgs2[j]);
+			dumpCreateEventTrigger(fpre, &evttrgs2[j]);
 
 			j++;
 			qstat.evttrgadded++;
@@ -957,7 +957,7 @@ quarrelExtensions()
 		{
 			logDebug("extension %s: server2", extensions2[j].extensionname);
 
-			dumpCreateExtension(fpre, extensions2[j]);
+			dumpCreateExtension(fpre, &extensions2[j]);
 
 			j++;
 			qstat.extensionadded++;
@@ -967,7 +967,7 @@ quarrelExtensions()
 		{
 			logDebug("extension %s: server1", extensions1[i].extensionname);
 
-			dumpDropExtension(fpost, extensions1[i]);
+			dumpDropExtension(fpost, &extensions1[i]);
 
 			i++;
 			qstat.extensionremoved++;
@@ -977,7 +977,7 @@ quarrelExtensions()
 		{
 			logDebug("extension %s: server1 server2", extensions1[i].extensionname);
 
-			dumpAlterExtension(fpre, extensions1[i], extensions2[j]);
+			dumpAlterExtension(fpre, &extensions1[i], &extensions2[j]);
 
 			i++;
 			j++;
@@ -986,7 +986,7 @@ quarrelExtensions()
 		{
 			logDebug("extension %s: server1", extensions1[i].extensionname);
 
-			dumpDropExtension(fpost, extensions1[i]);
+			dumpDropExtension(fpost, &extensions1[i]);
 
 			i++;
 			qstat.extensionremoved++;
@@ -995,7 +995,7 @@ quarrelExtensions()
 		{
 			logDebug("extension %s: server2", extensions2[j].extensionname);
 
-			dumpCreateExtension(fpre, extensions2[j]);
+			dumpCreateExtension(fpre, &extensions2[j]);
 
 			j++;
 			qstat.extensionadded++;
@@ -1038,7 +1038,7 @@ quarrelForeignDataWrappers()
 		{
 			logDebug("fdw %s: server2", fdws2[j].fdwname);
 
-			dumpCreateForeignDataWrapper(fpre, fdws2[j]);
+			dumpCreateForeignDataWrapper(fpre, &fdws2[j]);
 
 			j++;
 			qstat.fdwadded++;
@@ -1048,7 +1048,7 @@ quarrelForeignDataWrappers()
 		{
 			logDebug("fdw %s: server1", fdws1[i].fdwname);
 
-			dumpDropForeignDataWrapper(fpost, fdws1[i]);
+			dumpDropForeignDataWrapper(fpost, &fdws1[i]);
 
 			i++;
 			qstat.fdwremoved++;
@@ -1058,7 +1058,7 @@ quarrelForeignDataWrappers()
 		{
 			logDebug("fdw %s: server1 server2", fdws1[i].fdwname);
 
-			dumpAlterForeignDataWrapper(fpre, fdws1[i], fdws2[j]);
+			dumpAlterForeignDataWrapper(fpre, &fdws1[i], &fdws2[j]);
 
 			i++;
 			j++;
@@ -1067,7 +1067,7 @@ quarrelForeignDataWrappers()
 		{
 			logDebug("fdw %s: server1", fdws1[i].fdwname);
 
-			dumpDropForeignDataWrapper(fpost, fdws1[i]);
+			dumpDropForeignDataWrapper(fpost, &fdws1[i]);
 
 			i++;
 			qstat.fdwremoved++;
@@ -1076,7 +1076,7 @@ quarrelForeignDataWrappers()
 		{
 			logDebug("fdw %s: server2", fdws2[j].fdwname);
 
-			dumpCreateForeignDataWrapper(fpre, fdws2[j]);
+			dumpCreateForeignDataWrapper(fpre, &fdws2[j]);
 
 			j++;
 			qstat.fdwadded++;
@@ -1119,7 +1119,7 @@ quarrelForeignServers()
 		{
 			logDebug("server %s: server2", servers2[j].servername);
 
-			dumpCreateForeignServer(fpre, servers2[j]);
+			dumpCreateForeignServer(fpre, &servers2[j]);
 
 			j++;
 			qstat.serveradded++;
@@ -1129,7 +1129,7 @@ quarrelForeignServers()
 		{
 			logDebug("server %s: server1", servers1[i].servername);
 
-			dumpDropForeignServer(fpost, servers1[i]);
+			dumpDropForeignServer(fpost, &servers1[i]);
 
 			i++;
 			qstat.serverremoved++;
@@ -1139,7 +1139,7 @@ quarrelForeignServers()
 		{
 			logDebug("server %s: server1 server2", servers1[i].servername);
 
-			dumpAlterForeignServer(fpre, servers1[i], servers2[j]);
+			dumpAlterForeignServer(fpre, &servers1[i], &servers2[j]);
 
 			i++;
 			j++;
@@ -1148,7 +1148,7 @@ quarrelForeignServers()
 		{
 			logDebug("server %s: server1", servers1[i].servername);
 
-			dumpDropForeignServer(fpost, servers1[i]);
+			dumpDropForeignServer(fpost, &servers1[i]);
 
 			i++;
 			qstat.serverremoved++;
@@ -1157,7 +1157,7 @@ quarrelForeignServers()
 		{
 			logDebug("server %s: server2", servers2[j].servername);
 
-			dumpCreateForeignServer(fpre, servers2[j]);
+			dumpCreateForeignServer(fpre, &servers2[j]);
 
 			j++;
 			qstat.serveradded++;
@@ -1207,7 +1207,7 @@ quarrelFunctions()
 
 			getFunctionSecurityLabels(conn2, &functions2[j]);
 
-			dumpCreateFunction(fpre, functions2[j], false);
+			dumpCreateFunction(fpre, &functions2[j], false);
 
 			j++;
 			qstat.functionadded++;
@@ -1218,12 +1218,12 @@ quarrelFunctions()
 			logDebug("function %s.%s(%s): server1", functions1[i].obj.schemaname,
 					 functions1[i].obj.objectname, functions1[i].arguments);
 
-			dumpDropFunction(fpost, functions1[i]);
+			dumpDropFunction(fpost, &functions1[i]);
 
 			i++;
 			qstat.functionremoved++;
 		}
-		else if (compareFunctions(functions1[i], functions2[j]) == 0)
+		else if (compareFunctions(&functions1[i], &functions2[j]) == 0)
 		{
 			logDebug("function %s.%s(%s): server1 server2", functions1[i].obj.schemaname,
 					 functions1[i].obj.objectname, functions1[i].arguments);
@@ -1236,34 +1236,34 @@ quarrelFunctions()
 			 * because there is no ALTER FUNCTION command for it.
 			 */
 			if (strcmp(functions1[i].returntype, functions2[j].returntype) == 0)
-				dumpAlterFunction(fpre, functions1[i], functions2[j]);
+				dumpAlterFunction(fpre, &functions1[i], &functions2[j]);
 			else
 			{
-				dumpDropFunction(fpre, functions1[i]);
-				dumpCreateFunction(fpre, functions2[j], false);
+				dumpDropFunction(fpre, &functions1[i]);
+				dumpCreateFunction(fpre, &functions2[j], false);
 			}
 
 			i++;
 			j++;
 		}
-		else if (compareFunctions(functions1[i], functions2[j]) < 0)
+		else if (compareFunctions(&functions1[i], &functions2[j]) < 0)
 		{
 			logDebug("function %s.%s(%s): server1", functions1[i].obj.schemaname,
 					 functions1[i].obj.objectname, functions1[i].arguments);
 
-			dumpDropFunction(fpost, functions1[i]);
+			dumpDropFunction(fpost, &functions1[i]);
 
 			i++;
 			qstat.functionremoved++;
 		}
-		else if (compareFunctions(functions1[i], functions2[j]) > 0)
+		else if (compareFunctions(&functions1[i], &functions2[j]) > 0)
 		{
 			logDebug("function %s.%s(%s): server2", functions2[j].obj.schemaname,
 					 functions2[j].obj.objectname, functions2[j].arguments);
 
 			getFunctionSecurityLabels(conn2, &functions2[j]);
 
-			dumpCreateFunction(fpre, functions2[j], false);
+			dumpCreateFunction(fpre, &functions2[j], false);
 
 			j++;
 			qstat.functionadded++;
@@ -1309,7 +1309,7 @@ quarrelIndexes()
 			logDebug("index %s.%s: server2", indexes2[j].obj.schemaname,
 					 indexes2[j].obj.objectname);
 
-			dumpCreateIndex(fpre, indexes2[j]);
+			dumpCreateIndex(fpre, &indexes2[j]);
 
 			j++;
 			qstat.indexadded++;
@@ -1320,37 +1320,37 @@ quarrelIndexes()
 			logDebug("index %s.%s: server1", indexes1[i].obj.schemaname,
 					 indexes1[i].obj.objectname);
 
-			dumpDropIndex(fpost, indexes1[i]);
+			dumpDropIndex(fpost, &indexes1[i]);
 
 			i++;
 			qstat.indexremoved++;
 		}
-		else if (compareRelations(indexes1[i].obj, indexes2[j].obj) == 0)
+		else if (compareRelations(&indexes1[i].obj, &indexes2[j].obj) == 0)
 		{
 			logDebug("index %s.%s: server1 server2", indexes1[i].obj.schemaname,
 					 indexes1[i].obj.objectname);
 
-			dumpAlterIndex(fpre, indexes1[i], indexes2[j]);
+			dumpAlterIndex(fpre, &indexes1[i], &indexes2[j]);
 
 			i++;
 			j++;
 		}
-		else if (compareRelations(indexes1[i].obj, indexes2[j].obj) < 0)
+		else if (compareRelations(&indexes1[i].obj, &indexes2[j].obj) < 0)
 		{
 			logDebug("index %s.%s: server1", indexes1[i].obj.schemaname,
 					 indexes1[i].obj.objectname);
 
-			dumpDropIndex(fpost, indexes1[i]);
+			dumpDropIndex(fpost, &indexes1[i]);
 
 			i++;
 			qstat.indexremoved++;
 		}
-		else if (compareRelations(indexes1[i].obj, indexes2[j].obj) > 0)
+		else if (compareRelations(&indexes1[i].obj, &indexes2[j].obj) > 0)
 		{
 			logDebug("index %s.%s: server2", indexes2[j].obj.schemaname,
 					 indexes2[j].obj.objectname);
 
-			dumpCreateIndex(fpre, indexes2[j]);
+			dumpCreateIndex(fpre, &indexes2[j]);
 
 			j++;
 			qstat.indexadded++;
@@ -1395,7 +1395,7 @@ quarrelLanguages()
 
 			getLanguageSecurityLabels(conn2, &languages2[j]);
 
-			dumpCreateLanguage(fpre, languages2[j]);
+			dumpCreateLanguage(fpre, &languages2[j]);
 
 			j++;
 			qstat.languageadded++;
@@ -1405,7 +1405,7 @@ quarrelLanguages()
 		{
 			logDebug("language %s: server1", languages1[i].languagename);
 
-			dumpDropLanguage(fpost, languages1[i]);
+			dumpDropLanguage(fpost, &languages1[i]);
 
 			i++;
 			qstat.languageremoved++;
@@ -1417,7 +1417,7 @@ quarrelLanguages()
 			getLanguageSecurityLabels(conn1, &languages1[i]);
 			getLanguageSecurityLabels(conn2, &languages2[j]);
 
-			dumpAlterLanguage(fpre, languages1[i], languages2[j]);
+			dumpAlterLanguage(fpre, &languages1[i], &languages2[j]);
 
 			i++;
 			j++;
@@ -1426,7 +1426,7 @@ quarrelLanguages()
 		{
 			logDebug("language %s: server1", languages1[i].languagename);
 
-			dumpDropLanguage(fpost, languages1[i]);
+			dumpDropLanguage(fpost, &languages1[i]);
 
 			i++;
 			qstat.languageremoved++;
@@ -1437,7 +1437,7 @@ quarrelLanguages()
 
 			getLanguageSecurityLabels(conn2, &languages2[j]);
 
-			dumpCreateLanguage(fpre, languages2[j]);
+			dumpCreateLanguage(fpre, &languages2[j]);
 
 			j++;
 			qstat.languageadded++;
@@ -1486,7 +1486,7 @@ quarrelMaterializedViews()
 			getMaterializedViewAttributes(conn2, &matviews2[j]);
 			getMaterializedViewSecurityLabels(conn2, &matviews2[j]);
 
-			dumpCreateMaterializedView(fpre, matviews2[j]);
+			dumpCreateMaterializedView(fpre, &matviews2[j]);
 
 			j++;
 			qstat.matviewadded++;
@@ -1497,12 +1497,12 @@ quarrelMaterializedViews()
 			logDebug("materialized view %s.%s: server1", matviews1[i].obj.schemaname,
 					 matviews1[i].obj.objectname);
 
-			dumpDropMaterializedView(fpost, matviews1[i]);
+			dumpDropMaterializedView(fpost, &matviews1[i]);
 
 			i++;
 			qstat.matviewremoved++;
 		}
-		else if (compareRelations(matviews1[i].obj, matviews2[j].obj) == 0)
+		else if (compareRelations(&matviews1[i].obj, &matviews2[j].obj) == 0)
 		{
 			logDebug("materialized view %s.%s: server1 server2",
 					 matviews1[i].obj.schemaname,
@@ -1513,22 +1513,22 @@ quarrelMaterializedViews()
 			getMaterializedViewSecurityLabels(conn1, &matviews1[i]);
 			getMaterializedViewSecurityLabels(conn2, &matviews2[j]);
 
-			dumpAlterMaterializedView(fpre, matviews1[i], matviews2[j]);
+			dumpAlterMaterializedView(fpre, &matviews1[i], &matviews2[j]);
 
 			i++;
 			j++;
 		}
-		else if (compareRelations(matviews1[i].obj, matviews2[j].obj) < 0)
+		else if (compareRelations(&matviews1[i].obj, &matviews2[j].obj) < 0)
 		{
 			logDebug("materialized view %s.%s: server1", matviews1[i].obj.schemaname,
 					 matviews1[i].obj.objectname);
 
-			dumpDropMaterializedView(fpost, matviews1[i]);
+			dumpDropMaterializedView(fpost, &matviews1[i]);
 
 			i++;
 			qstat.matviewremoved++;
 		}
-		else if (compareRelations(matviews1[i].obj, matviews2[j].obj) > 0)
+		else if (compareRelations(&matviews1[i].obj, &matviews2[j].obj) > 0)
 		{
 			logDebug("materialized view %s.%s: server2", matviews2[j].obj.schemaname,
 					 matviews2[j].obj.objectname);
@@ -1536,7 +1536,7 @@ quarrelMaterializedViews()
 			getMaterializedViewAttributes(conn2, &matviews2[j]);
 			getMaterializedViewSecurityLabels(conn2, &matviews2[j]);
 
-			dumpCreateMaterializedView(fpre, matviews2[j]);
+			dumpCreateMaterializedView(fpre, &matviews2[j]);
 
 			j++;
 			qstat.matviewadded++;
@@ -1582,7 +1582,7 @@ quarrelRules()
 			logDebug("rule %s.%s: server2", rules2[j].table.schemaname,
 					 rules2[j].table.objectname);
 
-			dumpCreateRule(fpre, rules2[j]);
+			dumpCreateRule(fpre, &rules2[j]);
 
 			j++;
 			qstat.ruleadded++;
@@ -1593,40 +1593,40 @@ quarrelRules()
 			logDebug("rule %s.%s: server1", rules1[i].table.schemaname,
 					 rules1[i].table.objectname);
 
-			dumpDropRule(fpost, rules1[i]);
+			dumpDropRule(fpost, &rules1[i]);
 
 			i++;
 			qstat.ruleremoved++;
 		}
-		else if (compareNamesAndRelations(rules1[i].table, rules2[j].table,
+		else if (compareNamesAndRelations(&rules1[i].table, &rules2[j].table,
 										  rules1[i].rulename, rules2[j].rulename) == 0)
 		{
 			logDebug("rule %s.%s: server1 server2", rules1[i].table.schemaname,
 					 rules1[i].table.objectname);
 
-			dumpAlterRule(fpre, rules1[i], rules2[j]);
+			dumpAlterRule(fpre, &rules1[i], &rules2[j]);
 
 			i++;
 			j++;
 		}
-		else if (compareNamesAndRelations(rules1[i].table, rules2[j].table,
+		else if (compareNamesAndRelations(&rules1[i].table, &rules2[j].table,
 										  rules1[i].rulename, rules2[j].rulename) < 0)
 		{
 			logDebug("rule %s.%s: server1", rules1[i].table.schemaname,
 					 rules1[i].table.objectname);
 
-			dumpDropRule(fpost, rules1[i]);
+			dumpDropRule(fpost, &rules1[i]);
 
 			i++;
 			qstat.ruleremoved++;
 		}
-		else if (compareNamesAndRelations(rules1[i].table, rules2[j].table,
+		else if (compareNamesAndRelations(&rules1[i].table, &rules2[j].table,
 										  rules1[i].rulename, rules2[j].rulename) > 0)
 		{
 			logDebug("rule %s.%s: server2", rules2[j].table.schemaname,
 					 rules2[j].table.objectname);
 
-			dumpCreateRule(fpre, rules2[j]);
+			dumpCreateRule(fpre, &rules2[j]);
 
 			j++;
 			qstat.ruleadded++;
@@ -1671,7 +1671,7 @@ quarrelSchemas()
 
 			getSchemaSecurityLabels(conn2, &schemas2[j]);
 
-			dumpCreateSchema(fpre, schemas2[j]);
+			dumpCreateSchema(fpre, &schemas2[j]);
 
 			j++;
 			qstat.schemaadded++;
@@ -1681,7 +1681,7 @@ quarrelSchemas()
 		{
 			logDebug("schema %s: server1", schemas1[i].schemaname);
 
-			dumpDropSchema(fpost, schemas1[i]);
+			dumpDropSchema(fpost, &schemas1[i]);
 
 			i++;
 			qstat.schemaremoved++;
@@ -1693,7 +1693,7 @@ quarrelSchemas()
 			getSchemaSecurityLabels(conn1, &schemas1[i]);
 			getSchemaSecurityLabels(conn2, &schemas2[j]);
 
-			dumpAlterSchema(fpre, schemas1[i], schemas2[j]);
+			dumpAlterSchema(fpre, &schemas1[i], &schemas2[j]);
 
 			i++;
 			j++;
@@ -1702,7 +1702,7 @@ quarrelSchemas()
 		{
 			logDebug("schema %s: server1", schemas1[i].schemaname);
 
-			dumpDropSchema(fpost, schemas1[i]);
+			dumpDropSchema(fpost, &schemas1[i]);
 
 			i++;
 			qstat.schemaremoved++;
@@ -1713,7 +1713,7 @@ quarrelSchemas()
 
 			getSchemaSecurityLabels(conn2, &schemas2[j]);
 
-			dumpCreateSchema(fpre, schemas2[j]);
+			dumpCreateSchema(fpre, &schemas2[j]);
 
 			j++;
 			qstat.schemaadded++;
@@ -1762,7 +1762,7 @@ quarrelSequences()
 			getSequenceAttributes(conn2, &sequences2[j]);
 			getSequenceSecurityLabels(conn2, &sequences2[j]);
 
-			dumpCreateSequence(fpre, sequences2[j]);
+			dumpCreateSequence(fpre, &sequences2[j]);
 
 			j++;
 			qstat.seqadded++;
@@ -1773,12 +1773,12 @@ quarrelSequences()
 			logDebug("sequence %s.%s: server1", sequences1[i].obj.schemaname,
 					 sequences1[i].obj.objectname);
 
-			dumpDropSequence(fpost, sequences1[i]);
+			dumpDropSequence(fpost, &sequences1[i]);
 
 			i++;
 			qstat.seqremoved++;
 		}
-		else if (compareRelations(sequences1[i].obj, sequences2[j].obj) == 0)
+		else if (compareRelations(&sequences1[i].obj, &sequences2[j].obj) == 0)
 		{
 			logDebug("sequence %s.%s: server1 server2", sequences1[i].obj.schemaname,
 					 sequences1[i].obj.objectname);
@@ -1788,22 +1788,22 @@ quarrelSequences()
 			getSequenceSecurityLabels(conn1, &sequences1[i]);
 			getSequenceSecurityLabels(conn2, &sequences2[j]);
 
-			dumpAlterSequence(fpre, sequences1[i], sequences2[j]);
+			dumpAlterSequence(fpre, &sequences1[i], &sequences2[j]);
 
 			i++;
 			j++;
 		}
-		else if (compareRelations(sequences1[i].obj, sequences2[j].obj) < 0)
+		else if (compareRelations(&sequences1[i].obj, &sequences2[j].obj) < 0)
 		{
 			logDebug("sequence %s.%s: server1", sequences1[i].obj.schemaname,
 					 sequences1[i].obj.objectname);
 
-			dumpDropSequence(fpost, sequences1[i]);
+			dumpDropSequence(fpost, &sequences1[i]);
 
 			i++;
 			qstat.seqremoved++;
 		}
-		else if (compareRelations(sequences1[i].obj, sequences2[j].obj) > 0)
+		else if (compareRelations(&sequences1[i].obj, &sequences2[j].obj) > 0)
 		{
 			logDebug("sequence %s.%s: server2", sequences2[j].obj.schemaname,
 					 sequences2[j].obj.objectname);
@@ -1811,7 +1811,7 @@ quarrelSequences()
 			getSequenceAttributes(conn2, &sequences2[j]);
 			getSequenceSecurityLabels(conn2, &sequences2[j]);
 
-			dumpCreateSequence(fpre, sequences2[j]);
+			dumpCreateSequence(fpre, &sequences2[j]);
 
 			j++;
 			qstat.seqadded++;
@@ -1868,7 +1868,7 @@ quarrelTables()
 			getOwnedBySequences(conn2, &tables2[j]);
 			getTableSecurityLabels(conn2, &tables2[j]);
 
-			dumpCreateTable(fpre, tables2[j]);
+			dumpCreateTable(fpre, &tables2[j]);
 
 			j++;
 			qstat.tableadded++;
@@ -1879,12 +1879,12 @@ quarrelTables()
 			logDebug("table %s.%s: server1", tables1[i].obj.schemaname,
 					 tables1[i].obj.objectname);
 
-			dumpDropTable(fpost, tables1[i]);
+			dumpDropTable(fpost, &tables1[i]);
 
 			i++;
 			qstat.tableremoved++;
 		}
-		else if (compareRelations(tables1[i].obj, tables2[j].obj) == 0)
+		else if (compareRelations(&tables1[i].obj, &tables2[j].obj) == 0)
 		{
 			logDebug("table %s.%s: server1 server2", tables1[i].obj.schemaname,
 					 tables1[i].obj.objectname);
@@ -1896,22 +1896,22 @@ quarrelTables()
 			getTableSecurityLabels(conn1, &tables1[i]);
 			getTableSecurityLabels(conn2, &tables2[j]);
 
-			dumpAlterTable(fpre, tables1[i], tables2[j]);
+			dumpAlterTable(fpre, &tables1[i], &tables2[j]);
 
 			i++;
 			j++;
 		}
-		else if (compareRelations(tables1[i].obj, tables2[j].obj) < 0)
+		else if (compareRelations(&tables1[i].obj, &tables2[j].obj) < 0)
 		{
 			logDebug("table %s.%s: server1", tables1[i].obj.schemaname,
 					 tables1[i].obj.objectname);
 
-			dumpDropTable(fpost, tables1[i]);
+			dumpDropTable(fpost, &tables1[i]);
 
 			i++;
 			qstat.tableremoved++;
 		}
-		else if (compareRelations(tables1[i].obj, tables2[j].obj) > 0)
+		else if (compareRelations(&tables1[i].obj, &tables2[j].obj) > 0)
 		{
 			logDebug("table %s.%s: server2", tables2[j].obj.schemaname,
 					 tables2[j].obj.objectname);
@@ -1920,7 +1920,7 @@ quarrelTables()
 			getOwnedBySequences(conn2, &tables2[j]);
 			getTableSecurityLabels(conn2, &tables2[j]);
 
-			dumpCreateTable(fpre, tables2[j]);
+			dumpCreateTable(fpre, &tables2[j]);
 
 			j++;
 			qstat.tableadded++;
@@ -1966,7 +1966,7 @@ quarrelTriggers()
 			logDebug("trigger %s.%s: server2", triggers2[j].table.schemaname,
 					 triggers2[j].table.objectname);
 
-			dumpCreateTrigger(fpre, triggers2[j]);
+			dumpCreateTrigger(fpre, &triggers2[j]);
 
 			j++;
 			qstat.trgadded++;
@@ -1977,40 +1977,40 @@ quarrelTriggers()
 			logDebug("trigger %s.%s: server1", triggers1[i].table.schemaname,
 					 triggers1[i].table.objectname);
 
-			dumpDropTrigger(fpost, triggers1[i]);
+			dumpDropTrigger(fpost, &triggers1[i]);
 
 			i++;
 			qstat.trgremoved++;
 		}
-		else if (compareNamesAndRelations(triggers1[i].table, triggers2[j].table,
+		else if (compareNamesAndRelations(&triggers1[i].table, &triggers2[j].table,
 										  triggers1[i].trgname, triggers2[j].trgname) == 0)
 		{
 			logDebug("trigger %s.%s: server1 server2", triggers1[i].table.schemaname,
 					 triggers1[i].table.objectname);
 
-			dumpAlterTrigger(fpre, triggers1[i], triggers2[j]);
+			dumpAlterTrigger(fpre, &triggers1[i], &triggers2[j]);
 
 			i++;
 			j++;
 		}
-		else if (compareNamesAndRelations(triggers1[i].table, triggers2[j].table,
+		else if (compareNamesAndRelations(&triggers1[i].table, &triggers2[j].table,
 										  triggers1[i].trgname, triggers2[j].trgname) < 0)
 		{
 			logDebug("trigger %s.%s: server1", triggers1[i].table.schemaname,
 					 triggers1[i].table.objectname);
 
-			dumpDropTrigger(fpost, triggers1[i]);
+			dumpDropTrigger(fpost, &triggers1[i]);
 
 			i++;
 			qstat.trgremoved++;
 		}
-		else if (compareNamesAndRelations(triggers1[i].table, triggers2[j].table,
+		else if (compareNamesAndRelations(&triggers1[i].table, &triggers2[j].table,
 										  triggers1[i].trgname, triggers2[j].trgname) > 0)
 		{
 			logDebug("trigger %s.%s: server2", triggers2[j].table.schemaname,
 					 triggers2[j].table.objectname);
 
-			dumpCreateTrigger(fpre, triggers2[j]);
+			dumpCreateTrigger(fpre, &triggers2[j]);
 
 			j++;
 			qstat.trgadded++;
@@ -2058,7 +2058,7 @@ quarrelBaseTypes()
 
 			getBaseTypeSecurityLabels(conn2, &types2[j]);
 
-			dumpCreateBaseType(fpre, types2[j]);
+			dumpCreateBaseType(fpre, &types2[j]);
 
 			j++;
 			qstat.typeadded++;
@@ -2069,12 +2069,12 @@ quarrelBaseTypes()
 			logDebug("type %s.%s: server1", types1[i].obj.schemaname,
 					 types1[i].obj.objectname);
 
-			dumpDropBaseType(fpost, types1[i]);
+			dumpDropBaseType(fpost, &types1[i]);
 
 			i++;
 			qstat.typeremoved++;
 		}
-		else if (compareRelations(types1[i].obj, types2[j].obj) == 0)
+		else if (compareRelations(&types1[i].obj, &types2[j].obj) == 0)
 		{
 			logDebug("type %s.%s: server1 server2", types1[i].obj.schemaname,
 					 types1[i].obj.objectname);
@@ -2082,29 +2082,29 @@ quarrelBaseTypes()
 			getBaseTypeSecurityLabels(conn1, &types1[i]);
 			getBaseTypeSecurityLabels(conn2, &types2[j]);
 
-			dumpAlterBaseType(fpre, types1[i], types2[j]);
+			dumpAlterBaseType(fpre, &types1[i], &types2[j]);
 
 			i++;
 			j++;
 		}
-		else if (compareRelations(types1[i].obj, types2[j].obj) < 0)
+		else if (compareRelations(&types1[i].obj, &types2[j].obj) < 0)
 		{
 			logDebug("type %s.%s: server1", types1[i].obj.schemaname,
 					 types1[i].obj.objectname);
 
-			dumpDropBaseType(fpost, types1[i]);
+			dumpDropBaseType(fpost, &types1[i]);
 
 			i++;
 			qstat.typeremoved++;
 		}
-		else if (compareRelations(types1[i].obj, types2[j].obj) > 0)
+		else if (compareRelations(&types1[i].obj, &types2[j].obj) > 0)
 		{
 			logDebug("type %s.%s: server2", types2[j].obj.schemaname,
 					 types2[j].obj.objectname);
 
 			getBaseTypeSecurityLabels(conn2, &types2[j]);
 
-			dumpCreateBaseType(fpre, types2[j]);
+			dumpCreateBaseType(fpre, &types2[j]);
 
 			j++;
 			qstat.typeadded++;
@@ -2152,7 +2152,7 @@ quarrelCompositeTypes()
 
 			getCompositeTypeSecurityLabels(conn2, &types2[j]);
 
-			dumpCreateCompositeType(fpre, types2[j]);
+			dumpCreateCompositeType(fpre, &types2[j]);
 
 			j++;
 			qstat.typeadded++;
@@ -2163,12 +2163,12 @@ quarrelCompositeTypes()
 			logDebug("type %s.%s: server1", types1[i].obj.schemaname,
 					 types1[i].obj.objectname);
 
-			dumpDropCompositeType(fpost, types1[i]);
+			dumpDropCompositeType(fpost, &types1[i]);
 
 			i++;
 			qstat.typeremoved++;
 		}
-		else if (compareRelations(types1[i].obj, types2[j].obj) == 0)
+		else if (compareRelations(&types1[i].obj, &types2[j].obj) == 0)
 		{
 			logDebug("type %s.%s: server1 server2", types1[i].obj.schemaname,
 					 types1[i].obj.objectname);
@@ -2176,29 +2176,29 @@ quarrelCompositeTypes()
 			getCompositeTypeSecurityLabels(conn1, &types1[i]);
 			getCompositeTypeSecurityLabels(conn2, &types2[j]);
 
-			dumpAlterCompositeType(fpre, types1[i], types2[j]);
+			dumpAlterCompositeType(fpre, &types1[i], &types2[j]);
 
 			i++;
 			j++;
 		}
-		else if (compareRelations(types1[i].obj, types2[j].obj) < 0)
+		else if (compareRelations(&types1[i].obj, &types2[j].obj) < 0)
 		{
 			logDebug("type %s.%s: server1", types1[i].obj.schemaname,
 					 types1[i].obj.objectname);
 
-			dumpDropCompositeType(fpost, types1[i]);
+			dumpDropCompositeType(fpost, &types1[i]);
 
 			i++;
 			qstat.typeremoved++;
 		}
-		else if (compareRelations(types1[i].obj, types2[j].obj) > 0)
+		else if (compareRelations(&types1[i].obj, &types2[j].obj) > 0)
 		{
 			logDebug("type %s.%s: server2", types2[j].obj.schemaname,
 					 types2[j].obj.objectname);
 
 			getCompositeTypeSecurityLabels(conn2, &types2[j]);
 
-			dumpCreateCompositeType(fpre, types2[j]);
+			dumpCreateCompositeType(fpre, &types2[j]);
 
 			j++;
 			qstat.typeadded++;
@@ -2246,7 +2246,7 @@ quarrelEnumTypes()
 
 			getEnumTypeSecurityLabels(conn2, &types2[j]);
 
-			dumpCreateEnumType(fpre, types2[j]);
+			dumpCreateEnumType(fpre, &types2[j]);
 
 			j++;
 			qstat.typeadded++;
@@ -2257,12 +2257,12 @@ quarrelEnumTypes()
 			logDebug("type %s.%s: server1", types1[i].obj.schemaname,
 					 types1[i].obj.objectname);
 
-			dumpDropEnumType(fpost, types1[i]);
+			dumpDropEnumType(fpost, &types1[i]);
 
 			i++;
 			qstat.typeremoved++;
 		}
-		else if (compareRelations(types1[i].obj, types2[j].obj) == 0)
+		else if (compareRelations(&types1[i].obj, &types2[j].obj) == 0)
 		{
 			logDebug("type %s.%s: server1 server2", types1[i].obj.schemaname,
 					 types1[i].obj.objectname);
@@ -2270,29 +2270,29 @@ quarrelEnumTypes()
 			getEnumTypeSecurityLabels(conn1, &types1[i]);
 			getEnumTypeSecurityLabels(conn2, &types2[j]);
 
-			dumpAlterEnumType(fpre, types1[i], types2[j]);
+			dumpAlterEnumType(fpre, &types1[i], &types2[j]);
 
 			i++;
 			j++;
 		}
-		else if (compareRelations(types1[i].obj, types2[j].obj) < 0)
+		else if (compareRelations(&types1[i].obj, &types2[j].obj) < 0)
 		{
 			logDebug("type %s.%s: server1", types1[i].obj.schemaname,
 					 types1[i].obj.objectname);
 
-			dumpDropEnumType(fpost, types1[i]);
+			dumpDropEnumType(fpost, &types1[i]);
 
 			i++;
 			qstat.typeremoved++;
 		}
-		else if (compareRelations(types1[i].obj, types2[j].obj) > 0)
+		else if (compareRelations(&types1[i].obj, &types2[j].obj) > 0)
 		{
 			logDebug("type %s.%s: server2", types2[j].obj.schemaname,
 					 types2[j].obj.objectname);
 
 			getEnumTypeSecurityLabels(conn2, &types2[j]);
 
-			dumpCreateEnumType(fpre, types2[j]);
+			dumpCreateEnumType(fpre, &types2[j]);
 
 			j++;
 			qstat.typeadded++;
@@ -2340,7 +2340,7 @@ quarrelRangeTypes()
 
 			getRangeTypeSecurityLabels(conn2, &types2[j]);
 
-			dumpCreateRangeType(fpre, types2[j]);
+			dumpCreateRangeType(fpre, &types2[j]);
 
 			j++;
 			qstat.typeadded++;
@@ -2351,12 +2351,12 @@ quarrelRangeTypes()
 			logDebug("type %s.%s: server1", types1[i].obj.schemaname,
 					 types1[i].obj.objectname);
 
-			dumpDropRangeType(fpost, types1[i]);
+			dumpDropRangeType(fpost, &types1[i]);
 
 			i++;
 			qstat.typeremoved++;
 		}
-		else if (compareRelations(types1[i].obj, types2[j].obj) == 0)
+		else if (compareRelations(&types1[i].obj, &types2[j].obj) == 0)
 		{
 			logDebug("type %s.%s: server1 server2", types1[i].obj.schemaname,
 					 types1[i].obj.objectname);
@@ -2364,29 +2364,29 @@ quarrelRangeTypes()
 			getRangeTypeSecurityLabels(conn1, &types1[i]);
 			getRangeTypeSecurityLabels(conn2, &types2[j]);
 
-			dumpAlterRangeType(fpre, types1[i], types2[j]);
+			dumpAlterRangeType(fpre, &types1[i], &types2[j]);
 
 			i++;
 			j++;
 		}
-		else if (compareRelations(types1[i].obj, types2[j].obj) < 0)
+		else if (compareRelations(&types1[i].obj, &types2[j].obj) < 0)
 		{
 			logDebug("type %s.%s: server1", types1[i].obj.schemaname,
 					 types1[i].obj.objectname);
 
-			dumpDropRangeType(fpost, types1[i]);
+			dumpDropRangeType(fpost, &types1[i]);
 
 			i++;
 			qstat.typeremoved++;
 		}
-		else if (compareRelations(types1[i].obj, types2[j].obj) > 0)
+		else if (compareRelations(&types1[i].obj, &types2[j].obj) > 0)
 		{
 			logDebug("type %s.%s: server2", types2[j].obj.schemaname,
 					 types2[j].obj.objectname);
 
 			getRangeTypeSecurityLabels(conn2, &types2[j]);
 
-			dumpCreateRangeType(fpre, types2[j]);
+			dumpCreateRangeType(fpre, &types2[j]);
 
 			j++;
 			qstat.typeadded++;
@@ -2438,7 +2438,7 @@ quarrelUserMappings()
 		{
 			logDebug("user mapping user(%s) server(%s): server2", usermappings2[j].user, usermappings2[j].server);
 
-			dumpCreateUserMapping(fpre, usermappings2[j]);
+			dumpCreateUserMapping(fpre, &usermappings2[j]);
 
 			j++;
 			qstat.usermappingadded++;
@@ -2448,34 +2448,34 @@ quarrelUserMappings()
 		{
 			logDebug("user mapping user(%s) server(%s): server1", usermappings1[i].user, usermappings1[i].server);
 
-			dumpDropUserMapping(fpost, usermappings1[i]);
+			dumpDropUserMapping(fpost, &usermappings1[i]);
 
 			i++;
 			qstat.usermappingremoved++;
 		}
-		else if (compareUserMappings(usermappings1[i], usermappings2[j]) == 0)
+		else if (compareUserMappings(&usermappings1[i], &usermappings2[j]) == 0)
 		{
 			logDebug("user mapping user(%s) server(%s): server1 server2", usermappings1[i].user, usermappings1[i].server);
 
-			dumpAlterUserMapping(fpre, usermappings1[i], usermappings2[j]);
+			dumpAlterUserMapping(fpre, &usermappings1[i], &usermappings2[j]);
 
 			i++;
 			j++;
 		}
-		else if (compareUserMappings(usermappings1[i], usermappings2[j]) < 0)
+		else if (compareUserMappings(&usermappings1[i], &usermappings2[j]) < 0)
 		{
 			logDebug("user mapping user(%s) server(%s): server1", usermappings1[i].user, usermappings1[i].server);
 
-			dumpDropUserMapping(fpost, usermappings1[i]);
+			dumpDropUserMapping(fpost, &usermappings1[i]);
 
 			i++;
 			qstat.usermappingremoved++;
 		}
-		else if (compareUserMappings(usermappings1[i], usermappings2[j]) > 0)
+		else if (compareUserMappings(&usermappings1[i], &usermappings2[j]) > 0)
 		{
 			logDebug("user mapping user(%s) server(%s): server2", usermappings2[j].user, usermappings2[j].server);
 
-			dumpCreateUserMapping(fpre, usermappings2[j]);
+			dumpCreateUserMapping(fpre, &usermappings2[j]);
 
 			j++;
 			qstat.usermappingadded++;
@@ -2523,7 +2523,7 @@ quarrelViews()
 
 			getViewSecurityLabels(conn2, &views2[j]);
 
-			dumpCreateView(fpre, views2[j]);
+			dumpCreateView(fpre, &views2[j]);
 
 			j++;
 			qstat.viewadded++;
@@ -2534,12 +2534,12 @@ quarrelViews()
 			logDebug("view %s.%s: server1", views1[i].obj.schemaname,
 					 views1[i].obj.objectname);
 
-			dumpDropView(fpost, views1[i]);
+			dumpDropView(fpost, &views1[i]);
 
 			i++;
 			qstat.viewremoved++;
 		}
-		else if (compareRelations(views1[i].obj, views2[j].obj) == 0)
+		else if (compareRelations(&views1[i].obj, &views2[j].obj) == 0)
 		{
 			logDebug("view %s.%s: server1 server2", views1[i].obj.schemaname,
 					 views1[i].obj.objectname);
@@ -2547,29 +2547,29 @@ quarrelViews()
 			getViewSecurityLabels(conn1, &views1[i]);
 			getViewSecurityLabels(conn2, &views2[j]);
 
-			dumpAlterView(fpre, views1[i], views2[j]);
+			dumpAlterView(fpre, &views1[i], &views2[j]);
 
 			i++;
 			j++;
 		}
-		else if (compareRelations(views1[i].obj, views2[j].obj) < 0)
+		else if (compareRelations(&views1[i].obj, &views2[j].obj) < 0)
 		{
 			logDebug("view %s.%s: server1", views1[i].obj.schemaname,
 					 views1[i].obj.objectname);
 
-			dumpDropView(fpost, views1[i]);
+			dumpDropView(fpost, &views1[i]);
 
 			i++;
 			qstat.viewremoved++;
 		}
-		else if (compareRelations(views1[i].obj, views2[j].obj) > 0)
+		else if (compareRelations(&views1[i].obj, &views2[j].obj) > 0)
 		{
 			logDebug("view %s.%s: server2", views2[j].obj.schemaname,
 					 views2[j].obj.objectname);
 
 			getViewSecurityLabels(conn2, &views2[j]);
 
-			dumpCreateView(fpre, views2[j]);
+			dumpCreateView(fpre, &views2[j]);
 
 			j++;
 			qstat.viewadded++;

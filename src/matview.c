@@ -16,12 +16,12 @@
  * ALTER MATERIALIZED VIEW ... SET TABLESPACE
  */
 
-static void dumpAlterColumnSetStatistics(FILE *output, PQLMaterializedView a,
+static void dumpAlterColumnSetStatistics(FILE *output, PQLMaterializedView *a,
 		int i, bool force);
-static void dumpAlterColumnSetStorage(FILE *output, PQLMaterializedView a,
+static void dumpAlterColumnSetStorage(FILE *output, PQLMaterializedView *a,
 									  int i, bool force);
-static void dumpAlterColumnSetOptions(FILE *output, PQLMaterializedView a,
-									  PQLMaterializedView b, int i);
+static void dumpAlterColumnSetOptions(FILE *output, PQLMaterializedView *a,
+									  PQLMaterializedView *b, int i);
 
 PQLMaterializedView *
 getMaterializedViews(PGconn *c, int *n)
@@ -317,10 +317,10 @@ freeMaterializedViews(PQLMaterializedView *v, int n)
 }
 
 void
-dumpDropMaterializedView(FILE *output, PQLMaterializedView v)
+dumpDropMaterializedView(FILE *output, PQLMaterializedView *v)
 {
-	char	*schema = formatObjectIdentifier(v.obj.schemaname);
-	char	*matvname = formatObjectIdentifier(v.obj.objectname);
+	char	*schema = formatObjectIdentifier(v->obj.schemaname);
+	char	*matvname = formatObjectIdentifier(v->obj.objectname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP MATERIALIZED VIEW %s.%s;", schema, matvname);
@@ -330,20 +330,20 @@ dumpDropMaterializedView(FILE *output, PQLMaterializedView v)
 }
 
 void
-dumpCreateMaterializedView(FILE *output, PQLMaterializedView v)
+dumpCreateMaterializedView(FILE *output, PQLMaterializedView *v)
 {
-	char	*schema = formatObjectIdentifier(v.obj.schemaname);
-	char	*matvname = formatObjectIdentifier(v.obj.objectname);
+	char	*schema = formatObjectIdentifier(v->obj.schemaname);
+	char	*matvname = formatObjectIdentifier(v->obj.objectname);
 
 	int	i;
 
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE MATERIALIZED VIEW %s.%s", schema, matvname);
 
-	if (v.reloptions != NULL)
-		fprintf(output, " WITH (%s)", v.reloptions);
+	if (v->reloptions != NULL)
+		fprintf(output, " WITH (%s)", v->reloptions);
 
-	fprintf(output, " AS\n%s", v.viewdef);
+	fprintf(output, " AS\n%s", v->viewdef);
 
 	/*
 	 * create a materialized view just like a view because the content will be
@@ -356,30 +356,30 @@ dumpCreateMaterializedView(FILE *output, PQLMaterializedView v)
 	fprintf(output, "REFRESH MATERIALIZED VIEW %s.%s;", schema, matvname);
 
 	/* statistics target */
-	for (i = 0; i < v.nattributes; i++)
+	for (i = 0; i < v->nattributes; i++)
 	{
 		dumpAlterColumnSetStatistics(output, v, i, false);
 		dumpAlterColumnSetStorage(output, v, i, false);
 	}
 
 	/* comment */
-	if (options.comment && v.comment != NULL)
+	if (options.comment && v->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON MATERIALIZED VIEW %s.%s IS '%s';", schema, matvname, v.comment);
+		fprintf(output, "COMMENT ON MATERIALIZED VIEW %s.%s IS '%s';", schema, matvname, v->comment);
 	}
 
 	/* security labels */
-	if (options.securitylabels && v.nseclabels > 0)
+	if (options.securitylabels && v->nseclabels > 0)
 	{
-		for (i = 0; i < v.nseclabels; i++)
+		for (i = 0; i < v->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "SECURITY LABEL FOR %s ON MATERIALIZED VIEW %s.%s IS '%s';",
-					v.seclabels[i].provider,
+					v->seclabels[i].provider,
 					schema,
 					matvname,
-					v.seclabels[i].label);
+					v->seclabels[i].label);
 		}
 	}
 
@@ -387,7 +387,7 @@ dumpCreateMaterializedView(FILE *output, PQLMaterializedView v)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER MATERIALIZED VIEW %s.%s OWNER TO %s;", schema, matvname, v.owner);
+		fprintf(output, "ALTER MATERIALIZED VIEW %s.%s OWNER TO %s;", schema, matvname, v->owner);
 	}
 
 	free(schema);
@@ -395,21 +395,21 @@ dumpCreateMaterializedView(FILE *output, PQLMaterializedView v)
 }
 
 static void
-dumpAlterColumnSetStatistics(FILE *output, PQLMaterializedView a, int i,
+dumpAlterColumnSetStatistics(FILE *output, PQLMaterializedView *a, int i,
 							 bool force)
 {
-	char	*schema = formatObjectIdentifier(a.obj.schemaname);
-	char	*matvname = formatObjectIdentifier(a.obj.objectname);
+	char	*schema = formatObjectIdentifier(a->obj.schemaname);
+	char	*matvname = formatObjectIdentifier(a->obj.objectname);
 
-	if (a.attributes[i].attstattarget != -1 || force)
+	if (a->attributes[i].attstattarget != -1 || force)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output,
 				"ALTER MATERIALIZED VIEW %s.%s ALTER COLUMN %s SET STATISTICS %d;",
 				schema,
 				matvname,
-				a.attributes[i].attname,
-				a.attributes[i].attstattarget);
+				a->attributes[i].attname,
+				a->attributes[i].attstattarget);
 	}
 
 	free(schema);
@@ -417,20 +417,20 @@ dumpAlterColumnSetStatistics(FILE *output, PQLMaterializedView a, int i,
 }
 
 static void
-dumpAlterColumnSetStorage(FILE *output, PQLMaterializedView a, int i,
+dumpAlterColumnSetStorage(FILE *output, PQLMaterializedView *a, int i,
 						  bool force)
 {
-	char	*schema = formatObjectIdentifier(a.obj.schemaname);
-	char	*matvname = formatObjectIdentifier(a.obj.objectname);
+	char	*schema = formatObjectIdentifier(a->obj.schemaname);
+	char	*matvname = formatObjectIdentifier(a->obj.objectname);
 
-	if (!a.attributes[i].defstorage || force)
+	if (!a->attributes[i].defstorage || force)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER MATERIALIZED VIEW %s.%s ALTER COLUMN %s SET STORAGE %s;",
 				schema,
 				matvname,
-				a.attributes[i].attname,
-				a.attributes[i].attstorage);
+				a->attributes[i].attname,
+				a->attributes[i].attstorage);
 	}
 
 	free(schema);
@@ -441,28 +441,28 @@ dumpAlterColumnSetStorage(FILE *output, PQLMaterializedView a, int i,
  * Set attribute options if needed
  */
 static void
-dumpAlterColumnSetOptions(FILE *output, PQLMaterializedView a,
-						  PQLMaterializedView b, int i)
+dumpAlterColumnSetOptions(FILE *output, PQLMaterializedView *a,
+						  PQLMaterializedView *b, int i)
 {
-	char	*schema2 = formatObjectIdentifier(b.obj.schemaname);
-	char	*matvname2 = formatObjectIdentifier(b.obj.objectname);
+	char	*schema2 = formatObjectIdentifier(b->obj.schemaname);
+	char	*matvname2 = formatObjectIdentifier(b->obj.objectname);
 
-	if (a.attributes[i].attoptions == NULL && b.attributes[i].attoptions != NULL)
+	if (a->attributes[i].attoptions == NULL && b->attributes[i].attoptions != NULL)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER MATERIALIZED VIEW %s.%s ALTER COLUMN %s SET (%s);",
 				schema2,
 				matvname2,
-				b.attributes[i].attname,
-				b.attributes[i].attoptions);
+				b->attributes[i].attname,
+				b->attributes[i].attoptions);
 	}
-	else if (a.attributes[i].attoptions != NULL &&
-			 b.attributes[i].attoptions == NULL)
+	else if (a->attributes[i].attoptions != NULL &&
+			 b->attributes[i].attoptions == NULL)
 	{
 		stringList	*rlist;
 
 		/* reset all options */
-		rlist = setOperationOptions(a.attributes[i].attoptions, b.attributes[i].attoptions,
+		rlist = setOperationOptions(a->attributes[i].attoptions, b->attributes[i].attoptions,
 							   PGQ_SETDIFFERENCE, false, true);
 		if (rlist)
 		{
@@ -473,21 +473,21 @@ dumpAlterColumnSetOptions(FILE *output, PQLMaterializedView a,
 			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s ALTER COLUMN %s RESET (%s);",
 					schema2,
 					matvname2,
-					b.attributes[i].attname,
+					b->attributes[i].attname,
 					resetlist);
 
 			free(resetlist);
 			freeStringList(rlist);
 		}
 	}
-	else if (a.attributes[i].attoptions != NULL &&
-			 b.attributes[i].attoptions != NULL &&
-			 strcmp(a.attributes[i].attoptions, b.attributes[i].attoptions) != 0)
+	else if (a->attributes[i].attoptions != NULL &&
+			 b->attributes[i].attoptions != NULL &&
+			 strcmp(a->attributes[i].attoptions, b->attributes[i].attoptions) != 0)
 	{
 		stringList	*rlist, *ilist, *slist;
 
 		/* reset options that are only presented in the first set */
-		rlist = setOperationOptions(a.attributes[i].attoptions, b.attributes[i].attoptions,
+		rlist = setOperationOptions(a->attributes[i].attoptions, b->attributes[i].attoptions,
 							   PGQ_SETDIFFERENCE, false, true);
 		if (rlist)
 		{
@@ -498,7 +498,7 @@ dumpAlterColumnSetOptions(FILE *output, PQLMaterializedView a,
 			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s ALTER COLUMN %s RESET (%s);",
 					schema2,
 					matvname2,
-					b.attributes[i].attname,
+					b->attributes[i].attname,
 					resetlist);
 
 			free(resetlist);
@@ -509,7 +509,7 @@ dumpAlterColumnSetOptions(FILE *output, PQLMaterializedView a,
 		 * Include intersection between option sets. However, exclude
 		 * options that don't change.
 		 */
-		ilist = setOperationOptions(a.attributes[i].attoptions, b.attributes[i].attoptions, PGQ_INTERSECT, true, true);
+		ilist = setOperationOptions(a->attributes[i].attoptions, b->attributes[i].attoptions, PGQ_INTERSECT, true, true);
 		if (ilist)
 		{
 			char	*setlist;
@@ -519,7 +519,7 @@ dumpAlterColumnSetOptions(FILE *output, PQLMaterializedView a,
 			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s ALTER COLUMN %s SET (%s);",
 					schema2,
 					matvname2,
-					b.attributes[i].attname,
+					b->attributes[i].attname,
 					setlist);
 
 			free(setlist);
@@ -529,7 +529,7 @@ dumpAlterColumnSetOptions(FILE *output, PQLMaterializedView a,
 		/*
 		 * Set options that are only presented in the second set.
 		 */
-		slist = setOperationOptions(b.attributes[i].attoptions, a.attributes[i].attoptions, PGQ_SETDIFFERENCE, true, true);
+		slist = setOperationOptions(b->attributes[i].attoptions, a->attributes[i].attoptions, PGQ_SETDIFFERENCE, true, true);
 		if (slist)
 		{
 			char	*setlist;
@@ -539,7 +539,7 @@ dumpAlterColumnSetOptions(FILE *output, PQLMaterializedView a,
 			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s ALTER COLUMN %s SET (%s);",
 					schema2,
 					matvname2,
-					b.attributes[i].attname,
+					b->attributes[i].attname,
 					setlist);
 
 			free(setlist);
@@ -552,45 +552,45 @@ dumpAlterColumnSetOptions(FILE *output, PQLMaterializedView a,
 }
 
 void
-dumpAlterMaterializedView(FILE *output, PQLMaterializedView a,
-						  PQLMaterializedView b)
+dumpAlterMaterializedView(FILE *output, PQLMaterializedView *a,
+						  PQLMaterializedView *b)
 {
-	char	*schema1 = formatObjectIdentifier(a.obj.schemaname);
-	char	*matvname1 = formatObjectIdentifier(a.obj.objectname);
-	char	*schema2 = formatObjectIdentifier(b.obj.schemaname);
-	char	*matvname2 = formatObjectIdentifier(b.obj.objectname);
+	char	*schema1 = formatObjectIdentifier(a->obj.schemaname);
+	char	*matvname1 = formatObjectIdentifier(a->obj.objectname);
+	char	*schema2 = formatObjectIdentifier(b->obj.schemaname);
+	char	*matvname2 = formatObjectIdentifier(b->obj.objectname);
 
 	int i;
 
 	/* the attributes are sorted by name */
-	for (i = 0; i < a.nattributes; i++)
+	for (i = 0; i < a->nattributes; i++)
 	{
 		/* do attribute options change? */
 		dumpAlterColumnSetOptions(output, a, b, i);
 
 		/* column statistics changed */
-		if (a.attributes[i].attstattarget != b.attributes[i].attstattarget)
+		if (a->attributes[i].attstattarget != b->attributes[i].attstattarget)
 			dumpAlterColumnSetStatistics(output, b, i, true);
 
 		/* storage changed */
-		if (a.attributes[i].defstorage != b.attributes[i].defstorage)
+		if (a->attributes[i].defstorage != b->attributes[i].defstorage)
 			dumpAlterColumnSetStorage(output, b, i, true);
 	}
 
 	/* reloptions */
-	if (a.reloptions == NULL && b.reloptions != NULL)
+	if (a->reloptions == NULL && b->reloptions != NULL)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER MATERIALIZED VIEW %s.%s SET (%s);",
 				schema2,
 				matvname2,
-				b.reloptions);
+				b->reloptions);
 	}
-	else if (a.reloptions != NULL && b.reloptions == NULL)
+	else if (a->reloptions != NULL && b->reloptions == NULL)
 	{
 		stringList	*rlist;
 
-		rlist = setOperationOptions(a.reloptions, b.reloptions, PGQ_SETDIFFERENCE, false, true);
+		rlist = setOperationOptions(a->reloptions, b->reloptions, PGQ_SETDIFFERENCE, false, true);
 		if (rlist)
 		{
 			char	*resetlist;
@@ -606,13 +606,13 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView a,
 			freeStringList(rlist);
 		}
 	}
-	else if (a.reloptions != NULL && b.reloptions != NULL &&
-			 strcmp(a.reloptions, b.reloptions) != 0)
+	else if (a->reloptions != NULL && b->reloptions != NULL &&
+			 strcmp(a->reloptions, b->reloptions) != 0)
 	{
 		stringList	*rlist, *ilist, *slist;
 
 		/* reset options that are only presented in the first set */
-		rlist = setOperationOptions(a.reloptions, b.reloptions, PGQ_SETDIFFERENCE, false, true);
+		rlist = setOperationOptions(a->reloptions, b->reloptions, PGQ_SETDIFFERENCE, false, true);
 		if (rlist)
 		{
 			char	*resetlist;
@@ -632,7 +632,7 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView a,
 		 * Include intersection between option sets. However, exclude options
 		 * that don't change.
 		 */
-		ilist = setOperationOptions(a.reloptions, b.reloptions, PGQ_INTERSECT, true, true);
+		ilist = setOperationOptions(a->reloptions, b->reloptions, PGQ_INTERSECT, true, true);
 		if (ilist)
 		{
 			char	*setlist;
@@ -651,7 +651,7 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView a,
 		/*
 		 * Set options that are only presented in the second set.
 		 */
-		slist = setOperationOptions(b.reloptions, a.reloptions, PGQ_SETDIFFERENCE, true, true);
+		slist = setOperationOptions(b->reloptions, a->reloptions, PGQ_SETDIFFERENCE, true, true);
 		if (slist)
 		{
 			char	*setlist;
@@ -671,17 +671,17 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView a,
 	/* comment */
 	if (options.comment)
 	{
-		if ((a.comment == NULL && b.comment != NULL) ||
-				(a.comment != NULL && b.comment != NULL &&
-				 strcmp(a.comment, b.comment) != 0))
+		if ((a->comment == NULL && b->comment != NULL) ||
+				(a->comment != NULL && b->comment != NULL &&
+				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON MATERIALIZED VIEW %s.%s IS '%s';",
 					schema2,
 					matvname2,
-					b.comment);
+					b->comment);
 		}
-		else if (a.comment != NULL && b.comment == NULL)
+		else if (a->comment != NULL && b->comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON MATERIALIZED VIEW %s.%s IS NULL;",
@@ -693,86 +693,86 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView a,
 	/* security labels */
 	if (options.securitylabels)
 	{
-		if (a.seclabels == NULL && b.seclabels != NULL)
+		if (a->seclabels == NULL && b->seclabels != NULL)
 		{
-			for (i = 0; i < b.nseclabels; i++)
+			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON MATERIALIZED VIEW %s.%s IS '%s';",
-						b.seclabels[i].provider,
+						b->seclabels[i].provider,
 						schema2,
 						matvname2,
-						b.seclabels[i].label);
+						b->seclabels[i].label);
 			}
 		}
-		else if (a.seclabels != NULL && b.seclabels == NULL)
+		else if (a->seclabels != NULL && b->seclabels == NULL)
 		{
-			for (i = 0; i < a.nseclabels; i++)
+			for (i = 0; i < a->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON MATERIALIZED VIEW %s.%s IS NULL;",
-						a.seclabels[i].provider,
+						a->seclabels[i].provider,
 						schema1,
 						matvname1);
 			}
 		}
-		else if (a.seclabels != NULL && b.seclabels != NULL)
+		else if (a->seclabels != NULL && b->seclabels != NULL)
 		{
 			int	j;
 
 			i = j = 0;
-			while (i < a.nseclabels || j < b.nseclabels)
+			while (i < a->nseclabels || j < b->nseclabels)
 			{
-				if (i == a.nseclabels)
+				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON MATERIALIZED VIEW %s.%s IS '%s';",
-							b.seclabels[j].provider,
+							b->seclabels[j].provider,
 							schema2,
 							matvname2,
-							b.seclabels[j].label);
+							b->seclabels[j].label);
 					j++;
 				}
-				else if (j == b.nseclabels)
+				else if (j == b->nseclabels)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON MATERIALIZED VIEW %s.%s IS NULL;",
-							a.seclabels[i].provider,
+							a->seclabels[i].provider,
 							schema1,
 							matvname1);
 					i++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) == 0)
 				{
-					if (strcmp(a.seclabels[i].label, b.seclabels[j].label) != 0)
+					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
 						fprintf(output, "SECURITY LABEL FOR %s ON MATERIALIZED VIEW %s.%s IS '%s';",
-								b.seclabels[j].provider,
+								b->seclabels[j].provider,
 								schema2,
 								matvname2,
-								b.seclabels[j].label);
+								b->seclabels[j].label);
 					}
 					i++;
 					j++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) < 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) < 0)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON MATERIALIZED VIEW %s.%s IS NULL;",
-							a.seclabels[i].provider,
+							a->seclabels[i].provider,
 							schema1,
 							matvname1);
 					i++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON MATERIALIZED VIEW %s.%s IS '%s';",
-							b.seclabels[j].provider,
+							b->seclabels[j].provider,
 							schema2,
 							matvname2,
-							b.seclabels[j].label);
+							b->seclabels[j].label);
 					j++;
 				}
 			}
@@ -782,13 +782,13 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView a,
 	/* owner */
 	if (options.owner)
 	{
-		if (strcmp(a.owner, b.owner) != 0)
+		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s OWNER TO %s;",
 					schema2,
 					matvname2,
-					b.owner);
+					b->owner);
 		}
 	}
 

@@ -157,9 +157,9 @@ freeLanguages(PQLLanguage *l, int n)
 }
 
 void
-dumpDropLanguage(FILE *output, PQLLanguage l)
+dumpDropLanguage(FILE *output, PQLLanguage *l)
 {
-	char	*langname = formatObjectIdentifier(l.languagename);
+	char	*langname = formatObjectIdentifier(l->languagename);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP LANGUAGE %s;", langname);
@@ -168,44 +168,44 @@ dumpDropLanguage(FILE *output, PQLLanguage l)
 }
 
 void
-dumpCreateLanguage(FILE *output, PQLLanguage l)
+dumpCreateLanguage(FILE *output, PQLLanguage *l)
 {
-	char	*langname = formatObjectIdentifier(l.languagename);
+	char	*langname = formatObjectIdentifier(l->languagename);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE LANGUAGE %s", langname);
 
-	if (!l.pltemplate)
+	if (!l->pltemplate)
 	{
-		if (l.trusted)
+		if (l->trusted)
 			fprintf(output, " TRUSTED");
 
-		fprintf(output, " HANDLER %s", l.callhandler);
-		fprintf(output, " INLINE %s", l.inlinehandler);
-		fprintf(output, " VALIDATOR %s", l.validator);
+		fprintf(output, " HANDLER %s", l->callhandler);
+		fprintf(output, " INLINE %s", l->inlinehandler);
+		fprintf(output, " VALIDATOR %s", l->validator);
 	}
 
 	fprintf(output, ";");
 
 	/* comment */
-	if (options.comment && l.comment != NULL)
+	if (options.comment && l->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON LANGUAGE %s IS '%s';", langname, l.comment);
+		fprintf(output, "COMMENT ON LANGUAGE %s IS '%s';", langname, l->comment);
 	}
 
 	/* security labels */
-	if (options.securitylabels && l.nseclabels > 0)
+	if (options.securitylabels && l->nseclabels > 0)
 	{
 		int	i;
 
-		for (i = 0; i < l.nseclabels; i++)
+		for (i = 0; i < l->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS '%s';",
-					l.seclabels[i].provider,
+					l->seclabels[i].provider,
 					langname,
-					l.seclabels[i].label);
+					l->seclabels[i].label);
 		}
 	}
 
@@ -215,7 +215,7 @@ dumpCreateLanguage(FILE *output, PQLLanguage l)
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER LANGUAGE %s OWNER TO %s;",
 				langname,
-				l.owner);
+				l->owner);
 	}
 
 	/* privileges */
@@ -225,21 +225,21 @@ dumpCreateLanguage(FILE *output, PQLLanguage l)
 		PQLObject tmp;
 
 		tmp.schemaname = NULL;
-		tmp.objectname = l.languagename;
+		tmp.objectname = l->languagename;
 
-		dumpGrantAndRevoke(output, PGQ_LANGUAGE, tmp, tmp, NULL, l.acl, NULL);
+		dumpGrantAndRevoke(output, PGQ_LANGUAGE, &tmp, &tmp, NULL, l->acl, NULL);
 	}
 
 	free(langname);
 }
 
 void
-dumpAlterLanguage(FILE *output, PQLLanguage a, PQLLanguage b)
+dumpAlterLanguage(FILE *output, PQLLanguage *a, PQLLanguage *b)
 {
-	char	*langname1 = formatObjectIdentifier(a.languagename);
-	char	*langname2 = formatObjectIdentifier(b.languagename);
+	char	*langname1 = formatObjectIdentifier(a->languagename);
+	char	*langname2 = formatObjectIdentifier(b->languagename);
 
-	if (strcmp(a.languagename, b.languagename) != 0)
+	if (strcmp(a->languagename, b->languagename) != 0)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER LANGUAGE %s RENAME TO %s;", langname1, langname2);
@@ -248,14 +248,14 @@ dumpAlterLanguage(FILE *output, PQLLanguage a, PQLLanguage b)
 	/* comment */
 	if (options.comment)
 	{
-		if ((a.comment == NULL && b.comment != NULL) ||
-				(a.comment != NULL && b.comment != NULL &&
-				 strcmp(a.comment, b.comment) != 0))
+		if ((a->comment == NULL && b->comment != NULL) ||
+				(a->comment != NULL && b->comment != NULL &&
+				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON LANGUAGE %s IS '%s';", langname2, b.comment);
+			fprintf(output, "COMMENT ON LANGUAGE %s IS '%s';", langname2, b->comment);
 		}
-		else if (a.comment != NULL && b.comment == NULL)
+		else if (a->comment != NULL && b->comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON LANGUAGE %s IS NULL;", langname2);
@@ -265,83 +265,83 @@ dumpAlterLanguage(FILE *output, PQLLanguage a, PQLLanguage b)
 	/* security labels */
 	if (options.securitylabels)
 	{
-		if (a.seclabels == NULL && b.seclabels != NULL)
+		if (a->seclabels == NULL && b->seclabels != NULL)
 		{
 			int	i;
 
-			for (i = 0; i < b.nseclabels; i++)
+			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS '%s';",
-						b.seclabels[i].provider,
+						b->seclabels[i].provider,
 						langname2,
-						b.seclabels[i].label);
+						b->seclabels[i].label);
 			}
 		}
-		else if (a.seclabels != NULL && b.seclabels == NULL)
+		else if (a->seclabels != NULL && b->seclabels == NULL)
 		{
 			int	i;
 
-			for (i = 0; i < a.nseclabels; i++)
+			for (i = 0; i < a->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS NULL;",
-						a.seclabels[i].provider,
+						a->seclabels[i].provider,
 						langname1);
 			}
 		}
-		else if (a.seclabels != NULL && b.seclabels != NULL)
+		else if (a->seclabels != NULL && b->seclabels != NULL)
 		{
 			int	i, j;
 
 			i = j = 0;
-			while (i < a.nseclabels || j < b.nseclabels)
+			while (i < a->nseclabels || j < b->nseclabels)
 			{
-				if (i == a.nseclabels)
+				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS '%s';",
-							b.seclabels[j].provider,
+							b->seclabels[j].provider,
 							langname2,
-							b.seclabels[j].label);
+							b->seclabels[j].label);
 					j++;
 				}
-				else if (j == b.nseclabels)
+				else if (j == b->nseclabels)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS NULL;",
-							a.seclabels[i].provider,
+							a->seclabels[i].provider,
 							langname1);
 					i++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) == 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) == 0)
 				{
-					if (strcmp(a.seclabels[i].label, b.seclabels[j].label) != 0)
+					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
 						fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS '%s';",
-								b.seclabels[j].provider,
+								b->seclabels[j].provider,
 								langname2,
-								b.seclabels[j].label);
+								b->seclabels[j].label);
 					}
 					i++;
 					j++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) < 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) < 0)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS NULL;",
-							a.seclabels[i].provider,
+							a->seclabels[i].provider,
 							langname1);
 					i++;
 				}
-				else if (strcmp(a.seclabels[i].provider, b.seclabels[j].provider) > 0)
+				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS '%s';",
-							b.seclabels[j].provider,
+							b->seclabels[j].provider,
 							langname2,
-							b.seclabels[j].label);
+							b->seclabels[j].label);
 					j++;
 				}
 			}
@@ -351,12 +351,12 @@ dumpAlterLanguage(FILE *output, PQLLanguage a, PQLLanguage b)
 	/* owner */
 	if (options.owner)
 	{
-		if (strcmp(a.owner, b.owner) != 0)
+		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER LANGUAGE %s OWNER TO %s;",
 					langname2,
-					b.owner);
+					b->owner);
 		}
 	}
 
@@ -366,12 +366,12 @@ dumpAlterLanguage(FILE *output, PQLLanguage a, PQLLanguage b)
 		PQLObject tmpa, tmpb;
 
 		tmpa.schemaname = NULL;
-		tmpa.objectname = a.languagename;
+		tmpa.objectname = a->languagename;
 		tmpb.schemaname = NULL;
-		tmpb.objectname = b.languagename;
+		tmpb.objectname = b->languagename;
 
-		if (a.acl != NULL || b.acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_LANGUAGE, tmpa, tmpb, a.acl, b.acl, NULL);
+		if (a->acl != NULL || b->acl != NULL)
+			dumpGrantAndRevoke(output, PGQ_LANGUAGE, &tmpa, &tmpb, a->acl, b->acl, NULL);
 	}
 
 	free(langname1);
