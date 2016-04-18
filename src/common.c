@@ -613,7 +613,11 @@ printOptions(stringList *sl)
 		{
 			int	newlen;
 
-			newlen = n + strlen(p->value) + 2 + 1;	/* string space including new option */
+			/*
+			 * String space including new option and separator. Don't forget
+			 * the null-character.
+			 */
+			newlen = n + strlen(p->value) + 2 + 1;
 			if (newlen > listlen)
 			{
 				logNoise("allocate more memory (was %d ; is %d)", listlen, newlen);
@@ -633,8 +637,13 @@ printOptions(stringList *sl)
 			}
 			else
 			{
-				/* if it is not the first item, add comma and space before it */
-				strncpy(list + n, ", ", 2);
+				/*
+				 * If it is not the first item, add comma and space before it.
+				 * Copy 3 characters from destination to source, although only
+				 * 2 (comma and space) will be added to list. Don't forget the
+				 * null-character.
+				 */
+				strncpy(list + n, ", ", 3);
 				n += 2;
 			}
 
