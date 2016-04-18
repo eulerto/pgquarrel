@@ -213,6 +213,10 @@ mini_parse_file(const char *file_name)
 		lineno++;
 	}
 
+	/* Avoid leaking memory */
+	if (line)
+		free(line);
+
 	fclose(file);
 
 	return mini_file;
