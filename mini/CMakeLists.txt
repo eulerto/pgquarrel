@@ -9,4 +9,4 @@ add_library(mini SHARED
 	mini-strip.h
 )
 
-install(TARGETS mini DESTINATION "/tmp/test/lib")
+install(TARGETS mini DESTINATION lib)
