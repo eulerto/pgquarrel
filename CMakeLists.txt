@@ -75,7 +75,7 @@ set(LIBS ${LIBS} mini)
 
 target_link_libraries(pgquarrel ${LIBS})
 
-install(TARGETS pgquarrel DESTINATION "/tmp/test/bin")
+install(TARGETS pgquarrel RUNTIME DESTINATION bin)
 
 find_program(astyle_EXECUTABLE astyle DOC "source code indenter, formatter, and beautifier")
 
