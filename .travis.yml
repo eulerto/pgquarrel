@@ -1,0 +1,29 @@
+language: c
+sudo: required
+dist: trusty
+compiler:
+  - gcc
+# - clang
+env:
+#  - PGVERSION=9.4.7
+  - PGVERSION=9.5.2
+
+#addons:
+#  apt:
+#    packages:
+#      - cmake
+
+# install PostgreSQL and start 2 clusters
+before_install:
+  - test/travis/install-pg.sh $PGVERSION
+
+# install pgquarrel
+install:
+  - test/travis/install-pgquarrel.sh $PGVERSION
+
+# create test databases
+before_script:
+  - test/travis/setup-pg.sh $PGVERSION
+
+script:
+  - test/travis/run-tests.sh $PGVERSION
