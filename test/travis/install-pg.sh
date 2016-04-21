@@ -2,6 +2,7 @@
 set -ex
 PGV=`echo "pg$1" | sed 's/\.//g'`
 PGPREFIX=$HOME/$PGV
+perl -V
 wget https://ftp.postgresql.org/pub/source/v$1/postgresql-$1.tar.bz2
 tar -jxf postgresql-$1.tar.bz2
 cd postgresql-$1
