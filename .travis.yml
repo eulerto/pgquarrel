@@ -10,12 +10,11 @@ env:
 
 language: perl
 perl:
-  - "5.22"
+  - "5.18"
 
 addons:
   apt:
     packages:
-      - libperl5.22
       - libperl-dev
 
 # install PostgreSQL and start 2 clusters
