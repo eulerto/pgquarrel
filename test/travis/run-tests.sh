@@ -5,6 +5,7 @@ PGPATH1=$HOME/$PGV/bin
 PGPATH2=$HOME/$PGV/bin
 PGPORT1=9901
 PGPORT2=9902
+LD_LIBRARY_PATH=$HOME/$PGV/lib:$HOME/pgquarrel/lib:$LD_LIBRARY_PATH
 # test needs a relative path
 cd pgquarrel/test
 # loading quarrel data
