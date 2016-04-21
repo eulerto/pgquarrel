@@ -15,6 +15,9 @@ LCOV="/usr/bin/lcov"
 GENHTML="/usr/bin/genhtml"
 VGCMD="/usr/bin/valgrind --leak-check=full --show-leak-kinds=all"
 
+PGUSER1=quarrel
+PGUSER2=quarrel
+
 PGPORT1=9901
 PGPORT2=9902
 
@@ -44,9 +47,9 @@ if [ "$1" = "init" ]; then
 	fi
 
 	echo "initdb'ing cluster 1..."
-	$PGPATH1/initdb -D $CLUSTERPATH/test1
+	$PGPATH1/initdb -U $PGUSER1 -D $CLUSTERPATH/test1
 	echo "initdb'ing cluster 2..."
-	$PGPATH2/initdb -D $CLUSTERPATH/test2
+	$PGPATH2/initdb -U $PGUSER2 -D $CLUSTERPATH/test2
 
 	echo "port = $PGPORT1" >> $CLUSTERPATH/test1/postgresql.conf
 	echo "port = $PGPORT2" >> $CLUSTERPATH/test2/postgresql.conf
@@ -72,9 +75,9 @@ fi
 sleep 2
 
 echo "loading quarrel1..."
-$PGPATH1/psql -p $PGPORT1 -X -f test-server1.sql postgres > /dev/null
+$PGPATH1/psql -U $PGUSER1 -p $PGPORT1 -X -f test-server1.sql postgres > /dev/null
 echo "loading quarrel2..."
-$PGPATH2/psql -p $PGPORT2 -X -f test-server2.sql postgres > /dev/null
+$PGPATH2/psql -U $PGUSER2 -p $PGPORT2 -X -f test-server2.sql postgres > /dev/null
 
 echo "quarrel..."
 if [ $VALGRIND -eq 1 ]; then
@@ -85,15 +88,15 @@ else
 fi
 
 echo "applying changes..."
-$PGPATH1/psql -p $PGPORT1 -X -f /tmp/test.sql quarrel1 > /dev/null
+$PGPATH1/psql -U $PGUSER1 -p $PGPORT1 -X -f /tmp/test.sql quarrel1 > /dev/null
 
 
 echo "test again..."
 $PGQUARREL -c test2.ini
 
 echo "comparing dumps..."
-$PGPATH1/pg_dump -s -p $PGPORT1 -f /tmp/q1.sql quarrel1 2> /dev/null
-$PGPATH1/pg_dump -s -p $PGPORT2 -f /tmp/q2.sql quarrel2 2> /dev/null
+$PGPATH1/pg_dump -s -U $PGUSER1 -p $PGPORT1 -f /tmp/q1.sql quarrel1 2> /dev/null
+$PGPATH1/pg_dump -s -U $PGUSER2 -p $PGPORT2 -f /tmp/q2.sql quarrel2 2> /dev/null
 diff -u /tmp/q1.sql /tmp/q2.sql
 
 if [ $CLEANUP -eq 1 ]; then
