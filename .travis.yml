@@ -9,11 +9,14 @@ env:
   - PGVERSION=9.5.2
 
 language: perl
+perl:
+  - "5.22"
 
-#addons:
-#  apt:
-#    packages:
-#      - cmake
+addons:
+  apt:
+    packages:
+      - libperl5.22
+      - libperl-dev
 
 # install PostgreSQL and start 2 clusters
 before_install:
