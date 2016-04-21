@@ -8,6 +8,8 @@ env:
 #  - PGVERSION=9.4.7
   - PGVERSION=9.5.2
 
+language: perl
+
 #addons:
 #  apt:
 #    packages:
