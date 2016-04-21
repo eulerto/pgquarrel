@@ -5,4 +5,4 @@ PGPREFIX=$HOME/$PGV
 wget https://ftp.postgresql.org/pub/source/v$1/postgresql-$1.tar.bz2
 tar -jxf postgresql-$1.tar.bz2
 cd postgresql-$1
-./configure --prefix=$PGPREFIX && make && make install && cd contrib && make && make install
+./configure --prefix=$PGPREFIX --with-perl && make && make install && cd contrib && make && make install
