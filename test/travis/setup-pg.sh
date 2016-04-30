@@ -11,5 +11,7 @@ echo "port = 9901" >> $PGPREFIX/data1/postgresql.conf
 echo "port = 9902" >> $PGPREFIX/data2/postgresql.conf
 $PGBIN/pg_ctl -w start -D $PGPREFIX/data1
 $PGBIN/pg_ctl -w start -D $PGPREFIX/data2
-$PGBIN/psql -p 9901 -c "CREATE DATABASE quarrel1" postgres
-$PGBIN/psql -p 9902 -c "CREATE DATABASE quarrel2" postgres
+$PGBIN/psql -p 9901 -c "CREATE ROLE quarrel LOGIN" postgres
+$PGBIN/psql -p 9902 -c "CREATE ROLE quarrel LOGIN" postgres
+$PGBIN/psql -p 9901 -c "CREATE DATABASE quarrel1 OWNER TO quarrel" postgres
+$PGBIN/psql -p 9902 -c "CREATE DATABASE quarrel2 OWNER TO quarrel" postgres
