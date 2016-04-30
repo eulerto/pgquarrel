@@ -18,5 +18,5 @@ $PGPATH1/pg_ctl -w start -D $PGDATA1
 $PGPATH2/pg_ctl -w start -D $PGDATA2
 $PGPATH1/psql -p $PGPORT1 -c "CREATE ROLE quarrel LOGIN" postgres
 $PGPATH2/psql -p $PGPORT2 -c "CREATE ROLE quarrel LOGIN" postgres
-$PGPATH1/psql -p $PGPORT1 -c "CREATE DATABASE quarrel1 OWNER TO quarrel" postgres
-$PGPATH2/psql -p $PGPORT2 -c "CREATE DATABASE quarrel2 OWNER TO quarrel" postgres
+$PGPATH1/psql -p $PGPORT1 -c "CREATE DATABASE quarrel1 OWNER quarrel" postgres
+$PGPATH2/psql -p $PGPORT2 -c "CREATE DATABASE quarrel2 OWNER quarrel" postgres
