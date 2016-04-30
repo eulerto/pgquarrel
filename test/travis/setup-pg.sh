@@ -1,17 +1,22 @@
 #!/bin/sh
 set -ex
+# if you change those env variables, don't forget to change it in run-tests.sh
 PGV=`echo "pg$1" | sed 's/\.//g'`
-PGPREFIX=$HOME/$PGV
-PGBIN=$PGPREFIX/bin
-mkdir $PGPREFIX/data1
-mkdir $PGPREFIX/data2
-$PGBIN/initdb $PGPREFIX/data1
-$PGBIN/initdb $PGPREFIX/data2
-echo "port = 9901" >> $PGPREFIX/data1/postgresql.conf
-echo "port = 9902" >> $PGPREFIX/data2/postgresql.conf
-$PGBIN/pg_ctl -w start -D $PGPREFIX/data1
-$PGBIN/pg_ctl -w start -D $PGPREFIX/data2
-$PGBIN/psql -p 9901 -c "CREATE ROLE quarrel LOGIN" postgres
-$PGBIN/psql -p 9902 -c "CREATE ROLE quarrel LOGIN" postgres
-$PGBIN/psql -p 9901 -c "CREATE DATABASE quarrel1 OWNER TO quarrel" postgres
-$PGBIN/psql -p 9902 -c "CREATE DATABASE quarrel2 OWNER TO quarrel" postgres
+PGPATH1=$HOME/$PGV/bin
+PGPATH2=$HOME/$PGV/bin
+PGDATA1=$HOME/$PGV/data1
+PGDATA2=$HOME/$PGV/data2
+PGPORT1=9901
+PGPORT2=9902
+mkdir $PGDATA1
+mkdir $PGDATA2
+$PGPATH1/initdb $PGDATA1
+$PGPATH2/initdb $PGDATA2
+echo "port = $PGPORT1" >> $PGDATA1/postgresql.conf
+echo "port = $PGPORT2" >> $PGDATA2/postgresql.conf
+$PGPATH1/pg_ctl -w start -D $PGDATA1
+$PGPATH2/pg_ctl -w start -D $PGDATA2
+$PGPATH1/psql -p $PGPORT1 -c "CREATE ROLE quarrel LOGIN" postgres
+$PGPATH2/psql -p $PGPORT2 -c "CREATE ROLE quarrel LOGIN" postgres
+$PGPATH1/psql -p $PGPORT1 -c "CREATE DATABASE quarrel1 OWNER TO quarrel" postgres
+$PGPATH2/psql -p $PGPORT2 -c "CREATE DATABASE quarrel2 OWNER TO quarrel" postgres

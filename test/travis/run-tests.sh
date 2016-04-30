@@ -1,5 +1,6 @@
 #!/bin/sh
 set -ex
+# if you change those env variables, don't forget to change it in setup-pg.sh
 PGV=`echo "pg$1" | sed 's/\.//g'`
 PGPATH1=$HOME/$PGV/bin
 PGPATH2=$HOME/$PGV/bin
