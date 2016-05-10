@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/eulerto/pgquarrel.svg?branch=master)](https://travis-ci.org/eulerto/pgquarrel)
+
 Introduction
 ============
 
