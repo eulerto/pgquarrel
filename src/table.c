@@ -170,7 +170,7 @@ getCheckConstraints(PGconn *c, PQLTable *t, int n)
 			/* FIXME conislocal (8.4)? convalidated (9.2)? */
 			/* XXX contype = 'c' needed? */
 			r = snprintf(query, nquery,
-						 "SELECT conname, pg_get_constraintdef(c.oid) AS condef, d.description FROM pg_constraint c LEFT JOIN (pg_description d INNER JOIN pg_class x ON (x.oid = d.classoid AND x.relname = 'pg_constraint')) ON (d.objoid = c.oid) WHERE conrelid = %u AND contype = 'c' ORDER BY conname",
+						 "SELECT conname, pg_get_constraintdef(c.oid) AS condef, obj_description(c.oid, 'pg_constraint') AS description FROM pg_constraint c WHERE conrelid = %u AND contype = 'c' ORDER BY conname",
 						 t[i].obj.oid);
 
 			if (r < nquery)
@@ -233,7 +233,7 @@ getFKConstraints(PGconn *c, PQLTable *t, int n)
 			query = (char *) malloc(nquery * sizeof(char));
 
 			r = snprintf(query, nquery,
-						 "SELECT conname, pg_get_constraintdef(c.oid) AS condef, d.description FROM pg_constraint c LEFT JOIN (pg_description d INNER JOIN pg_class x ON (x.oid = d.classoid AND x.relname = 'pg_constraint')) ON (d.objoid = c.oid) WHERE conrelid = %u AND contype = 'f' ORDER BY conname",
+						 "SELECT conname, pg_get_constraintdef(c.oid) AS condef, obj_description(c.oid, 'pg_constraint') AS description FROM pg_constraint c WHERE conrelid = %u AND contype = 'f' ORDER BY conname",
 						 t[i].obj.oid);
 
 			if (r < nquery)
@@ -296,7 +296,7 @@ getPKConstraints(PGconn *c, PQLTable *t, int n)
 
 			/* XXX only 9.0+ */
 			r = snprintf(query, nquery,
-						 "SELECT conname, pg_get_constraintdef(c.oid) AS condef, d.description FROM pg_constraint c LEFT JOIN (pg_description d INNER JOIN pg_class x ON (x.oid = d.classoid AND x.relname = 'pg_constraint')) ON (d.objoid = c.oid) WHERE conrelid = %u AND contype = 'p' ORDER BY conname",
+						 "SELECT conname, pg_get_constraintdef(c.oid) AS condef, obj_description(c.oid, 'pg_constraint') AS description FROM pg_constraint c WHERE conrelid = %u AND contype = 'p' ORDER BY conname",
 						 t[i].obj.oid);
 
 			if (r < nquery)
@@ -353,7 +353,7 @@ getTableAttributes(PGconn *c, PQLTable *t)
 
 		/* FIXME attcollation (9.1)? */
 		r = snprintf(query, nquery,
-					 "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, s.description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) LEFT JOIN (pg_description s INNER JOIN pg_class x ON (x.oid = s.classoid AND x.relname = 'pg_attribute')) ON (s.objoid = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
+					 "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
 					 t->obj.oid);
 
 		if (r < nquery)
