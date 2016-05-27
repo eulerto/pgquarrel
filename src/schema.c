@@ -86,7 +86,7 @@ getSchemaSecurityLabels(PGconn *c, PQLSchema *s)
 	PGresult	*res;
 	int			i;
 
-	if (PG_VERSION_NUM < 90100)
+	if (PQserverVersion(c) < 90100)
 	{
 		logWarning("ignoring security labels because server does not support it");
 		return;

@@ -6,7 +6,6 @@
 #include <string.h>
 #include <stdarg.h>
 #include <libpq-fe.h>
-#include <pg_config.h>
 #include <c.h>			/* bool, true, false */
 
 /*

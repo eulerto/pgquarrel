@@ -107,7 +107,7 @@ getBaseTypeSecurityLabels(PGconn *c, PQLBaseType *t)
 	PGresult	*res;
 	int			i;
 
-	if (PG_VERSION_NUM < 90100)
+	if (PQserverVersion(c) < 90100)
 	{
 		logWarning("ignoring security labels because server does not support it");
 		return;
@@ -302,7 +302,7 @@ getCompositeTypeSecurityLabels(PGconn *c, PQLCompositeType *t)
 	PGresult	*res;
 	int			i;
 
-	if (PG_VERSION_NUM < 90100)
+	if (PQserverVersion(c) < 90100)
 	{
 		logWarning("ignoring security labels because server does not support it");
 		return;
@@ -477,7 +477,7 @@ getEnumTypeSecurityLabels(PGconn *c, PQLEnumType *t)
 	PGresult	*res;
 	int			i;
 
-	if (PG_VERSION_NUM < 90100)
+	if (PQserverVersion(c) < 90100)
 	{
 		logWarning("ignoring security labels because server does not support it");
 		return;
@@ -602,7 +602,7 @@ getRangeTypeSecurityLabels(PGconn *c, PQLRangeType *t)
 	PGresult	*res;
 	int			i;
 
-	if (PG_VERSION_NUM < 90100)
+	if (PQserverVersion(c) < 90100)
 	{
 		logWarning("ignoring security labels because server does not support it");
 		return;

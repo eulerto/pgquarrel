@@ -120,7 +120,7 @@ getDomainConstraints(PGconn *c, PQLDomain *d)
 	{
 		query = (char *) malloc(nquery * sizeof(char));
 
-		if (PG_VERSION_NUM >= 90100)
+		if (PQserverVersion(c) >= 90100)
 			r = snprintf(query, nquery,
 						 "SELECT conname, pg_get_constraintdef(oid) AS condef, convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
 						 d->obj.oid);
@@ -177,7 +177,7 @@ getDomainSecurityLabels(PGconn *c, PQLDomain *d)
 	PGresult	*res;
 	int			i;
 
-	if (PG_VERSION_NUM < 90100)
+	if (PQserverVersion(c) < 90100)
 	{
 		logWarning("ignoring security labels because server does not support it");
 		return;

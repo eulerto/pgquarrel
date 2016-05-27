@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <pg_config.h>			/* PG_VERSION_NUM */
 #include <pg_config_manual.h>	/* NAMEDATALEN */
 
 #include "common.h"
