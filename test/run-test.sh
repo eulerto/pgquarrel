@@ -7,8 +7,8 @@
 ###############################################
 # CHANGE STARTS HERE
 ###############################################
-PGPATH1=/home/euler/pg945/bin
-PGPATH2=/home/euler/pg945/bin
+PGPATH1=/home/euler/pg948/bin
+PGPATH2=/home/euler/pg948/bin
 
 GCOV="/usr/bin/gcov"
 LCOV="/usr/bin/lcov"
