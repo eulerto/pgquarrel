@@ -16,7 +16,14 @@ getForeignDataWrappers(PGconn *c, int *n)
 
 	logNoise("fdw: server version: %d", PQserverVersion(c));
 
-	res = PQexec(c, "SELECT f.oid, f.fdwname, f.fdwhandler, f.fdwvalidator, m.nspname AS handlernspname, h.oid AS handleroid, h.proname AS handlername, n.nspname AS validatornspname, v.oid AS validatoroid, v.proname AS validatorname, array_to_string(f.fdwoptions, ', ') AS options, obj_description(f.oid, 'pg_foreign_data_wrapper') AS description, pg_get_userbyid(f.fdwowner) AS fdwowner, f.fdwacl FROM pg_foreign_data_wrapper f LEFT JOIN (pg_proc h INNER JOIN pg_namespace m ON (m.oid = h.pronamespace)) ON (h.oid = f.fdwhandler) LEFT JOIN (pg_proc v INNER JOIN pg_namespace n ON (n.oid = v.pronamespace)) ON (v.oid = f.fdwvalidator) ORDER BY fdwname");
+	if (PQserverVersion(c) >= 90100)	/* extension support */
+	{
+		res = PQexec(c, "SELECT f.oid, f.fdwname, f.fdwhandler, f.fdwvalidator, m.nspname AS handlernspname, h.oid AS handleroid, h.proname AS handlername, n.nspname AS validatornspname, v.oid AS validatoroid, v.proname AS validatorname, array_to_string(f.fdwoptions, ', ') AS options, obj_description(f.oid, 'pg_foreign_data_wrapper') AS description, pg_get_userbyid(f.fdwowner) AS fdwowner, f.fdwacl FROM pg_foreign_data_wrapper f LEFT JOIN (pg_proc h INNER JOIN pg_namespace m ON (m.oid = h.pronamespace)) ON (h.oid = f.fdwhandler) LEFT JOIN (pg_proc v INNER JOIN pg_namespace n ON (n.oid = v.pronamespace)) ON (v.oid = f.fdwvalidator) WHERE NOT EXISTS(SELECT 1 FROM pg_depend d WHERE f.oid = d.objid AND d.deptype = 'e') ORDER BY fdwname");
+	}
+	else
+	{
+		res = PQexec(c, "SELECT f.oid, f.fdwname, f.fdwhandler, f.fdwvalidator, m.nspname AS handlernspname, h.oid AS handleroid, h.proname AS handlername, n.nspname AS validatornspname, v.oid AS validatoroid, v.proname AS validatorname, array_to_string(f.fdwoptions, ', ') AS options, obj_description(f.oid, 'pg_foreign_data_wrapper') AS description, pg_get_userbyid(f.fdwowner) AS fdwowner, f.fdwacl FROM pg_foreign_data_wrapper f LEFT JOIN (pg_proc h INNER JOIN pg_namespace m ON (m.oid = h.pronamespace)) ON (h.oid = f.fdwhandler) LEFT JOIN (pg_proc v INNER JOIN pg_namespace n ON (n.oid = v.pronamespace)) ON (v.oid = f.fdwvalidator) ORDER BY fdwname");
+	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

@@ -28,9 +28,18 @@ getCollations(PGconn *c, int *n)
 	{
 		query = (char *) malloc(nquery * sizeof(char));
 
-		r = snprintf(query, nquery,
+		if (PQserverVersion(c) >= 90100)	/* extension support */
+		{
+			r = snprintf(query, nquery,
+					 "SELECT c.oid, n.nspname, collname, pg_encoding_to_char(collencoding) AS collencoding, collcollate, collctype, pg_get_userbyid(collowner) AS collowner, obj_description(c.oid, 'pg_conversion') AS description FROM pg_collation c INNER JOIN pg_namespace n ON (c.collnamespace = n.oid) LEFT JOIN (pg_description d INNER JOIN pg_class x ON (x.oid = d.classoid AND x.relname = 'pg_conversion')) ON (d.objoid = c.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, collname",
+					 PGQ_FIRST_USER_OID);
+		}
+		else
+		{
+			r = snprintf(query, nquery,
 					 "SELECT c.oid, n.nspname, collname, pg_encoding_to_char(collencoding) AS collencoding, collcollate, collctype, pg_get_userbyid(collowner) AS collowner, obj_description(c.oid, 'pg_conversion') AS description FROM pg_collation c INNER JOIN pg_namespace n ON (c.collnamespace = n.oid) LEFT JOIN (pg_description d INNER JOIN pg_class x ON (x.oid = d.classoid AND x.relname = 'pg_conversion')) ON (d.objoid = c.oid) WHERE c.oid >= %u ORDER BY n.nspname, collname",
 					 PGQ_FIRST_USER_OID);
+		}
 
 		if (r < nquery)
 			break;

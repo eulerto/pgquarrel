@@ -16,8 +16,16 @@ getEventTriggers(PGconn *c, int *n)
 
 	logNoise("event trigger: server version: %d", PQserverVersion(c));
 
-	res = PQexec(c,
+	if (PQserverVersion(c) >= 90100)	/* extension support */
+	{
+		res = PQexec(c,
+				 "SELECT e.oid, e.evtname, e.evtevent, p.proname AS funcname, e.evtenabled, e.evttags, obj_description(e.oid, 'pg_event_trigger') AS description, pg_get_userbyid(e.evtowner) AS evtowner FROM pg_event_trigger e INNER JOIN pg_proc p ON (evtfoid = p.oid) WHERE NOT EXISTS(SELECT 1 FROM pg_depend d WHERE e.oid = d.objid AND d.deptype = 'e') ORDER BY evtname");
+	}
+	else
+	{
+		res = PQexec(c,
 				 "SELECT e.oid, e.evtname, e.evtevent, p.proname AS funcname, e.evtenabled, e.evttags, obj_description(e.oid, 'pg_event_trigger') AS description, pg_get_userbyid(e.evtowner) AS evtowner FROM pg_event_trigger e INNER JOIN pg_proc p ON (evtfoid = p.oid) ORDER BY evtname");
+	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

@@ -20,8 +20,16 @@ getSchemas(PGconn *c, int *n)
 
 	logNoise("schema: server version: %d", PQserverVersion(c));
 
-	res = PQexec(c,
+	if (PQserverVersion(c) >= 90100)	/* extension support */
+	{
+		res = PQexec(c,
+				 "SELECT n.oid, nspname, obj_description(n.oid, 'pg_namespace') AS description, pg_get_userbyid(nspowner) AS nspowner, nspacl FROM pg_namespace n WHERE nspname !~ '^pg_' AND nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE n.oid = d.objid AND d.deptype = 'e') ORDER BY nspname");
+	}
+	else
+	{
+		res = PQexec(c,
 				 "SELECT n.oid, nspname, obj_description(n.oid, 'pg_namespace') AS description, pg_get_userbyid(nspowner) AS nspowner, nspacl FROM pg_namespace n WHERE nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname");
+	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

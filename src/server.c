@@ -16,7 +16,14 @@ getForeignServers(PGconn *c, int *n)
 
 	logNoise("foreign server: server version: %d", PQserverVersion(c));
 
-	res = PQexec(c, "SELECT s.oid, s.srvname AS servername, s.srvowner AS owner, f.fdwname AS serverfdw, s.srvtype AS servertype, s.srvversion AS serverversion, array_to_string(s.srvoptions, ', ') AS options, obj_description(s.oid, 'pg_foreign_server') AS description, pg_get_userbyid(s.srvowner) AS serverowner, s.srvacl AS acl FROM pg_foreign_server s INNER JOIN pg_foreign_data_wrapper f ON (s.srvfdw = f.oid) ORDER BY srvname");
+	if (PQserverVersion(c) >= 90100)	/* extension support */
+	{
+		res = PQexec(c, "SELECT s.oid, s.srvname AS servername, s.srvowner AS owner, f.fdwname AS serverfdw, s.srvtype AS servertype, s.srvversion AS serverversion, array_to_string(s.srvoptions, ', ') AS options, obj_description(s.oid, 'pg_foreign_server') AS description, pg_get_userbyid(s.srvowner) AS serverowner, s.srvacl AS acl FROM pg_foreign_server s INNER JOIN pg_foreign_data_wrapper f ON (s.srvfdw = f.oid) WHERE NOT EXISTS(SELECT 1 FROM pg_depend d WHERE s.oid = d.objid AND d.deptype = 'e') ORDER BY srvname");
+	}
+	else
+	{
+		res = PQexec(c, "SELECT s.oid, s.srvname AS servername, s.srvowner AS owner, f.fdwname AS serverfdw, s.srvtype AS servertype, s.srvversion AS serverversion, array_to_string(s.srvoptions, ', ') AS options, obj_description(s.oid, 'pg_foreign_server') AS description, pg_get_userbyid(s.srvowner) AS serverowner, s.srvacl AS acl FROM pg_foreign_server s INNER JOIN pg_foreign_data_wrapper f ON (s.srvfdw = f.oid) ORDER BY srvname");
+	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
