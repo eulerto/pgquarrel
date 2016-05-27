@@ -32,11 +32,10 @@ getMaterializedViews(PGconn *c, int *n)
 
 	logNoise("materialized view: server version: %d", PQserverVersion(c));
 
-	/* check postgres version */
+	/* bail out if we do not support it */
 	if (PQserverVersion(c) < 90300)
 	{
-		logWarning("version %d does not support materialized views",
-				   PQserverVersion(c));
+		logWarning("ignoring materialized views because server does not support it");
 		return NULL;
 	}
 

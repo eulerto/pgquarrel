@@ -22,6 +22,13 @@ getExtensions(PGconn *c, int *n)
 
 	logNoise("extension: server version: %d", PQserverVersion(c));
 
+	/* bail out if we do not support it */
+	if (PQserverVersion(c) < 90100)
+	{
+		logWarning("ignoring extensions because server does not support it");
+		return NULL;
+	}
+
 	res = PQexec(c,
 				 "SELECT e.oid, extname AS extensionname, nspname, extversion AS version, extrelocatable, obj_description(e.oid, 'pg_extension') AS description FROM pg_extension e LEFT JOIN pg_namespace n ON (e.extnamespace = n.oid) ORDER BY extname");
 

@@ -24,22 +24,20 @@ getCollations(PGconn *c, int *n)
 
 	logNoise("collation: server version: %d", PQserverVersion(c));
 
+	/* bail out if we do not support it */
+	if (PQserverVersion(c) < 90100)
+	{
+		logWarning("ignoring collations because server does not support it");
+		return NULL;
+	}
+
 	do
 	{
 		query = (char *) malloc(nquery * sizeof(char));
 
-		if (PQserverVersion(c) >= 90100)	/* extension support */
-		{
-			r = snprintf(query, nquery,
+		r = snprintf(query, nquery,
 					 "SELECT c.oid, n.nspname, collname, pg_encoding_to_char(collencoding) AS collencoding, collcollate, collctype, pg_get_userbyid(collowner) AS collowner, obj_description(c.oid, 'pg_collation') AS description FROM pg_collation c INNER JOIN pg_namespace n ON (c.collnamespace = n.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, collname",
 					 PGQ_FIRST_USER_OID);
-		}
-		else
-		{
-			r = snprintf(query, nquery,
-					 "SELECT c.oid, n.nspname, collname, pg_encoding_to_char(collencoding) AS collencoding, collcollate, collctype, pg_get_userbyid(collowner) AS collowner, obj_description(c.oid, 'pg_collation') AS description FROM pg_collation c INNER JOIN pg_namespace n ON (c.collnamespace = n.oid) WHERE c.oid >= %u ORDER BY n.nspname, collname",
-					 PGQ_FIRST_USER_OID);
-		}
 
 		if (r < nquery)
 			break;
