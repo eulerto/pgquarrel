@@ -467,13 +467,13 @@ dumpGrant(FILE *output, int objecttype, PQLObject *a, char *privs, char *grantee
 			 objecttype == PGQ_FOREIGN_SERVER || objecttype == PGQ_LANGUAGE ||
 			 objecttype == PGQ_SCHEMA || objecttype == PGQ_TABLESPACE)
 	{
+		/* there are some objects that are not schema-qualified */
 		fprintf(output, " %s TO %s;",
 				objname,
 				grantee);
 	}
 	else
 	{
-		/* there are some objects that are not schema-qualified */
 		schema = formatObjectIdentifier(a->schemaname);
 
 		fprintf(output, " %s.%s TO %s;",
@@ -563,13 +563,13 @@ dumpRevoke(FILE *output, int objecttype, PQLObject *a, char *privs,
 			 objecttype == PGQ_FOREIGN_SERVER || objecttype == PGQ_LANGUAGE ||
 			 objecttype == PGQ_SCHEMA || objecttype == PGQ_TABLESPACE)
 	{
+		/* there are some objects that are not schema-qualified */
 		fprintf(output, " %s FROM %s;",
 				objname,
 				grantee);
 	}
 	else
 	{
-		/* there are some objects that are not schema-qualified */
 		schema = formatObjectIdentifier(a->schemaname);
 
 		fprintf(output, " %s.%s FROM %s;",
