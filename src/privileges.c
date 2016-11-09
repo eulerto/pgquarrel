@@ -375,6 +375,9 @@ diffPrivileges(char *a, char *b)
 			tmpa++;
 			tmpb = b;	/* start again */
 		}
+
+		/* string must be null-terminated because we don't store its length */
+		*tmpr = '\0';
 	}
 
 	/* if there is no differences, then return NULL */
