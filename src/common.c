@@ -4,7 +4,11 @@
  */
 #include "common.h"
 
+#if PG_VERSION_NUM >= 90600
+#include "common/keywords.h"
+#else
 #include "parser/keywords.h"
+#endif
 
 #define	PG_KEYWORD(a,b,c) {a,0,c},
 
