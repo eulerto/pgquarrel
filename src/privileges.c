@@ -388,9 +388,9 @@ diffPrivileges(char *a, char *b)
 	}
 
 	if (r)
-		logNoise("a: %s ; b: %s ; intersection: \"%s\"", a, b, r);
+		logNoise("a: %s ; b: %s ; difference: \"%s\"", a, b, r);
 	else
-		logNoise("a: %s ; b: %s ; intersection: nothing", a, b);
+		logNoise("a: %s ; b: %s ; difference: nothing", a, b);
 
 	return r;
 }
