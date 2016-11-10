@@ -1,3 +1,5 @@
+SET client_min_messages TO WARNING;
+
 DROP DATABASE IF EXISTS quarrel2;
 CREATE DATABASE quarrel2;
 
@@ -7,6 +9,8 @@ DROP ROLE IF EXISTS same_role_3;
 CREATE ROLE same_role_1;
 CREATE ROLE same_role_2;
 CREATE ROLE same_role_3;
+
+RESET client_min_messages;
 
 \c quarrel2
 
