@@ -235,7 +235,7 @@ dumpCreateLanguage(FILE *output, PQLLanguage *l)
 		tmp.schemaname = NULL;
 		tmp.objectname = l->languagename;
 
-		dumpGrantAndRevoke(output, PGQ_LANGUAGE, &tmp, &tmp, NULL, l->acl, NULL);
+		dumpGrantAndRevoke(output, PGQ_LANGUAGE, &tmp, &tmp, NULL, l->acl, NULL, NULL);
 	}
 
 	free(langname);
@@ -379,7 +379,7 @@ dumpAlterLanguage(FILE *output, PQLLanguage *a, PQLLanguage *b)
 		tmpb.objectname = b->languagename;
 
 		if (a->acl != NULL || b->acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_LANGUAGE, &tmpa, &tmpb, a->acl, b->acl, NULL);
+			dumpGrantAndRevoke(output, PGQ_LANGUAGE, &tmpa, &tmpb, a->acl, b->acl, NULL, NULL);
 	}
 
 	free(langname1);

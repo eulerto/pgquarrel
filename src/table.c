@@ -353,7 +353,7 @@ getTableAttributes(PGconn *c, PQLTable *t)
 
 		/* FIXME attcollation (9.1)? */
 		r = snprintf(query, nquery,
-					 "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
+					 "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, attacl FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
 					 t->obj.oid);
 
 		if (r < nquery)
@@ -449,6 +449,13 @@ getTableAttributes(PGconn *c, PQLTable *t)
 		else
 			t->attributes[i].attoptions = strdup(PQgetvalue(res, i, PQfnumber(res,
 												 "attoptions")));
+
+		/* attribute ACL */
+		if (PQgetisnull(res, i, PQfnumber(res, "attacl")))
+			t->attributes[i].acl = NULL;
+		else
+			t->attributes[i].acl = strdup(PQgetvalue(res, i, PQfnumber(res,
+												 "attacl")));
 
 		/* comment */
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
@@ -657,6 +664,8 @@ freeTables(PQLTable *t, int n)
 					free(t[i].attributes[j].attstorage);
 				if (t[i].attributes[j].attoptions)
 					free(t[i].attributes[j].attoptions);
+				if (t[i].attributes[j].acl)
+					free(t[i].attributes[j].acl);
 				if (t[i].attributes[j].comment)
 					free(t[i].attributes[j].comment);
 
@@ -1048,7 +1057,22 @@ dumpCreateTable(FILE *output, PQLTable *t)
 	/* privileges */
 	/* XXX second t->obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
-		dumpGrantAndRevoke(output, PGQ_TABLE, &t->obj, &t->obj, NULL, t->acl, NULL);
+	{
+		dumpGrantAndRevoke(output, PGQ_TABLE, &t->obj, &t->obj, NULL, t->acl, NULL, NULL);
+
+		/* attribute ACL */
+		for (i = 0; i < t->nattributes; i++)
+		{
+			if (t->attributes[i].acl)
+			{
+				char	*attname = formatObjectIdentifier(t->attributes[i].attname);
+
+				dumpGrantAndRevoke(output, PGQ_TABLE, &t->obj, &t->obj, NULL, t->attributes[i].acl, NULL, attname);
+
+				free(attname);
+			}
+		}
+	}
 
 	free(schema);
 	free(tabname);
@@ -1112,6 +1136,10 @@ dumpAddColumn(FILE *output, PQLTable *t, int i)
 					t->attributes[i].seclabels[j].label);
 		}
 	}
+
+	/* privileges */
+	if (options.privileges && t->attributes[i].acl)
+		dumpGrantAndRevoke(output, PGQ_TABLE, &t->obj, &t->obj, NULL, t->attributes[i].acl, NULL, attname);
 
 	free(schema);
 	free(tabname);
@@ -1297,6 +1325,10 @@ dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 			}
 		}
 	}
+
+	/* privileges */
+	if (options.privileges)
+		dumpGrantAndRevoke(output, PGQ_TABLE, &a->obj, &b->obj, a->attributes[i].acl, b->attributes[j].acl, NULL, attname1);
 
 	free(schema1);
 	free(tabname1);
@@ -1509,6 +1541,21 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 			/* storage changed */
 			if (a->attributes[i].defstorage != b->attributes[j].defstorage)
 				dumpAlterColumnSetStorage(output, b, j, true);
+
+			/* attribute ACL changed */
+			if (options.privileges)
+			{
+				char *attname = formatObjectIdentifier(a->attributes[i].attname);
+
+				if (a->attributes[i].acl != NULL && b->attributes[j].acl == NULL)
+					dumpGrantAndRevoke(output, PGQ_TABLE, &a->obj, &b->obj, a->attributes[i].acl, NULL, NULL, attname);
+				else if (a->attributes[i].acl == NULL && b->attributes[j].acl != NULL)
+					dumpGrantAndRevoke(output, PGQ_TABLE, &a->obj, &b->obj, NULL, b->attributes[j].acl, NULL, attname);
+				else if (a->attributes[i].acl != NULL && b->attributes[j].acl != NULL && strcmp(a->attributes[i].acl, b->attributes[j].acl) != 0)
+					dumpGrantAndRevoke(output, PGQ_TABLE, &a->obj, &b->obj, a->attributes[i].acl, b->attributes[j].acl, NULL, attname);
+
+				free(attname);
+			}
 
 			i++;
 			j++;
@@ -1771,7 +1818,7 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 	if (options.privileges)
 	{
 		if (a->acl != NULL || b->acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_TABLE, &a->obj, &b->obj, a->acl, b->acl, NULL);
+			dumpGrantAndRevoke(output, PGQ_TABLE, &a->obj, &b->obj, a->acl, b->acl, NULL, NULL);
 	}
 
 	free(schema1);

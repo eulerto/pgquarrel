@@ -338,7 +338,7 @@ dumpCreateFunction(FILE *output, PQLFunction *f, bool orreplace)
 	/* XXX second f->obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
 		dumpGrantAndRevoke(output, PGQ_FUNCTION, &f->obj, &f->obj, NULL, f->acl,
-						   f->arguments);
+						   f->arguments, NULL);
 
 	free(schema);
 	free(funcname);
@@ -710,7 +710,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 	{
 		if (a->acl != NULL || b->acl != NULL)
 			dumpGrantAndRevoke(output, PGQ_FUNCTION, &a->obj, &b->obj, a->acl, b->acl,
-							   a->arguments);
+							   a->arguments, NULL);
 	}
 
 	free(schema1);

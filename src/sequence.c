@@ -318,7 +318,7 @@ dumpCreateSequence(FILE *output, PQLSequence *s)
 	/* privileges */
 	/* XXX second s->obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
-		dumpGrantAndRevoke(output, PGQ_SEQUENCE, &s->obj, &s->obj, NULL, s->acl, NULL);
+		dumpGrantAndRevoke(output, PGQ_SEQUENCE, &s->obj, &s->obj, NULL, s->acl, NULL, NULL);
 
 	free(schema);
 	free(seqname);
@@ -536,7 +536,7 @@ dumpAlterSequence(FILE *output, PQLSequence *a, PQLSequence *b)
 	if (options.privileges)
 	{
 		if (a->acl != NULL || b->acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_SEQUENCE, &a->obj, &b->obj, a->acl, b->acl, NULL);
+			dumpGrantAndRevoke(output, PGQ_SEQUENCE, &a->obj, &b->obj, a->acl, b->acl, NULL, NULL);
 	}
 
 	free(schema1);

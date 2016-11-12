@@ -202,7 +202,7 @@ dumpCreateForeignDataWrapper(FILE *output, PQLForeignDataWrapper *f)
 		tmp.schemaname = NULL;
 		tmp.objectname = f->fdwname;
 
-		dumpGrantAndRevoke(output, PGQ_FOREIGN_DATA_WRAPPER, &tmp, &tmp, NULL, f->acl, NULL);
+		dumpGrantAndRevoke(output, PGQ_FOREIGN_DATA_WRAPPER, &tmp, &tmp, NULL, f->acl, NULL, NULL);
 	}
 
 	free(fdwname);
@@ -444,7 +444,7 @@ dumpAlterForeignDataWrapper(FILE *output, PQLForeignDataWrapper *a, PQLForeignDa
 		tmpb.objectname = b->fdwname;
 
 		if (a->acl != NULL || b->acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_FOREIGN_DATA_WRAPPER, &tmpa, &tmpb, a->acl, b->acl, NULL);
+			dumpGrantAndRevoke(output, PGQ_FOREIGN_DATA_WRAPPER, &tmpa, &tmpb, a->acl, b->acl, NULL, NULL);
 	}
 
 	free(fdwname1);

@@ -216,7 +216,7 @@ dumpCreateSchema(FILE *output, PQLSchema *s)
 		tmp.schemaname = NULL;
 		tmp.objectname = s->schemaname;
 
-		dumpGrantAndRevoke(output, PGQ_SCHEMA, &tmp, &tmp, NULL, s->acl, NULL);
+		dumpGrantAndRevoke(output, PGQ_SCHEMA, &tmp, &tmp, NULL, s->acl, NULL, NULL);
 	}
 
 	free(schemaname);
@@ -362,7 +362,7 @@ dumpAlterSchema(FILE *output, PQLSchema *a, PQLSchema *b)
 		tmpb.objectname = b->schemaname;
 
 		if (a->acl != NULL || b->acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_SCHEMA, &tmpa, &tmpb, a->acl, b->acl, NULL);
+			dumpGrantAndRevoke(output, PGQ_SCHEMA, &tmpa, &tmpb, a->acl, b->acl, NULL, NULL);
 	}
 
 	free(schemaname1);

@@ -80,3 +80,9 @@ ALTER TABLE to_table_3 ALTER COLUMN b SET STORAGE EXTERNAL;
 
 -- replica identity
 ALTER TABLE same_table_2 REPLICA IDENTITY USING INDEX same_table_2_pkey;
+
+-- privileges
+GRANT SELECT, DELETE ON TABLE same_table_1 TO same_role_1;
+GRANT SELECT (a, b), INSERT (b) ON TABLE same_table_3 TO same_role_2;
+GRANT SELECT ON TABLE to_table_1 TO same_role_1;
+GRANT INSERT, UPDATE (b, c) ON TABLE to_table_2 TO same_role_2;

@@ -199,7 +199,7 @@ dumpCreateForeignServer(FILE *output, PQLForeignServer *s)
 		tmp.schemaname = NULL;
 		tmp.objectname = s->servername;
 
-		dumpGrantAndRevoke(output, PGQ_FOREIGN_SERVER, &tmp, &tmp, NULL, s->acl, NULL);
+		dumpGrantAndRevoke(output, PGQ_FOREIGN_SERVER, &tmp, &tmp, NULL, s->acl, NULL, NULL);
 	}
 
 	free(srvname);
@@ -424,7 +424,7 @@ dumpAlterForeignServer(FILE *output, PQLForeignServer *a, PQLForeignServer *b)
 		tmpb.objectname = b->servername;
 
 		if (a->acl != NULL || b->acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_FOREIGN_SERVER, &tmpa, &tmpb, a->acl, b->acl, NULL);
+			dumpGrantAndRevoke(output, PGQ_FOREIGN_SERVER, &tmpa, &tmpb, a->acl, b->acl, NULL, NULL);
 	}
 
 	free(srvname1);

@@ -917,7 +917,7 @@ dumpCreateBaseType(FILE *output, PQLBaseType *t)
 	/* privileges */
 	/* XXX second t->obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
-		dumpGrantAndRevoke(output, PGQ_TYPE, &t->obj, &t->obj, NULL, t->acl, NULL);
+		dumpGrantAndRevoke(output, PGQ_TYPE, &t->obj, &t->obj, NULL, t->acl, NULL, NULL);
 
 	free(schema);
 	free(typname);
@@ -985,7 +985,7 @@ dumpCreateCompositeType(FILE *output, PQLCompositeType *t)
 	/* privileges */
 	/* XXX second t->obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
-		dumpGrantAndRevoke(output, PGQ_TYPE, &t->obj, &t->obj, NULL, t->acl, NULL);
+		dumpGrantAndRevoke(output, PGQ_TYPE, &t->obj, &t->obj, NULL, t->acl, NULL, NULL);
 
 	free(schema);
 	free(typname);
@@ -1042,7 +1042,7 @@ dumpCreateEnumType(FILE *output, PQLEnumType *t)
 	/* privileges */
 	/* XXX second t->obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
-		dumpGrantAndRevoke(output, PGQ_TYPE, &t->obj, &t->obj, NULL, t->acl, NULL);
+		dumpGrantAndRevoke(output, PGQ_TYPE, &t->obj, &t->obj, NULL, t->acl, NULL, NULL);
 
 	free(schema);
 	free(typname);
@@ -1123,7 +1123,7 @@ dumpCreateRangeType(FILE *output, PQLRangeType *t)
 	/* privileges */
 	/* XXX second t->obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
-		dumpGrantAndRevoke(output, PGQ_TYPE, &t->obj, &t->obj, NULL, t->acl, NULL);
+		dumpGrantAndRevoke(output, PGQ_TYPE, &t->obj, &t->obj, NULL, t->acl, NULL, NULL);
 
 	free(schema);
 	free(typname);
@@ -1313,7 +1313,7 @@ dumpAlterBaseType(FILE *output, PQLBaseType *a, PQLBaseType *b)
 	if (options.privileges)
 	{
 		if (a->acl != NULL || b->acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_TYPE, &a->obj, &b->obj, a->acl, b->acl, NULL);
+			dumpGrantAndRevoke(output, PGQ_TYPE, &a->obj, &b->obj, a->acl, b->acl, NULL, NULL);
 	}
 
 	free(schema1);
@@ -1454,7 +1454,7 @@ dumpAlterCompositeType(FILE *output, PQLCompositeType *a, PQLCompositeType *b)
 	if (options.privileges)
 	{
 		if (a->acl != NULL || b->acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_TYPE, &a->obj, &b->obj, a->acl, b->acl, NULL);
+			dumpGrantAndRevoke(output, PGQ_TYPE, &a->obj, &b->obj, a->acl, b->acl, NULL, NULL);
 	}
 
 	free(schema1);
@@ -1595,7 +1595,7 @@ dumpAlterEnumType(FILE *output, PQLEnumType *a, PQLEnumType *b)
 	if (options.privileges)
 	{
 		if (a->acl != NULL || b->acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_TYPE, &a->obj, &b->obj, a->acl, b->acl, NULL);
+			dumpGrantAndRevoke(output, PGQ_TYPE, &a->obj, &b->obj, a->acl, b->acl, NULL, NULL);
 	}
 
 	free(schema1);
@@ -1736,7 +1736,7 @@ dumpAlterRangeType(FILE *output, PQLRangeType *a, PQLRangeType *b)
 	if (options.privileges)
 	{
 		if (a->acl != NULL || b->acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_TYPE, &a->obj, &b->obj, a->acl, b->acl, NULL);
+			dumpGrantAndRevoke(output, PGQ_TYPE, &a->obj, &b->obj, a->acl, b->acl, NULL, NULL);
 	}
 
 	free(schema1);

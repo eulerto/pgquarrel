@@ -91,6 +91,7 @@ typedef struct PQLAttribute
 	bool		defstorage;
 	char		*attoptions;
 	char		*comment;
+	char		*acl;
 
 	/* security labels */
 	PQLSecLabel	*seclabels;

@@ -335,7 +335,7 @@ dumpCreateDomain(FILE *output, PQLDomain *d)
 	/* privileges */
 	/* XXX second d->obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
-		dumpGrantAndRevoke(output, PGQ_DOMAIN, &d->obj, &d->obj, NULL, d->acl, NULL);
+		dumpGrantAndRevoke(output, PGQ_DOMAIN, &d->obj, &d->obj, NULL, d->acl, NULL, NULL);
 
 	free(schema);
 	free(domname);
@@ -523,7 +523,7 @@ dumpAlterDomain(FILE *output, PQLDomain *a, PQLDomain *b)
 	if (options.privileges)
 	{
 		if (a->acl != NULL || b->acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_DOMAIN, &a->obj, &b->obj, a->acl, b->acl, NULL);
+			dumpGrantAndRevoke(output, PGQ_DOMAIN, &a->obj, &b->obj, a->acl, b->acl, NULL, NULL);
 	}
 
 	free(schema1);

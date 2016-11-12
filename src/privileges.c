@@ -2,6 +2,7 @@
 
 /*
  * GRANT ON TABLE
+ * GRANT (columns) ON TABLE
  * GRANT ON SEQUENCE
  * GRANT ON DOMAIN
  * GRANT ON FUNCTION
@@ -14,6 +15,7 @@
  * GRANT ON TABLESPACE
  *
  * REVOKE ON TABLE
+ * REVOKE (columns) ON TABLE
  * REVOKE ON SEQUENCE
  * REVOKE ON DOMAIN
  * REVOKE ON FUNCTION
@@ -24,11 +26,6 @@
  * REVOKE ON FOREIGN DATA WRAPPER
  * REVOKE ON FOREIGN SERVER
  * REVOKE ON TABLESPACE
- *
- * TODO
- *
- * GRANT (columns) ON TABLE
- * REVOKE (columns) ON TABLE
  */
 
 /*
@@ -397,7 +394,7 @@ diffPrivileges(char *a, char *b)
 
 void
 dumpGrant(FILE *output, int objecttype, PQLObject *a, char *privs, char *grantee,
-		  char *extra)
+		  char *args, char *cols)
 {
 	char	*schema;
 	char	*objname;
@@ -414,7 +411,10 @@ dumpGrant(FILE *output, int objecttype, PQLObject *a, char *privs, char *grantee
 	p = formatPrivileges(privs);
 
 	fprintf(output, "\n\n");
-	fprintf(output, "GRANT %s ON ", p);
+	fprintf(output, "GRANT %s", p);
+	if (cols)
+		fprintf(output, " (%s)", cols);
+	fprintf(output, " ON ");
 
 	switch (objecttype)
 	{
@@ -455,7 +455,7 @@ dumpGrant(FILE *output, int objecttype, PQLObject *a, char *privs, char *grantee
 	}
 
 	/* function arguments? */
-	if (objecttype == PGQ_FUNCTION && extra != NULL)
+	if (objecttype == PGQ_FUNCTION && args != NULL)
 	{
 		/* there are some objects that are not schema-qualified */
 		schema = formatObjectIdentifier(a->schemaname);
@@ -463,7 +463,7 @@ dumpGrant(FILE *output, int objecttype, PQLObject *a, char *privs, char *grantee
 		fprintf(output, " %s.%s(%s) TO %s;",
 				schema,
 				objname,
-				extra,
+				args,
 				grantee);
 	}
 	else if (objecttype == PGQ_DATABASE || objecttype == PGQ_FOREIGN_DATA_WRAPPER ||
@@ -493,7 +493,7 @@ dumpGrant(FILE *output, int objecttype, PQLObject *a, char *privs, char *grantee
 
 void
 dumpRevoke(FILE *output, int objecttype, PQLObject *a, char *privs,
-		   char *grantee, char *extra)
+		   char *grantee, char *args, char *cols)
 {
 	char	*schema;
 	char	*objname;
@@ -510,7 +510,10 @@ dumpRevoke(FILE *output, int objecttype, PQLObject *a, char *privs,
 	p = formatPrivileges(privs);
 
 	fprintf(output, "\n\n");
-	fprintf(output, "REVOKE %s ON ", p);
+	fprintf(output, "REVOKE %s", p);
+	if (cols)
+		fprintf(output, " (%s)", cols);
+	fprintf(output, " ON ");
 
 	switch (objecttype)
 	{
@@ -551,7 +554,7 @@ dumpRevoke(FILE *output, int objecttype, PQLObject *a, char *privs,
 	}
 
 	/* function arguments? */
-	if (objecttype == PGQ_FUNCTION && extra != NULL)
+	if (objecttype == PGQ_FUNCTION && args != NULL)
 	{
 		/* there are some objects that are not schema-qualified */
 		schema = formatObjectIdentifier(a->schemaname);
@@ -559,7 +562,7 @@ dumpRevoke(FILE *output, int objecttype, PQLObject *a, char *privs,
 		fprintf(output, " %s.%s(%s) FROM %s;",
 				schema,
 				objname,
-				extra,
+				args,
 				grantee);
 	}
 	else if (objecttype == PGQ_DATABASE || objecttype == PGQ_FOREIGN_DATA_WRAPPER ||
@@ -589,7 +592,7 @@ dumpRevoke(FILE *output, int objecttype, PQLObject *a, char *privs,
 
 void
 dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject *a, PQLObject *b,
-				   char *acla, char *aclb, char *extra)
+				   char *acla, char *aclb, char *args, char *cols)
 {
 	aclList		*ala;
 	aclList		*alb;
@@ -613,7 +616,7 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject *a, PQLObject *b,
 			logDebug("grant to %s: server2 (end)", tmpb->grantee);
 
 			dumpGrant(output, objecttype, b, tmpb->privileges, tmpb->grantee,
-					  ((objecttype == PGQ_FUNCTION) ? extra : NULL));
+					  ((objecttype == PGQ_FUNCTION) ? args : NULL), cols);
 			tmpb = tmpb->next;
 		}
 		/* End of aclList alb. Print REVOKE for aclList ala until its end. */
@@ -622,7 +625,7 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject *a, PQLObject *b,
 			logDebug("revoke from %s: server1 (end)", tmpa->grantee);
 
 			dumpRevoke(output, objecttype, a, tmpa->privileges, tmpa->grantee,
-					   ((objecttype == PGQ_FUNCTION) ? extra : NULL));
+					   ((objecttype == PGQ_FUNCTION) ? args : NULL), cols);
 			tmpa = tmpa->next;
 		}
 		else if (strcmp(tmpa->grantee, tmpb->grantee) == 0)
@@ -633,13 +636,13 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject *a, PQLObject *b,
 
 			privs = diffPrivileges(tmpa->privileges, tmpb->privileges);
 			dumpRevoke(output, objecttype, a, privs, tmpa->grantee,
-					   ((objecttype == PGQ_FUNCTION) ? extra : NULL));
+					   ((objecttype == PGQ_FUNCTION) ? args : NULL), cols);
 			if (privs)
 				free(privs);
 
 			privs = diffPrivileges(tmpb->privileges, tmpa->privileges);
 			dumpGrant(output, objecttype, b, privs, tmpb->grantee,
-					  ((objecttype == PGQ_FUNCTION) ? extra : NULL));
+					  ((objecttype == PGQ_FUNCTION) ? args : NULL), cols);
 			if (privs)
 				free(privs);
 
@@ -651,7 +654,7 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject *a, PQLObject *b,
 			logDebug("revoke from %s: server1", tmpa->grantee);
 
 			dumpRevoke(output, objecttype, a, tmpa->privileges, tmpa->grantee,
-					   ((objecttype == PGQ_FUNCTION) ? extra : NULL));
+					   ((objecttype == PGQ_FUNCTION) ? args : NULL), cols);
 			tmpa = tmpa->next;
 		}
 		else if (strcmp(tmpa->grantee, tmpb->grantee) > 0)
@@ -659,7 +662,7 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject *a, PQLObject *b,
 			logDebug("grant to %s: server2", tmpb->grantee);
 
 			dumpGrant(output, objecttype, b, tmpb->privileges, tmpb->grantee,
-					  ((objecttype == PGQ_FUNCTION) ? extra : NULL));
+					  ((objecttype == PGQ_FUNCTION) ? args : NULL), cols);
 			tmpb = tmpb->next;
 		}
 	}
