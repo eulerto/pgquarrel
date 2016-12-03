@@ -26,16 +26,21 @@ getDomains(PGconn *c, int *n)
 
 	logNoise("domain: server version: %d", PQserverVersion(c));
 
-	if (PQserverVersion(c) >= 90100)	/* extension support */
+	if (PQserverVersion(c) >= 90200)		/* support for privileges on data types */
+	{
+		res = PQexec(c,
+					 "SELECT t.oid, n.nspname, t.typname, format_type(t.typbasetype, t.typtypmod) as domaindef, t.typnotnull, CASE WHEN t.typcollation <> u.typcollation THEN '\"' || p.nspname || '\".\"' || l.collname || '\"' ELSE NULL END AS typcollation, pg_get_expr(t.typdefaultbin, 'pg_type'::regclass) AS typdefault, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, t.typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) LEFT JOIN pg_type u ON (t.typbasetype = u.oid) LEFT JOIN pg_collation l ON (t.typcollation = l.oid) LEFT JOIN pg_namespace p ON (l.collnamespace = p.oid) WHERE t.typtype = 'd' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
+	}
+	else if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
 		/* typcollation is new in 9.1 */
 		res = PQexec(c,
-					 "SELECT t.oid, n.nspname, t.typname, format_type(t.typbasetype, t.typtypmod) as domaindef, t.typnotnull, CASE WHEN t.typcollation <> u.typcollation THEN '\"' || p.nspname || '\".\"' || l.collname || '\"' ELSE NULL END AS typcollation, pg_get_expr(t.typdefaultbin, 'pg_type'::regclass) AS typdefault, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, t.typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) LEFT JOIN pg_type u ON (t.typbasetype = u.oid) LEFT JOIN pg_collation l ON (t.typcollation = l.oid) LEFT JOIN pg_namespace p ON (l.collnamespace = p.oid) WHERE t.typtype = 'd' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
+					 "SELECT t.oid, n.nspname, t.typname, format_type(t.typbasetype, t.typtypmod) as domaindef, t.typnotnull, CASE WHEN t.typcollation <> u.typcollation THEN '\"' || p.nspname || '\".\"' || l.collname || '\"' ELSE NULL END AS typcollation, pg_get_expr(t.typdefaultbin, 'pg_type'::regclass) AS typdefault, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, NULL AS typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) LEFT JOIN pg_type u ON (t.typbasetype = u.oid) LEFT JOIN pg_collation l ON (t.typcollation = l.oid) LEFT JOIN pg_namespace p ON (l.collnamespace = p.oid) WHERE t.typtype = 'd' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
 	}
 	else
 	{
 		res = PQexec(c,
-					 "SELECT t.oid, n.nspname, t.typname, format_type(t.typbasetype, t.typtypmod) as domaindef, t.typnotnull, NULL AS typcollation, pg_get_expr(t.typdefaultbin, 'pg_type'::regclass) AS typdefault, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, t.typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'd' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, t.typname");
+					 "SELECT t.oid, n.nspname, t.typname, format_type(t.typbasetype, t.typtypmod) as domaindef, t.typnotnull, NULL AS typcollation, pg_get_expr(t.typdefaultbin, 'pg_type'::regclass) AS typdefault, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, NULL AS typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'd' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, t.typname");
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)

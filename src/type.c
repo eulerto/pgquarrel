@@ -27,16 +27,21 @@ getBaseTypes(PGconn *c, int *n)
 
 	logNoise("base type: server version: %d", PQserverVersion(c));
 
-	if (PQserverVersion(c) >= 90100)	/* extension support */
+	if (PQserverVersion(c) >= 90200)		/* support for privileges on data types */
+	{
+		res = PQexec(c,
+					 "SELECT t.oid, n.nspname, t.typname, typlen AS length, typinput AS input, typoutput AS output, typreceive AS receive, typsend AS send, typmodin AS modin, typmodout AS modout, typanalyze AS analyze, (typcollation <> 0) as collatable, typdefault, typcategory AS category, typispreferred AS preferred, typdelim AS delimiter, typalign AS align, typstorage AS storage, typbyval AS byvalue, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'b' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
+	}
+	else if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
 		/* typcollation is new in 9.1 */
 		res = PQexec(c,
-					 "SELECT t.oid, n.nspname, t.typname, typlen AS length, typinput AS input, typoutput AS output, typreceive AS receive, typsend AS send, typmodin AS modin, typmodout AS modout, typanalyze AS analyze, (typcollation <> 0) as collatable, typdefault, typcategory AS category, typispreferred AS preferred, typdelim AS delimiter, typalign AS align, typstorage AS storage, typbyval AS byvalue, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'b' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
+					 "SELECT t.oid, n.nspname, t.typname, typlen AS length, typinput AS input, typoutput AS output, typreceive AS receive, typsend AS send, typmodin AS modin, typmodout AS modout, typanalyze AS analyze, (typcollation <> 0) as collatable, typdefault, typcategory AS category, typispreferred AS preferred, typdelim AS delimiter, typalign AS align, typstorage AS storage, typbyval AS byvalue, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, NULL AS typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'b' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
 	}
 	else
 	{
 		res = PQexec(c,
-					 "SELECT t.oid, n.nspname, t.typname, typlen AS length, typinput AS input, typoutput AS output, typreceive AS receive, typsend AS send, typmodin AS modin, typmodout AS modout, typanalyze AS analyze, false AS collatable, typdefault, typcategory AS category, typispreferred AS preferred, typdelim AS delimiter, typalign AS align, typstorage AS storage, typbyval AS byvalue, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'b' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, t.typname");
+					 "SELECT t.oid, n.nspname, t.typname, typlen AS length, typinput AS input, typoutput AS output, typreceive AS receive, typsend AS send, typmodin AS modin, typmodout AS modout, typanalyze AS analyze, false AS collatable, typdefault, typcategory AS category, typispreferred AS preferred, typdelim AS delimiter, typalign AS align, typstorage AS storage, typbyval AS byvalue, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, NULL AS typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'b' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, t.typname");
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -238,15 +243,20 @@ getCompositeTypes(PGconn *c, int *n)
 
 	logNoise("composite type: server version: %d", PQserverVersion(c));
 
-	if (PQserverVersion(c) >= 90100)	/* extension support */
+	if (PQserverVersion(c) >= 90200)	/* support for privileges on data types */
 	{
 		res = PQexec(c,
 				 "SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'c' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
 	}
+	else if (PQserverVersion(c) >= 90100)	/* extension support */
+	{
+		res = PQexec(c,
+				 "SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, NULL AS typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'c' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
+	}
 	else
 	{
 		res = PQexec(c,
-				 "SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'c' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, t.typname");
+				 "SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, NULL AS typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'c' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, t.typname");
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -414,15 +424,20 @@ getEnumTypes(PGconn *c, int *n)
 
 	logNoise("enum type: server version: %d", PQserverVersion(c));
 
-	if (PQserverVersion(c) >= 90100)	/* extension support */
+	if (PQserverVersion(c) >= 90200)		/* support for privileges on data types */
 	{
 		res = PQexec(c,
 				 "SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'e' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
 	}
+	else if (PQserverVersion(c) >= 90100)	/* extension support */
+	{
+		res = PQexec(c,
+				 "SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, NULL AS typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'e' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
+	}
 	else
 	{
 		res = PQexec(c,
-				 "SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'e' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, t.typname");
+				 "SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, NULL AS typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'e' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, t.typname");
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
