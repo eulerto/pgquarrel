@@ -22,7 +22,7 @@ getForeignDataWrappers(PGconn *c, int *n)
 	}
 	else
 	{
-		res = PQexec(c, "SELECT f.oid, f.fdwname, f.fdwhandler, f.fdwvalidator, m.nspname AS handlernspname, h.oid AS handleroid, h.proname AS handlername, n.nspname AS validatornspname, v.oid AS validatoroid, v.proname AS validatorname, array_to_string(f.fdwoptions, ', ') AS options, obj_description(f.oid, 'pg_foreign_data_wrapper') AS description, pg_get_userbyid(f.fdwowner) AS fdwowner, f.fdwacl FROM pg_foreign_data_wrapper f LEFT JOIN (pg_proc h INNER JOIN pg_namespace m ON (m.oid = h.pronamespace)) ON (h.oid = f.fdwhandler) LEFT JOIN (pg_proc v INNER JOIN pg_namespace n ON (n.oid = v.pronamespace)) ON (v.oid = f.fdwvalidator) ORDER BY fdwname");
+		res = PQexec(c, "SELECT f.oid, f.fdwname, 0 AS fdwhandler, f.fdwvalidator, NULL AS handlernspname, 0 AS handleroid, NULL AS handlername, n.nspname AS validatornspname, v.oid AS validatoroid, v.proname AS validatorname, array_to_string(f.fdwoptions, ', ') AS options, obj_description(f.oid, 'pg_foreign_data_wrapper') AS description, pg_get_userbyid(f.fdwowner) AS fdwowner, f.fdwacl FROM pg_foreign_data_wrapper f LEFT JOIN (pg_proc v INNER JOIN pg_namespace n ON (n.oid = v.pronamespace)) ON (v.oid = f.fdwvalidator) ORDER BY fdwname");
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -105,10 +105,14 @@ freeForeignDataWrappers(PQLForeignDataWrapper *f, int n)
 		for (i = 0; i < n; i++)
 		{
 			free(f[i].fdwname);
-			free(f[i].handler.schemaname);
-			free(f[i].handler.objectname);
-			free(f[i].validator.schemaname);
-			free(f[i].validator.objectname);
+			if (f[i].handler.schemaname)
+				free(f[i].handler.schemaname);
+			if (f[i].handler.objectname)
+				free(f[i].handler.objectname);
+			if (f[i].validator.schemaname)
+				free(f[i].validator.schemaname);
+			if (f[i].validator.objectname)
+				free(f[i].validator.objectname);
 			free(f[i].owner);
 			if (f[i].options)
 				free(f[i].options);
