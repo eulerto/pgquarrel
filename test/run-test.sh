@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 # cd .../test
 # ./run-test.sh
@@ -7,9 +7,6 @@
 ###############################################
 # CHANGE STARTS HERE
 ###############################################
-PGPATH1=/home/euler/pg948/bin
-PGPATH2=/home/euler/pg948/bin
-
 GCOV="/usr/bin/gcov"
 LCOV="/usr/bin/lcov"
 GENHTML="/usr/bin/genhtml"
@@ -25,18 +22,56 @@ VERBOSE="-v"
 CLEANUP=0
 COVERAGE=0
 VALGRIND=0
+STOPAFTERTESTS=1
 
 CLUSTERPATH=/tmp
 ###############################################
 # CHANGE STOPS HERE
 ###############################################
 
+function getPgDir
+{
+	if [ "$vtmp" = "96" ]; then
+		echo "pg961"
+	elif [ "$vtmp" = "95" ]; then
+		echo "pg955"
+	elif [ "$vtmp" = "94" ]; then
+		echo "pg9410"
+	elif [ "$vtmp" = "93" ]; then
+		echo "pg9315"
+	elif [ "$vtmp" = "92" ]; then
+		echo "pg9219"
+	elif [ "$vtmp" = "91" ]; then
+		echo "pg9124"
+	elif [ "$vtmp" = "90" ]; then
+		echo "pg9023"
+	fi
+}
+
+vtmp="96"
+if [ ! -z $1 ]; then
+	vtmp=$1
+fi
+PGV1=$vtmp
+PGDIR1=$(getPgDir)
+
+vtmp="96"
+if [ ! -z $2 ]; then
+	vtmp=$2
+fi
+PGV2=$vtmp
+PGDIR2=$(getPgDir)
+
+PGPATH1=/home/euler/$PGDIR1/bin
+PGPATH2=/home/euler/$PGDIR2/bin
+
+
 TESTWD=`pwd`
 BASEWD=`dirname $TESTWD`
 
 PGQUARREL="$BASEWD/pgquarrel"
 
-if [ "$1" = "init" ]; then
+if [ "$3" = "init" ]; then
 	if [ -d $CLUSTERPATH/test1 ]; then
 		echo "cluster 1 already exists"
 		exit 0
@@ -62,6 +97,18 @@ else
 		echo "cluster 2 does not exist"
 		exit 0
 	fi
+fi
+
+vtmp=$(cat $CLUSTERPATH/test1/PG_VERSION | sed 's/\.//')
+if [ "$PGV1" != "$vtmp" ]; then
+	echo "cluster 1 ($vtmp) mismatch server version ($PGV1)"
+	exit 0
+fi
+
+vtmp=$(cat $CLUSTERPATH/test2/PG_VERSION | sed 's/\.//')
+if [ "$PGV2" != "$vtmp" ]; then
+	echo "cluster 2 ($vtmp) mismatch server version ($PGV2)"
+	exit 0
 fi
 
 if [ ! -f $CLUSTERPATH/test1/postmaster.pid ]; then
@@ -95,8 +142,13 @@ echo "test again..."
 $PGQUARREL -c test2.ini
 
 echo "comparing dumps..."
-$PGPATH1/pg_dump -s -U $PGUSER1 -p $PGPORT1 -f /tmp/q1.sql quarrel1 2> /dev/null
-$PGPATH1/pg_dump -s -U $PGUSER2 -p $PGPORT2 -f /tmp/q2.sql quarrel2 2> /dev/null
+if [ $PGV1 -ge $PGV2 ]; then
+	$PGPATH1/pg_dump -s -U $PGUSER1 -p $PGPORT1 -f /tmp/q1.sql quarrel1 2> /dev/null
+	$PGPATH1/pg_dump -s -U $PGUSER2 -p $PGPORT2 -f /tmp/q2.sql quarrel2 2> /dev/null
+else
+	$PGPATH2/pg_dump -s -U $PGUSER1 -p $PGPORT1 -f /tmp/q1.sql quarrel1 2> /dev/null
+	$PGPATH2/pg_dump -s -U $PGUSER2 -p $PGPORT2 -f /tmp/q2.sql quarrel2 2> /dev/null
+fi
 diff -u /tmp/q1.sql /tmp/q2.sql
 
 if [ $CLEANUP -eq 1 ]; then
@@ -116,6 +168,11 @@ if [ $COVERAGE -eq 1 ]; then
 	done
 	$LCOV -c -d $BASEWD/CMakeFiles/pgquarrel.dir/src -o $BASEWD/CMakeFiles/pgquarrel.dir/src/lcov.info --gcov-tool $GCOV
 	$GENHTML --show-details --legend --output-directory=$BASEWD/coverage --title=PostgreSQL --num-spaces=4 $BASEWD/CMakeFiles/pgquarrel.dir/src/lcov.info
+fi
+
+if [ $STOPAFTERTESTS -eq 1 ]; then
+	$PGPATH1/pg_ctl stop -w -D $CLUSTERPATH/test1
+	$PGPATH1/pg_ctl stop -w -D $CLUSTERPATH/test2
 fi
 
 echo "E N D"
