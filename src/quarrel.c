@@ -2745,12 +2745,6 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	/* command-line options take precedence over config options */
-	if (options.verbose)
-		loglevel = PGQ_DEBUG;
-	if (options.statistics)
-		statistics = true;
-
 	/* process command-line options */
 	while ((c = getopt_long(argc, argv, "c:isv", long_options, &optindex)) != -1)
 	{
@@ -2766,7 +2760,13 @@ int main(int argc, char *argv[])
 				statistics = true;
 				break;
 			case 'v':
-				loglevel = PGQ_DEBUG;
+				if (loglevel == PGQ_ERROR)
+					loglevel = PGQ_WARNING;
+				else if (loglevel == PGQ_WARNING)
+					loglevel = PGQ_DEBUG;
+				else if (loglevel == PGQ_DEBUG)
+					loglevel = PGQ_NOISE;
+				fprintf(stderr, "loglevel is %d\n", loglevel);
 				break;
 			default:
 				fprintf(stderr, "Try \"%s --help\" for more information.\n", PGQ_NAME);
@@ -2779,6 +2779,12 @@ int main(int argc, char *argv[])
 
 	/* config filename was not used anymore; free it */
 	free(configfile);
+
+	/* command-line options take precedence over config options */
+	if (options.verbose && loglevel == PGQ_ERROR)	/* it wasn't defined on command-line so use config value */
+		loglevel = PGQ_DEBUG;
+	if (options.statistics)
+		statistics = true;
 
 	/* connecting to server1 ... */
 	conn1 = connectDatabase(options.fhost, options.fport, options.fusername,
