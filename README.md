@@ -242,7 +242,8 @@ Tests
 ```
 $ # adjust test/run-test.sh
 $ cd pgquarrel-0.1.0/test
-$ ./run-test.sh init
+$ # test using 9.6 on both clusters
+$ ./run-test.sh 96 96 init
 ```
 
 License
