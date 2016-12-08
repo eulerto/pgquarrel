@@ -6,7 +6,7 @@ compiler:
 # - clang
 env:
 #  - PGVERSION=9.4.7
-  - PGVERSION=9.5.2
+  - PGVERSION=9.6.1
 
 addons:
   apt:
