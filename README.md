@@ -146,12 +146,12 @@ Features
 
 	<tr>
 		<td>GRANT</td>
-		<td>partial</td>
+		<td>complete</td>
 		<td></td>
 	</tr>
 	<tr>
 		<td>REVOKE</td>
-		<td>partial</td>
+		<td>complete</td>
 		<td></td>
 	</tr>
 	<tr>

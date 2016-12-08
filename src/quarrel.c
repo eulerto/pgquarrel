@@ -12,11 +12,11 @@
  * extension: partial
  * foreign data wrapper: complete
  * function: partial
- * grant: partial
+ * grant: complete
  * index: partial
  * language: partial
  * materialized view: partial
- * revoke: partial
+ * revoke: complete
  * rule: partial
  * schema: partial
  * security label: partial
@@ -33,7 +33,6 @@
  * foreign table
  * text search { configuration | dictionary | parser | template }
  * collation
- *
  * operator
  * operator { class | family }
  *
@@ -42,6 +41,8 @@
  *
  * ALTER DEFAULT PRIVILEGES
  * ALTER LARGE OBJECT
+ * GRANT LARGE OBJECT
+ * REVOKE LARGE OBJECT
  *
  *
  * Copyright (c) 2015-2016, Euler Taveira
