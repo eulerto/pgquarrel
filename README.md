@@ -12,7 +12,7 @@ Given two database connections, it output a file that represent the difference b
 It could work with different PostgreSQL versions. The generated file could not work as expected if the *to* PostgreSQL version is greater than *from* PostgreSQL version. That's because the tool could generate commands that does not exist in a prior PostgreSQL version.
 
 
-It works with different operating systems. It was tested on Linux. I didn't try Windows yet.
+It works with different operating systems. It was tested on Linux and FreeBSD. I didn't try Windows yet.
 
 Installation
 ============
