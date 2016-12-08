@@ -34,12 +34,14 @@
  * list of the described privileges.
  */
 char *
-formatPrivileges(char *s)
+formatPrivileges(char *s, char *cols)
 {
 #define	MAX_KEYWORD_LEN		10	/* maximum keyword length */
 
 	char	*ret, *ptr;
 	int		len;
+	int		collen = 0;
+	int		coltotallen = 0;
 	bool	first_item = true;
 	int		i;
 
@@ -47,7 +49,13 @@ formatPrivileges(char *s)
 		return NULL;
 
 	len = strlen(s);
-	ret = (char *) malloc((len * MAX_KEYWORD_LEN + (len - 1) * 2) * sizeof(char));
+	if (cols)
+	{
+		collen = strlen(cols);
+		coltotallen = collen + 3;	/* 3 => space + parentheses */
+	}
+
+	ret = (char *) malloc(((len * MAX_KEYWORD_LEN + (len - 1) * 2) + coltotallen) * sizeof(char));
 	ret[0] = '\0';
 	ptr = ret;
 
@@ -113,6 +121,16 @@ formatPrivileges(char *s)
 				strncpy(ptr, "TEMPORARY", 9);
 				ptr += 9;
 				break;
+		}
+
+		if (collen > 0)
+		{
+			strncpy(ptr, " (", 2);
+			ptr += 2;
+			strncpy(ptr, cols, collen);
+			ptr += collen;
+			strncpy(ptr, ")", 1);
+			ptr += 1;
 		}
 	}
 
@@ -408,12 +426,10 @@ dumpGrant(FILE *output, int objecttype, PQLObject *a, char *privs, char *grantee
 	schema = NULL;
 	objname = formatObjectIdentifier(a->objectname);
 
-	p = formatPrivileges(privs);
+	p = formatPrivileges(privs, cols);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "GRANT %s", p);
-	if (cols)
-		fprintf(output, " (%s)", cols);
 	fprintf(output, " ON ");
 
 	switch (objecttype)
@@ -507,12 +523,10 @@ dumpRevoke(FILE *output, int objecttype, PQLObject *a, char *privs,
 	schema = NULL;
 	objname = formatObjectIdentifier(a->objectname);
 
-	p = formatPrivileges(privs);
+	p = formatPrivileges(privs, cols);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "REVOKE %s", p);
-	if (cols)
-		fprintf(output, " (%s)", cols);
 	fprintf(output, " ON ");
 
 	switch (objecttype)

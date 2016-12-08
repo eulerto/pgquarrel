@@ -33,7 +33,7 @@ enum PQLObjectType
 };
 
 
-char *formatPrivileges(char *s);
+char *formatPrivileges(char *s, char *cols);
 char *diffPrivileges(char *a, char *b);
 
 aclItem *splitACLItem(char *a);
