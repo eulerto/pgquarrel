@@ -2766,7 +2766,6 @@ int main(int argc, char *argv[])
 					loglevel = PGQ_DEBUG;
 				else if (loglevel == PGQ_DEBUG)
 					loglevel = PGQ_NOISE;
-				fprintf(stderr, "loglevel is %d\n", loglevel);
 				break;
 			default:
 				fprintf(stderr, "Try \"%s --help\" for more information.\n", PGQ_NAME);
