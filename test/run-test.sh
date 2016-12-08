@@ -81,6 +81,16 @@ if [ "$3" = "init" ]; then
 		exit 0
 	fi
 
+	if [ ! -f $PGPATH1/initdb ]; then
+		echo "$PGPATH1/initdb is not found"
+		exit 0
+	fi
+
+	if [ ! -f $PGPATH2/initdb ]; then
+		echo "$PGPATH2/initdb is not found"
+		exit 0
+	fi
+
 	echo "initdb'ing cluster 1..."
 	$PGPATH1/initdb -U $PGUSER1 -D $CLUSTERPATH/test1
 	echo "initdb'ing cluster 2..."
@@ -108,6 +118,16 @@ fi
 vtmp=$(cat $CLUSTERPATH/test2/PG_VERSION | sed 's/\.//')
 if [ "$PGV2" != "$vtmp" ]; then
 	echo "cluster 2 ($vtmp) mismatch server version ($PGV2)"
+	exit 0
+fi
+
+if [ ! -f $PGPATH1/pg_ctl ]; then
+	echo "$PGPATH1/pg_ctl is not found"
+	exit 0
+fi
+
+if [ ! -f $PGPATH2/pg_ctl ]; then
+	echo "$PGPATH2/pg_ctl is not found"
 	exit 0
 fi
 
