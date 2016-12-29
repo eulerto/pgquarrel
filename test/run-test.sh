@@ -169,7 +169,8 @@ else
 	$PGPATH2/pg_dump -s -U $PGUSER1 -p $PGPORT1 -f /tmp/q1.sql quarrel1 2> /dev/null
 	$PGPATH2/pg_dump -s -U $PGUSER2 -p $PGPORT2 -f /tmp/q2.sql quarrel2 2> /dev/null
 fi
-diff -u /tmp/q1.sql /tmp/q2.sql
+#diff -u /tmp/q1.sql /tmp/q2.sql
+diff -u <(sort /tmp/q1.sql) <(sort /tmp/q2.sql)
 
 if [ $CLEANUP -eq 1 ]; then
 	rm -f /tmp/test.sql
