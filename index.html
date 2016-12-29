@@ -42,7 +42,7 @@
 
 <p>It could work with different PostgreSQL versions. The generated file could not work as expected if the <em>to</em> PostgreSQL version is greater than <em>from</em> PostgreSQL version. That's because the tool could generate commands that does not exist in a prior PostgreSQL version.</p>
 
-<p>It works with different operating systems. It was tested on Linux. I didn't try Windows yet.</p>
+<p>It works with different operating systems. It was tested on Linux and FreeBSD. I didn't try Windows yet.</p>
 
 <h1>
 <a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h1>
@@ -174,12 +174,12 @@ $ make
 
     <tr>
         <td>GRANT</td>
-        <td>partial</td>
+        <td>complete</td>
         <td></td>
     </tr>
     <tr>
         <td>REVOKE</td>
-        <td>partial</td>
+        <td>complete</td>
         <td></td>
     </tr>
     <tr>
