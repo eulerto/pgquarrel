@@ -63,6 +63,11 @@ find_package(PostgreSQL REQUIRED)
 if(PostgreSQL_FOUND)
 	include_directories(${PostgreSQL_INCLUDE_DIR})
 	include_directories(${PostgreSQL_INCLUDE_DIR}/postgresql/server)
+	# some postgres headers (those included by optionals) aren't on the include
+	# path. Hence, we need to include them.
+	if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+		include_directories(/usr/local/include)
+	endif()
 else()
 	message(FATAL_ERROR "could not find PostgreSQL")
 endif(PostgreSQL_FOUND)
