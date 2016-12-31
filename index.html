@@ -59,8 +59,8 @@
 
 <p>Before installing <strong>pgquarrel</strong>, you should have PostgreSQL 9.0+ installed (including the header files). If PostgreSQL is not in your search path add -DCMAKE_PREFIX_PATH=/path/to/pgsql to the cmake command.</p>
 
-<pre><code>$ tar -zxf pgquarrel-0.1.0.tgz
-$ cd pgquarrel-0.1.0
+<pre><code>$ tar -zxf pgquarrel-0.2.0.tgz
+$ cd pgquarrel-0.2.0
 $ cmake .
 $ make
 </code></pre>
@@ -270,8 +270,8 @@ $ make
 <a id="tests" class="anchor" href="#tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tests</h1>
 
 <pre><code>$ # adjust test/run-test.sh
-$ cd pgquarrel-0.1.0/test
-$ ./run-test.sh init
+$ cd pgquarrel-0.2.0/test
+$ ./run-test.sh 96 96 init
 </code></pre>
 
 <h1>
