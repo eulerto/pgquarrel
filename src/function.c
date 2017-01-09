@@ -33,21 +33,25 @@ getFunctions(PGconn *c, int *n)
 
 	logNoise("function: server version: %d", PQserverVersion(c));
 
-	/* proleakproof is new in 9.2 */
-	if (PQserverVersion(c) >= 90200)
+	if (PQserverVersion(c) >= 90600)	/* parallel is new in 9.6 */
 	{
 		res = PQexec(c,
-					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, proleakproof, array_to_string(proconfig, ',') AS proconfig, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_arguments(p.oid)");
+					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, proleakproof, array_to_string(proconfig, ',') AS proconfig, proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_arguments(p.oid)");
+	}
+	else if (PQserverVersion(c) >= 90200)	/* proleakproof is new in 9.2 */
+	{
+		res = PQexec(c,
+					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, proleakproof, array_to_string(proconfig, ',') AS proconfig, 'n' AS proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_arguments(p.oid)");
 	}
 	else if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
 		res = PQexec(c,
-					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, false AS proleakproof, array_to_string(proconfig, ',') AS proconfig, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_arguments(p.oid)");
+					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, false AS proleakproof, array_to_string(proconfig, ',') AS proconfig, 'n' AS proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_arguments(p.oid)");
 	}
 	else
 	{
 		res = PQexec(c,
-					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, false AS proleakproof, array_to_string(proconfig, ',') AS proconfig, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY nspname, proname, pg_get_function_arguments(p.oid)");
+					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, false AS proleakproof, array_to_string(proconfig, ',') AS proconfig, 'n' AS proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY nspname, proname, pg_get_function_arguments(p.oid)");
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -81,6 +85,7 @@ getFunctions(PGconn *c, int *n)
 		f[i].isstrict = (PQgetvalue(res, i, PQfnumber(res, "proisstrict"))[0] == 't');
 		f[i].secdefiner = (PQgetvalue(res, i, PQfnumber(res, "prosecdef"))[0] == 't');
 		f[i].leakproof = (PQgetvalue(res, i, PQfnumber(res, "proleakproof"))[0] == 't');
+		f[i].parallel = PQgetvalue(res, i, PQfnumber(res, "proparallel"))[0];
 		f[i].cost = strdup(PQgetvalue(res, i, PQfnumber(res, "procost")));
 		f[i].rows = strdup(PQgetvalue(res, i, PQfnumber(res, "prorows")));
 		if (PQgetisnull(res, i, PQfnumber(res, "proconfig")))
@@ -264,6 +269,16 @@ dumpCreateFunction(FILE *output, PQLFunction *f, bool orreplace)
 	if (f->leakproof)
 		fprintf(output, " LEAKPROOF");
 
+	/*
+	 * 'n' means unsupported feature (<= 9.5)
+	 */
+	if (f->parallel == 's')
+		fprintf(output, " PARALLEL SAFE");
+	else if (f->parallel == 'r')
+		fprintf(output, " PARALLEL RESTRICTED");
+	else if (f->parallel == 'u')	/* PARALLEL UNSAFE is the default */
+		;
+
 	if ((strcmp(f->language, "internal") == 0) || (strcmp(f->language, "c") == 0))
 	{
 		if (strcmp(f->cost, "1") != 0)
@@ -433,6 +448,27 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 			fprintf(output, " LEAKPROOF");
 		else
 			fprintf(output, " NOT LEAKPROOF");
+	}
+
+	/* FIXME parallel new in 9.6 */
+	if (a->parallel != b->parallel)
+	{
+		if (printalter)
+		{
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
+					schema2, funcname2, b->arguments);
+		}
+		printalter = false;
+
+		if (b->parallel == 's')
+			fprintf(output, " PARALLEL SAFE");
+		else if (b->parallel == 'r')
+			fprintf(output, " PARALLEL RESTRICTED");
+		else if (b->parallel == 'u')
+			fprintf(output, " PARALLEL UNSAFE");
+		else
+			logError("parallel cannot be '%s'", b->parallel);
 	}
 
 	if (strcmp(a->cost, b->cost) != 0)

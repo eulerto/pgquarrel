@@ -24,6 +24,7 @@ typedef struct PQLFunction
 	bool			isstrict;
 	bool			secdefiner;
 	bool			leakproof;
+	char			parallel;
 	char			*cost;
 	char			*rows;
 	char			*configparams;
