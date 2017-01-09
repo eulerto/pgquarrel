@@ -29,6 +29,7 @@ typedef struct PQLAggregate
 	bool		mfinalfuncextra;
 	char		*minitcond;
 	char		*sortop;
+	char		parallel;
 	bool		hypothetical;
 
 	char		*comment;
