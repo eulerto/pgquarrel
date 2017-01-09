@@ -64,6 +64,11 @@ Features
 		<td></td>
 	</tr>
 	<tr>
+		<td>COLLATION</td>
+		<td>partial</td>
+		<td></td>
+	</tr>
+	<tr>
 		<td>COMMENT</td>
 		<td>partial</td>
 		<td></td>
@@ -196,11 +201,6 @@ Features
 	</tr>
 	<tr>
 		<td>TEXT SEARCH TEMPLATE</td>
-		<td>not implemented</td>
-		<td></td>
-	</tr>
-	<tr>
-		<td>COLLATION</td>
 		<td>not implemented</td>
 		<td></td>
 	</tr>

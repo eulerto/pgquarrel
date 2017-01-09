@@ -6,6 +6,7 @@
  * ~~~~~~~~~~~
  * aggregate: partial
  * cast: complete
+ * collation: partial
  * comment: partial
  * conversion: partial
  * domain: partial
@@ -33,7 +34,6 @@
  * ~~~~~~~~~~~~~
  * foreign table
  * text search { configuration | dictionary | parser | template }
- * collation
  * operator
  * operator { class | family }
  *
