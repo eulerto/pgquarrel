@@ -1,6 +1,11 @@
-#include "view.h"
-
-/*
+/*----------------------------------------------------------------------
+ *
+ * pgquarrel -- comparing database schemas
+ *
+ * view.c
+ *     Generate VIEW commands
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * CREATE VIEW
  * DROP VIEW
  * ALTER VIEW
@@ -11,7 +16,14 @@
  * ALTER VIEW ... ALTER COLUMN ... { SET | DROP } DEFAULT
  * ALTER VIEW ... RENAME TO
  * ALTER VIEW ... SET SCHEMA
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * Copyright (c) 2015-2017, Euler Taveira
+ *
+ * ---------------------------------------------------------------------
  */
+#include "view.h"
+
 
 PQLView *
 getViews(PGconn *c, int *n)

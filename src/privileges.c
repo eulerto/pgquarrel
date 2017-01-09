@@ -1,6 +1,11 @@
-#include "privileges.h"
-
-/*
+/*----------------------------------------------------------------------
+ *
+ * pgquarrel -- comparing database schemas
+ *
+ * privileges.c
+ *     Generate GRANT / REVOKE commands
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * GRANT ON TABLE
  * GRANT (columns) ON TABLE
  * GRANT ON SEQUENCE
@@ -26,7 +31,14 @@
  * REVOKE ON FOREIGN DATA WRAPPER
  * REVOKE ON FOREIGN SERVER
  * REVOKE ON TABLESPACE
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * Copyright (c) 2015-2017, Euler Taveira
+ *
+ * ---------------------------------------------------------------------
  */
+#include "privileges.h"
+
 
 /*
  * We do not check for privilege correctness. We assume that the object accepts

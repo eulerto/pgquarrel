@@ -1,3 +1,11 @@
+/*----------------------------------------------------------------------
+ *
+ * pgquarrel -- comparing database schemas
+ *
+ * Copyright (c) 2015-2017, Euler Taveira
+ *
+ * ---------------------------------------------------------------------
+ */
 #ifndef TRIGGER_H
 #define TRIGGER_H
 

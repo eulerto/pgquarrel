@@ -1,3 +1,11 @@
+/*----------------------------------------------------------------------
+ *
+ * pgquarrel -- comparing database schemas
+ *
+ * Copyright (c) 2015-2017, Euler Taveira
+ *
+ * ---------------------------------------------------------------------
+ */
 #ifndef LANGUAGE_H
 #define LANGUAGE_H
 

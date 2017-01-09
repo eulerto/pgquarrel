@@ -1,6 +1,11 @@
-#include "conversion.h"
-
-/*
+/*----------------------------------------------------------------------
+ *
+ * pgquarrel -- comparing database schemas
+ *
+ * conversion.c
+ *     Generate CONVERSION commands
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * CREATE CONVERSION
  * DROP CONVERSION
  * ALTER CONVERSION
@@ -10,7 +15,14 @@
  *
  * ALTER CONVERSION ... RENAME TO
  * ALTER CONVERSION ... SET SCHEMA
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * Copyright (c) 2015-2017, Euler Taveira
+ *
+ * ---------------------------------------------------------------------
  */
+#include "conversion.h"
+
 
 PQLConversion *
 getConversions(PGconn *c, int *n)

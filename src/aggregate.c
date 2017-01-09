@@ -1,6 +1,11 @@
-#include "aggregate.h"
-
-/*
+/*----------------------------------------------------------------------
+ *
+ * pgquarrel -- comparing database schemas
+ *
+ * aggregate.c
+ *     Generate AGGREGATE commands
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * CREATE AGGREGATE
  * DROP AGGREGATE
  * ALTER AGGREGATE
@@ -10,7 +15,14 @@
  *
  * ALTER AGGREGATE ... RENAME TO
  * ALTER AGGREGATE ... SET SCHEMA
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * Copyright (c) 2015-2017, Euler Taveira
+ *
+ * ---------------------------------------------------------------------
  */
+#include "aggregate.h"
+
 
 PQLAggregate *
 getAggregates(PGconn *c, int *n)

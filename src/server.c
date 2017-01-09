@@ -1,11 +1,23 @@
-#include "server.h"
-
-/*
+/*----------------------------------------------------------------------
+ *
+ * pgquarrel -- comparing database schemas
+ *
+ * server.c
+ *     Generate SERVER commands
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * CREATE SERVER
  * DROP SERVER
  * ALTER SERVER
  * COMMENT ON SERVER
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * Copyright (c) 2015-2017, Euler Taveira
+ *
+ * ---------------------------------------------------------------------
  */
+#include "server.h"
+
 
 PQLForeignServer *
 getForeignServers(PGconn *c, int *n)

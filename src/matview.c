@@ -1,6 +1,11 @@
-#include "matview.h"
-
-/*
+/*----------------------------------------------------------------------
+ *
+ * pgquarrel -- comparing database schemas
+ *
+ * matview.c
+ *     Generate MATERIALIZED VIEW commands
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * CREATE MATERIALIZED VIEW
  * DROP MATERIALIZED VIEW
  * ALTER MATERIALIZED VIEW
@@ -14,7 +19,14 @@
  * ALTER MATERIALIZED VIEW ... RENAME COLUMN ... TO
  * ALTER MATERIALIZED VIEW ... SET SCHEMA
  * ALTER MATERIALIZED VIEW ... SET TABLESPACE
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * Copyright (c) 2015-2017, Euler Taveira
+ *
+ * ---------------------------------------------------------------------
  */
+#include "matview.h"
+
 
 static void dumpAlterColumnSetStatistics(FILE *output, PQLMaterializedView *a,
 		int i, bool force);

@@ -1,6 +1,11 @@
-#include "collation.h"
-
-/*
+/*----------------------------------------------------------------------
+ *
+ * pgquarrel -- comparing database schemas
+ *
+ * collation.c
+ *     Generate COLLATION commands
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * CREATE COLLATION
  * ALTER COLLATION
  * DROP COLLATION
@@ -10,7 +15,14 @@
  *
  * ALTER COLLATION ... RENAME TO
  * ALTER COLLATION ... SET SCHEMA
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * Copyright (c) 2015-2017, Euler Taveira
+ *
+ * ---------------------------------------------------------------------
  */
+#include "collation.h"
+
 
 PQLCollation *
 getCollations(PGconn *c, int *n)

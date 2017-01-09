@@ -1,4 +1,5 @@
-/*
+/*----------------------------------------------------------------------
+ *
  * pgquarrel -- comparing database schemas
  *
  *  SUPPORTED
@@ -45,8 +46,9 @@
  * REVOKE LARGE OBJECT
  *
  *
- * Copyright (c) 2015-2016, Euler Taveira
+ * Copyright (c) 2015-2017, Euler Taveira
  *
+ *----------------------------------------------------------------------
  */
 
 #include "quarrel.h"

@@ -1,11 +1,23 @@
-#include "eventtrigger.h"
-
-/*
+/*----------------------------------------------------------------------
+ *
+ * pgquarrel -- comparing database schemas
+ *
+ * eventtrigger.c
+ *     Generate EVENT TRIGGER commands
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * CREATE EVENT TRIGGER
  * DROP EVENT TRIGGER
  * ALTER EVENT TRIGGER
  * COMMENT ON EVENT TRIGGER
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * Copyright (c) 2015-2017, Euler Taveira
+ *
+ * ---------------------------------------------------------------------
  */
+#include "eventtrigger.h"
+
 
 PQLEventTrigger *
 getEventTriggers(PGconn *c, int *n)

@@ -1,11 +1,23 @@
-#include "fdw.h"
-
-/*
+/*----------------------------------------------------------------------
+ *
+ * pgquarrel -- comparing database schemas
+ *
+ * fdw.c
+ *     Generate FOREIGN DATA WRAPPER commands
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * CREATE FOREIGN DATA WRAPPER
  * DROP FOREIGN DATA WRAPPER
  * ALTER FOREIGN DATA WRAPPER
  * COMMENT ON FOREIGN DATA WRAPPER
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * Copyright (c) 2015-2017, Euler Taveira
+ *
+ * ---------------------------------------------------------------------
  */
+#include "fdw.h"
+
 
 PQLForeignDataWrapper *
 getForeignDataWrappers(PGconn *c, int *n)

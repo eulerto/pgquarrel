@@ -1,6 +1,11 @@
-#include "index.h"
-
-/*
+/*----------------------------------------------------------------------
+ *
+ * pgquarrel -- comparing database schemas
+ *
+ * index.c
+ *     Generate INDEX commands
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * CREATE INDEX
  * DROP INDEX
  * ALTER INDEX
@@ -10,7 +15,14 @@
  *
  * ALTER INDEX ... RENAME TO
  * ALTER INDEX ... SET TABLESPACE
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * Copyright (c) 2015-2017, Euler Taveira
+ *
+ * ---------------------------------------------------------------------
  */
+#include "index.h"
+
 
 PQLIndex *
 getIndexes(PGconn *c, int *n)

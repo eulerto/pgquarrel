@@ -1,6 +1,11 @@
-#include "domain.h"
-
-/*
+/*----------------------------------------------------------------------
+ *
+ * pgquarrel -- comparing database schemas
+ *
+ * domain.c
+ *     Generate DOMAIN commands
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * CREATE DOMAIN
  * DROP DOMAIN
  * ALTER DOMAIN ... { SET DEFAULT expression | DROP DEFAULT }
@@ -15,7 +20,14 @@
  * ALTER DOMAIN ... VALIDATE CONSTRAINT
  * ALTER DOMAIN ... RENAME TO
  * ALTER DOMAIN ... SET SCHEMA
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * Copyright (c) 2015-2017, Euler Taveira
+ *
+ * ---------------------------------------------------------------------
  */
+#include "domain.h"
+
 
 PQLDomain *
 getDomains(PGconn *c, int *n)

@@ -1,6 +1,11 @@
-#include "table.h"
-
-/*
+/*----------------------------------------------------------------------
+ *
+ * pgquarrel -- comparing database schemas
+ *
+ * table.c
+ *     Generate TABLE commands
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * CREATE TABLE
  * DROP TABLE
  * ALTER TABLE
@@ -30,7 +35,14 @@
  * ALTER TABLE ... OF type_name
  * ALTER TABLE ... SET TABLESPACE
  * ALTER TABLE ... REPLICA IDENTITY
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * Copyright (c) 2015-2017, Euler Taveira
+ *
+ * ---------------------------------------------------------------------
  */
+#include "table.h"
+
 
 static void dumpAddColumn(FILE *output, PQLTable *t, int i);
 static void dumpRemoveColumn(FILE *output, PQLTable *t, int i);

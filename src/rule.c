@@ -1,11 +1,23 @@
-#include "rule.h"
-
-/*
+/*----------------------------------------------------------------------
+ *
+ * pgquarrel -- comparing database schemas
+ *
+ * rule.c
+ *     Generate RULE commands
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * CREATE RULE
  * DROP RULE
  * ALTER RULE RENAME TO
  * COMMENT ON RULE
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * Copyright (c) 2015-2017, Euler Taveira
+ *
+ * ---------------------------------------------------------------------
  */
+#include "rule.h"
+
 
 PQLRule *
 getRules(PGconn *c, int *n)

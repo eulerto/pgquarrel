@@ -1,6 +1,11 @@
-#include "type.h"
-
-/*
+/*----------------------------------------------------------------------
+ *
+ * pgquarrel -- comparing database schemas
+ *
+ * type.c
+ *     Generate TYPE commands
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * CREATE TYPE
  * DROP TYPE
  * ALTER TYPE
@@ -12,7 +17,14 @@
  * ALTER TYPE ... RENAME TO
  * ALTER TYPE ... SET SCHEMA
  * ALTER TYPE ... ADD VALUE
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * Copyright (c) 2015-2017, Euler Taveira
+ *
+ * ---------------------------------------------------------------------
  */
+#include "type.h"
+
 
 static void getCompositeTypeAttributes(PGconn *c, PQLCompositeType *t);
 static void getEnumTypeLabels(PGconn *c, PQLEnumType *t);

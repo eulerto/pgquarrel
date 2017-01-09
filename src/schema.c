@@ -1,6 +1,11 @@
-#include "schema.h"
-
-/*
+/*----------------------------------------------------------------------
+ *
+ * pgquarrel -- comparing database schemas
+ *
+ * schema.c
+ *     Generate SCHEMA commands
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * CREATE SCHEMA
  * DROP SCHEMA
  * ALTER SCHEMA
@@ -9,7 +14,14 @@
  * TODO
  *
  * ALTER SCHEMA ... RENAME TO
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * Copyright (c) 2015-2017, Euler Taveira
+ *
+ * ---------------------------------------------------------------------
  */
+#include "schema.h"
+
 
 PQLSchema *
 getSchemas(PGconn *c, int *n)

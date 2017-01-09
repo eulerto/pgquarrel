@@ -1,6 +1,11 @@
-#include "function.h"
-
-/*
+/*----------------------------------------------------------------------
+ *
+ * pgquarrel -- comparing database schemas
+ *
+ * function.c
+ *     Generate FUNCTION commands
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * CREATE FUNCTION
  * DROP FUNCTION
  * ALTER FUNCTION
@@ -10,7 +15,14 @@
  *
  * ALTER FUNCTION ... RENAME TO
  * ALTER FUNCTION ... SET SCHEMA
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * Copyright (c) 2015-2017, Euler Taveira
+ *
+ * ---------------------------------------------------------------------
  */
+#include "function.h"
+
 
 PQLFunction *
 getFunctions(PGconn *c, int *n)

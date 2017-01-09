@@ -249,7 +249,7 @@ $ ./run-test.sh 96 96 init
 License
 =======
 
-> Copyright © 2015-2016 Euler Taveira de Oliveira
+> Copyright © 2015-2017 Euler Taveira de Oliveira
 > All rights reserved.
 
 > Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:

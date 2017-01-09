@@ -1,10 +1,22 @@
-#include "usermapping.h"
-
-/*
+/*----------------------------------------------------------------------
+ *
+ * pgquarrel -- comparing database schemas
+ *
+ * usermapping.c
+ *     Generate USER MAPPING commands
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * CREATE USER MAPPING
  * DROP USER MAPPING
  * ALTER USER MAPPING
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * Copyright (c) 2015-2017, Euler Taveira
+ *
+ * ---------------------------------------------------------------------
  */
+#include "usermapping.h"
+
 
 int
 compareUserMappings(PQLUserMapping *a, PQLUserMapping *b)

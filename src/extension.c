@@ -1,6 +1,11 @@
-#include "extension.h"
-
-/*
+/*----------------------------------------------------------------------
+ *
+ * pgquarrel -- comparing database schemas
+ *
+ * extension.c
+ *     Generate EXTENSION commands
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * CREATE EXTENSION
  * DROP EXTENSION
  * ALTER EXTENSION
@@ -11,7 +16,14 @@
  * ALTER EXTENSION ... ADD
  * ALTER EXTENSION ... DROP
  * ALTER EXTENSION ... SET SCHEMA
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * Copyright (c) 2015-2017, Euler Taveira
+ *
+ * ---------------------------------------------------------------------
  */
+#include "extension.h"
+
 
 PQLExtension *
 getExtensions(PGconn *c, int *n)

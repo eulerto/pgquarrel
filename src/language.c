@@ -1,6 +1,11 @@
-#include "language.h"
-
-/*
+/*----------------------------------------------------------------------
+ *
+ * pgquarrel -- comparing database schemas
+ *
+ * language.c
+ *     Generate LANGUAGE commands
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * CREATE LANGUAGE
  * DROP LANGUAGE
  * ALTER LANGUAGE
@@ -9,7 +14,14 @@
  * TODO
  *
  * ALTER LANGUAGE ... RENAME TO
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * Copyright (c) 2015-2017, Euler Taveira
+ *
+ * ---------------------------------------------------------------------
  */
+#include "language.h"
+
 
 PQLLanguage *
 getLanguages(PGconn *c, int *n)

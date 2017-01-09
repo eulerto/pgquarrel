@@ -1,11 +1,23 @@
-#include "trigger.h"
-
-/*
+/*----------------------------------------------------------------------
+ *
+ * pgquarrel -- comparing database schemas
+ *
+ * trigger.c
+ *     Generate TRIGGER commands
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * CREATE TRIGGER
  * DROP TRIGGER
  * ALTER TRIGGER
  * COMMENT ON TRIGGER
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * Copyright (c) 2015-2017, Euler Taveira
+ *
+ * ---------------------------------------------------------------------
  */
+#include "trigger.h"
+
 
 PQLTrigger *
 getTriggers(PGconn *c, int *n)

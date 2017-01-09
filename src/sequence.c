@@ -1,6 +1,11 @@
-#include "sequence.h"
-
-/*
+/*----------------------------------------------------------------------
+ *
+ * pgquarrel -- comparing database schemas
+ *
+ * sequence.c
+ *     Generate SEQUENCE commands
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * CREATE SEQUENCE
  * DROP SEQUENCE
  * ALTER SEQUENCE
@@ -12,7 +17,14 @@
  * ALTER SEQUENCE ... OWNED BY (create sequence)
  * ALTER SEQUENCE ... RENAME TO
  * ALTER SEQUENCE ... SET SCHEMA
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * Copyright (c) 2015-2017, Euler Taveira
+ *
+ * ---------------------------------------------------------------------
  */
+#include "sequence.h"
+
 
 PQLSequence *
 getSequences(PGconn *c, int *n)
