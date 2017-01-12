@@ -186,22 +186,22 @@ Features
 	</tr>
 	<tr>
 		<td>TEXT SEARCH CONFIGURATION</td>
-		<td>not implemented</td>
+		<td>partial</td>
 		<td></td>
 	</tr>
 	<tr>
 		<td>TEXT SEARCH DICTIONARY</td>
-		<td>not implemented</td>
+		<td>partial</td>
 		<td></td>
 	</tr>
 	<tr>
 		<td>TEXT SEARCH PARSER</td>
-		<td>not implemented</td>
+		<td>partial</td>
 		<td></td>
 	</tr>
 	<tr>
 		<td>TEXT SEARCH TEMPLATE</td>
-		<td>not implemented</td>
+		<td>partial</td>
 		<td></td>
 	</tr>
 	<tr>
