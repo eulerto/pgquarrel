@@ -27,13 +27,16 @@
  * table: partial
  * trigger: partial
  * type: partial
+ * text search configuration: partial
+ * text search dictionary: partial
+ * text search parser: partial
+ * text search template: partial
  * user mapping: complete
  * view: partial
  *
  *  UNSUPPORTED
  * ~~~~~~~~~~~~~
  * foreign table
- * text search { configuration | dictionary | parser | template }
  * operator
  * operator { class | family }
  *
@@ -71,6 +74,7 @@
 #include "sequence.h"
 #include "server.h"
 #include "table.h"
+#include "textsearch.h"
 #include "trigger.h"
 #include "type.h"
 #include "usermapping.h"
@@ -92,7 +96,7 @@ PQLStatistic		qstat = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-							 0, 0
+							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 					  };
 
 FILE				*fout;			/* output file */
@@ -131,6 +135,10 @@ static void quarrelRules();
 static void quarrelSchemas();
 static void quarrelSequences();
 static void quarrelTables();
+static void quarrelTextSearchConfigs();
+static void quarrelTextSearchDicts();
+static void quarrelTextSearchParsers();
+static void quarrelTextSearchTemplates();
 static void quarrelTriggers();
 static void quarrelBaseTypes();
 static void quarrelCompositeTypes();
@@ -1935,6 +1943,358 @@ quarrelTables()
 }
 
 static void
+quarrelTextSearchConfigs()
+{
+	PQLTextSearchConfig	*tsconfigs1 = NULL;	/* from */
+	PQLTextSearchConfig	*tsconfigs2 = NULL;	/* to */
+	int			ntsconfigs1 = 0;			/* # of text search configuration */
+	int			ntsconfigs2 = 0;
+	int			i, j;
+
+	/* TextSearchConfigs */
+	tsconfigs1 = getTextSearchConfigs(conn1, &ntsconfigs1);
+	tsconfigs2 = getTextSearchConfigs(conn2, &ntsconfigs2);
+
+	for (i = 0; i < ntsconfigs1; i++)
+		logNoise("server1: %s.%s", tsconfigs1[i].obj.schemaname,
+				 tsconfigs1[i].obj.objectname);
+
+	for (i = 0; i < ntsconfigs2; i++)
+		logNoise("server2: %s.%s", tsconfigs2[i].obj.schemaname,
+				 tsconfigs2[i].obj.objectname);
+
+	/*
+	 * We have two sorted lists. Let's figure out which elements are not in the
+	 * other list.
+	 * We have two sorted lists. The strategy is transverse both lists only once
+	 * to figure out tsconfigs not presented in the other list.
+	 */
+	i = j = 0;
+	while (i < ntsconfigs1 || j < ntsconfigs2)
+	{
+		/* End of tsconfigs1 list. Print tsconfigs2 list until its end. */
+		if (i == ntsconfigs1)
+		{
+			logDebug("text search config %s.%s: server2", tsconfigs2[j].obj.schemaname,
+					 tsconfigs2[j].obj.objectname);
+
+			dumpCreateTextSearchConfig(fpre, &tsconfigs2[j]);
+
+			j++;
+			qstat.tsconfigadded++;
+		}
+		/* End of tsconfigs2 list. Print tsconfigs1 list until its end. */
+		else if (j == ntsconfigs2)
+		{
+			logDebug("text search config %s.%s: server1", tsconfigs1[i].obj.schemaname,
+					 tsconfigs1[i].obj.objectname);
+
+			dumpDropTextSearchConfig(fpost, &tsconfigs1[i]);
+
+			i++;
+			qstat.tsconfigremoved++;
+		}
+		else if (compareRelations(&tsconfigs1[i].obj, &tsconfigs2[j].obj) == 0)
+		{
+			logDebug("text search config %s.%s: server1 server2", tsconfigs1[i].obj.schemaname,
+					 tsconfigs1[i].obj.objectname);
+
+			dumpAlterTextSearchConfig(fpre, &tsconfigs1[i], &tsconfigs2[j]);
+
+			i++;
+			j++;
+		}
+		else if (compareRelations(&tsconfigs1[i].obj, &tsconfigs2[j].obj) < 0)
+		{
+			logDebug("text search config %s.%s: server1", tsconfigs1[i].obj.schemaname,
+					 tsconfigs1[i].obj.objectname);
+
+			dumpDropTextSearchConfig(fpost, &tsconfigs1[i]);
+
+			i++;
+			qstat.tsconfigremoved++;
+		}
+		else if (compareRelations(&tsconfigs1[i].obj, &tsconfigs2[j].obj) > 0)
+		{
+			logDebug("text search config %s.%s: server2", tsconfigs2[j].obj.schemaname,
+					 tsconfigs2[j].obj.objectname);
+
+			dumpCreateTextSearchConfig(fpre, &tsconfigs2[j]);
+
+			j++;
+			qstat.tsconfigadded++;
+		}
+	}
+
+	freeTextSearchConfigs(tsconfigs1, ntsconfigs1);
+	freeTextSearchConfigs(tsconfigs2, ntsconfigs2);
+}
+
+static void
+quarrelTextSearchDicts()
+{
+	PQLTextSearchDict	*tsdicts1 = NULL;	/* from */
+	PQLTextSearchDict	*tsdicts2 = NULL;	/* to */
+	int			ntsdicts1 = 0;				/* # of text search dictionary */
+	int			ntsdicts2 = 0;
+	int			i, j;
+
+	/* TextSearchDicts */
+	tsdicts1 = getTextSearchDicts(conn1, &ntsdicts1);
+	tsdicts2 = getTextSearchDicts(conn2, &ntsdicts2);
+
+	for (i = 0; i < ntsdicts1; i++)
+		logNoise("server1: %s.%s", tsdicts1[i].obj.schemaname,
+				 tsdicts1[i].obj.objectname);
+
+	for (i = 0; i < ntsdicts2; i++)
+		logNoise("server2: %s.%s", tsdicts2[i].obj.schemaname,
+				 tsdicts2[i].obj.objectname);
+
+	/*
+	 * We have two sorted lists. Let's figure out which elements are not in the
+	 * other list.
+	 * We have two sorted lists. The strategy is transverse both lists only once
+	 * to figure out tsdicts not presented in the other list.
+	 */
+	i = j = 0;
+	while (i < ntsdicts1 || j < ntsdicts2)
+	{
+		/* End of tsdicts1 list. Print tsdicts2 list until its end. */
+		if (i == ntsdicts1)
+		{
+			logDebug("text search dictionary %s.%s: server2", tsdicts2[j].obj.schemaname,
+					 tsdicts2[j].obj.objectname);
+
+			dumpCreateTextSearchDict(fpre, &tsdicts2[j]);
+
+			j++;
+			qstat.tsdictadded++;
+		}
+		/* End of tsdicts2 list. Print tsdicts1 list until its end. */
+		else if (j == ntsdicts2)
+		{
+			logDebug("text search dictionary %s.%s: server1", tsdicts1[i].obj.schemaname,
+					 tsdicts1[i].obj.objectname);
+
+			dumpDropTextSearchDict(fpost, &tsdicts1[i]);
+
+			i++;
+			qstat.tsdictremoved++;
+		}
+		else if (compareRelations(&tsdicts1[i].obj, &tsdicts2[j].obj) == 0)
+		{
+			logDebug("text search dictionary %s.%s: server1 server2", tsdicts1[i].obj.schemaname,
+					 tsdicts1[i].obj.objectname);
+
+			dumpAlterTextSearchDict(fpre, &tsdicts1[i], &tsdicts2[j]);
+
+			i++;
+			j++;
+		}
+		else if (compareRelations(&tsdicts1[i].obj, &tsdicts2[j].obj) < 0)
+		{
+			logDebug("text search dictionary %s.%s: server1", tsdicts1[i].obj.schemaname,
+					 tsdicts1[i].obj.objectname);
+
+			dumpDropTextSearchDict(fpost, &tsdicts1[i]);
+
+			i++;
+			qstat.tsdictremoved++;
+		}
+		else if (compareRelations(&tsdicts1[i].obj, &tsdicts2[j].obj) > 0)
+		{
+			logDebug("text search dictionary %s.%s: server2", tsdicts2[j].obj.schemaname,
+					 tsdicts2[j].obj.objectname);
+
+			dumpCreateTextSearchDict(fpre, &tsdicts2[j]);
+
+			j++;
+			qstat.tsdictadded++;
+		}
+	}
+
+	freeTextSearchDicts(tsdicts1, ntsdicts1);
+	freeTextSearchDicts(tsdicts2, ntsdicts2);
+}
+
+static void
+quarrelTextSearchParsers()
+{
+	PQLTextSearchParser	*tsparsers1 = NULL;	/* from */
+	PQLTextSearchParser	*tsparsers2 = NULL;	/* to */
+	int			ntsparsers1 = 0;			/* # of text search parser */
+	int			ntsparsers2 = 0;
+	int			i, j;
+
+	/* TextSearchParsers */
+	tsparsers1 = getTextSearchParsers(conn1, &ntsparsers1);
+	tsparsers2 = getTextSearchParsers(conn2, &ntsparsers2);
+
+	for (i = 0; i < ntsparsers1; i++)
+		logNoise("server1: %s.%s", tsparsers1[i].obj.schemaname,
+				 tsparsers1[i].obj.objectname);
+
+	for (i = 0; i < ntsparsers2; i++)
+		logNoise("server2: %s.%s", tsparsers2[i].obj.schemaname,
+				 tsparsers2[i].obj.objectname);
+
+	/*
+	 * We have two sorted lists. Let's figure out which elements are not in the
+	 * other list.
+	 * We have two sorted lists. The strategy is transverse both lists only once
+	 * to figure out tsparsers not presented in the other list.
+	 */
+	i = j = 0;
+	while (i < ntsparsers1 || j < ntsparsers2)
+	{
+		/* End of tsparsers1 list. Print tsparsers2 list until its end. */
+		if (i == ntsparsers1)
+		{
+			logDebug("text search parser %s.%s: server2", tsparsers2[j].obj.schemaname,
+					 tsparsers2[j].obj.objectname);
+
+			dumpCreateTextSearchParser(fpre, &tsparsers2[j]);
+
+			j++;
+			qstat.tsparseradded++;
+		}
+		/* End of tsparsers2 list. Print tsparsers1 list until its end. */
+		else if (j == ntsparsers2)
+		{
+			logDebug("text search parser %s.%s: server1", tsparsers1[i].obj.schemaname,
+					 tsparsers1[i].obj.objectname);
+
+			dumpDropTextSearchParser(fpost, &tsparsers1[i]);
+
+			i++;
+			qstat.tsparserremoved++;
+		}
+		else if (compareRelations(&tsparsers1[i].obj, &tsparsers2[j].obj) == 0)
+		{
+			logDebug("text search parser %s.%s: server1 server2", tsparsers1[i].obj.schemaname,
+					 tsparsers1[i].obj.objectname);
+
+			dumpAlterTextSearchParser(fpre, &tsparsers1[i], &tsparsers2[j]);
+
+			i++;
+			j++;
+		}
+		else if (compareRelations(&tsparsers1[i].obj, &tsparsers2[j].obj) < 0)
+		{
+			logDebug("text search parser %s.%s: server1", tsparsers1[i].obj.schemaname,
+					 tsparsers1[i].obj.objectname);
+
+			dumpDropTextSearchParser(fpost, &tsparsers1[i]);
+
+			i++;
+			qstat.tsparserremoved++;
+		}
+		else if (compareRelations(&tsparsers1[i].obj, &tsparsers2[j].obj) > 0)
+		{
+			logDebug("text search parser %s.%s: server2", tsparsers2[j].obj.schemaname,
+					 tsparsers2[j].obj.objectname);
+
+			dumpCreateTextSearchParser(fpre, &tsparsers2[j]);
+
+			j++;
+			qstat.tsparseradded++;
+		}
+	}
+
+	freeTextSearchParsers(tsparsers1, ntsparsers1);
+	freeTextSearchParsers(tsparsers2, ntsparsers2);
+}
+
+static void
+quarrelTextSearchTemplates()
+{
+	PQLTextSearchTemplate	*tstemplates1 = NULL;	/* from */
+	PQLTextSearchTemplate	*tstemplates2 = NULL;	/* to */
+	int			ntstemplates1 = 0;					/* # of text search template */
+	int			ntstemplates2 = 0;
+	int			i, j;
+
+	/* TextSearchTemplates */
+	tstemplates1 = getTextSearchTemplates(conn1, &ntstemplates1);
+	tstemplates2 = getTextSearchTemplates(conn2, &ntstemplates2);
+
+	for (i = 0; i < ntstemplates1; i++)
+		logNoise("server1: %s.%s", tstemplates1[i].obj.schemaname,
+				 tstemplates1[i].obj.objectname);
+
+	for (i = 0; i < ntstemplates2; i++)
+		logNoise("server2: %s.%s", tstemplates2[i].obj.schemaname,
+				 tstemplates2[i].obj.objectname);
+
+	/*
+	 * We have two sorted lists. Let's figure out which elements are not in the
+	 * other list.
+	 * We have two sorted lists. The strategy is transverse both lists only once
+	 * to figure out tstemplates not presented in the other list.
+	 */
+	i = j = 0;
+	while (i < ntstemplates1 || j < ntstemplates2)
+	{
+		/* End of tstemplates1 list. Print tstemplates2 list until its end. */
+		if (i == ntstemplates1)
+		{
+			logDebug("text search template %s.%s: server2", tstemplates2[j].obj.schemaname,
+					 tstemplates2[j].obj.objectname);
+
+			dumpCreateTextSearchTemplate(fpre, &tstemplates2[j]);
+
+			j++;
+			qstat.tstemplateadded++;
+		}
+		/* End of tstemplates2 list. Print tstemplates1 list until its end. */
+		else if (j == ntstemplates2)
+		{
+			logDebug("text search template %s.%s: server1", tstemplates1[i].obj.schemaname,
+					 tstemplates1[i].obj.objectname);
+
+			dumpDropTextSearchTemplate(fpost, &tstemplates1[i]);
+
+			i++;
+			qstat.tstemplateremoved++;
+		}
+		else if (compareRelations(&tstemplates1[i].obj, &tstemplates2[j].obj) == 0)
+		{
+			logDebug("text search template %s.%s: server1 server2", tstemplates1[i].obj.schemaname,
+					 tstemplates1[i].obj.objectname);
+
+			dumpAlterTextSearchTemplate(fpre, &tstemplates1[i], &tstemplates2[j]);
+
+			i++;
+			j++;
+		}
+		else if (compareRelations(&tstemplates1[i].obj, &tstemplates2[j].obj) < 0)
+		{
+			logDebug("text search template %s.%s: server1", tstemplates1[i].obj.schemaname,
+					 tstemplates1[i].obj.objectname);
+
+			dumpDropTextSearchTemplate(fpost, &tstemplates1[i]);
+
+			i++;
+			qstat.tstemplateremoved++;
+		}
+		else if (compareRelations(&tstemplates1[i].obj, &tstemplates2[j].obj) > 0)
+		{
+			logDebug("text search template %s.%s: server2", tstemplates2[j].obj.schemaname,
+					 tstemplates2[j].obj.objectname);
+
+			dumpCreateTextSearchTemplate(fpre, &tstemplates2[j]);
+
+			j++;
+			qstat.tstemplateadded++;
+		}
+	}
+
+	freeTextSearchTemplates(tstemplates1, ntstemplates1);
+	freeTextSearchTemplates(tstemplates2, ntstemplates2);
+}
+
+static void
 quarrelTriggers()
 {
 	PQLTrigger	*triggers1 = NULL;	/* from */
@@ -2900,6 +3260,10 @@ int main(int argc, char *argv[])
 	quarrelTriggers();
 	quarrelRules();
 	quarrelEventTriggers();
+	quarrelTextSearchParsers();
+	quarrelTextSearchTemplates();
+	quarrelTextSearchDicts();
+	quarrelTextSearchConfigs();
 
 	/*
 	 * Print header iff there is at least one command. Check if one of the
