@@ -51,7 +51,7 @@ getTriggers(PGconn *c, int *n)
 	for (i = 0; i < *n; i++)
 	{
 		t[i].oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
-		t[i].trgname = strdup(PQgetvalue(res, i, PQfnumber(res, "tgname")));
+		t[i].trgname = strdup(PQgetvalue(res, i, PQfnumber(res, "trgname")));
 		t[i].table.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		t[i].table.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "relname")));
 		t[i].trgdef = strdup(PQgetvalue(res, i, PQfnumber(res, "trgdef")));
