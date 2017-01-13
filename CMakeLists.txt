@@ -63,8 +63,7 @@ endif()
 # cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_PREFIX_PATH=/home/euler/pg961 .
 find_package(PostgreSQL REQUIRED)
 if(PostgreSQL_FOUND)
-	include_directories(${PostgreSQL_INCLUDE_DIR})
-	include_directories(${PostgreSQL_INCLUDE_DIR}/postgresql/server)
+	include_directories(${PostgreSQL_INCLUDE_DIRS})
 	# some postgres headers (those included by optionals) aren't on the include
 	# path. Hence, we need to include them.
 	if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
