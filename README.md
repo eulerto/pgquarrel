@@ -206,17 +206,17 @@ Features
 	</tr>
 	<tr>
 		<td>OPERATOR</td>
-		<td>not implemented</td>
+		<td>partial</td>
 		<td></td>
 	</tr>
 	<tr>
 		<td>OPERATOR CLASS</td>
-		<td>not implemented</td>
+		<td>partial</td>
 		<td></td>
 	</tr>
 	<tr>
 		<td>OPERATOR FAMILY</td>
-		<td>not implemented</td>
+		<td>partial</td>
 		<td></td>
 	</tr>
 	<tr>

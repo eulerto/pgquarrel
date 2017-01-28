@@ -18,6 +18,9 @@
  * index: partial
  * language: partial
  * materialized view: partial
+ * operator: partial
+ * operator class: partial
+ * operator family: partial
  * revoke: complete
  * rule: partial
  * schema: partial
@@ -37,8 +40,6 @@
  *  UNSUPPORTED
  * ~~~~~~~~~~~~~
  * foreign table
- * operator
- * operator { class | family }
  *
  *  UNCERTAIN
  * ~~~~~~~~~~~~~
@@ -69,6 +70,7 @@
 #include "index.h"
 #include "language.h"
 #include "matview.h"
+#include "operator.h"
 #include "rule.h"
 #include "schema.h"
 #include "sequence.h"
@@ -96,7 +98,8 @@ PQLStatistic		qstat = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+							 0, 0, 0, 0, 0, 0
 					  };
 
 FILE				*fout;			/* output file */
@@ -131,6 +134,9 @@ static void quarrelFunctions();
 static void quarrelIndexes();
 static void quarrelLanguages();
 static void quarrelMaterializedViews();
+static void quarrelOperators();
+static void quarrelOperatorFamilies();
+static void quarrelOperatorClasses();
 static void quarrelRules();
 static void quarrelSchemas();
 static void quarrelSequences();
@@ -1556,6 +1562,267 @@ quarrelMaterializedViews()
 
 	freeMaterializedViews(matviews1, nmatviews1);
 	freeMaterializedViews(matviews2, nmatviews2);
+}
+
+static void
+quarrelOperators()
+{
+	PQLOperator	*operators1 = NULL;		/* from */
+	PQLOperator	*operators2 = NULL;		/* to */
+	int			noperators1 = 0;		/* # of operators */
+	int			noperators2 = 0;
+	int			i, j;
+
+	operators1 = getOperators(conn1, &noperators1);
+	operators2 = getOperators(conn2, &noperators2);
+
+	for (i = 0; i < noperators1; i++)
+		logNoise("server1: %s.%s", operators1[i].obj.schemaname,
+				 operators1[i].obj.objectname);
+
+	for (i = 0; i < noperators2; i++)
+		logNoise("server2: %s.%s", operators2[i].obj.schemaname,
+				 operators2[i].obj.objectname);
+
+	/*
+	 * We have two sorted lists. Let's figure out which elements are not in the
+	 * other list.
+	 * We have two sorted lists. The strategy is transverse both lists only once
+	 * to figure out relations not presented in the other list.
+	 */
+	i = j = 0;
+	while (i < noperators1 || j < noperators2)
+	{
+		/* End of operators1 list. Print operators2 list until its end. */
+		if (i == noperators1)
+		{
+			logDebug("operator %s.%s: server2", operators2[j].obj.schemaname,
+					 operators2[j].obj.objectname);
+
+			dumpCreateOperator(fpre, &operators2[j]);
+
+			j++;
+			qstat.operatoradded++;
+		}
+		/* End of operators2 list. Print operators1 list until its end. */
+		else if (j == noperators2)
+		{
+			logDebug("operator %s.%s: server1", operators1[i].obj.schemaname,
+					 operators1[i].obj.objectname);
+
+			dumpDropOperator(fpost, &operators1[i]);
+
+			i++;
+			qstat.operatorremoved++;
+		}
+		else if (compareOperators(&operators1[i], &operators2[j]) == 0)
+		{
+			logDebug("operator %s.%s: server1 server2", operators1[i].obj.schemaname,
+					 operators1[i].obj.objectname);
+
+			dumpAlterOperator(fpre, &operators1[i], &operators2[j]);
+
+			i++;
+			j++;
+		}
+		else if (compareOperators(&operators1[i], &operators2[j]) < 0)
+		{
+			logDebug("operator %s.%s: server1", operators1[i].obj.schemaname,
+					 operators1[i].obj.objectname);
+
+			dumpDropOperator(fpost, &operators1[i]);
+
+			i++;
+			qstat.operatorremoved++;
+		}
+		else if (compareOperators(&operators1[i], &operators2[j]) > 0)
+		{
+			logDebug("operator %s.%s: server2", operators2[j].obj.schemaname,
+					 operators2[j].obj.objectname);
+
+			dumpCreateOperator(fpre, &operators2[j]);
+
+			j++;
+			qstat.operatoradded++;
+		}
+	}
+
+	freeOperators(operators1, noperators1);
+	freeOperators(operators2, noperators2);
+}
+
+static void
+quarrelOperatorFamilies()
+{
+	PQLOperatorFamily	*opfamilies1 = NULL;		/* from */
+	PQLOperatorFamily	*opfamilies2 = NULL;		/* to */
+	int			nopfamilies1 = 0;					/* # of opfamilies */
+	int			nopfamilies2 = 0;
+	int			i, j;
+
+	opfamilies1 = getOperatorFamilies(conn1, &nopfamilies1);
+	opfamilies2 = getOperatorFamilies(conn2, &nopfamilies2);
+
+	for (i = 0; i < nopfamilies1; i++)
+		logNoise("server1: %s.%s", opfamilies1[i].obj.schemaname,
+				 opfamilies1[i].obj.objectname);
+
+	for (i = 0; i < nopfamilies2; i++)
+		logNoise("server2: %s.%s", opfamilies2[i].obj.schemaname,
+				 opfamilies2[i].obj.objectname);
+
+	/*
+	 * We have two sorted lists. Let's figure out which elements are not in the
+	 * other list.
+	 * We have two sorted lists. The strategy is transverse both lists only once
+	 * to figure out relations not presented in the other list.
+	 */
+	i = j = 0;
+	while (i < nopfamilies1 || j < nopfamilies2)
+	{
+		/* End of opfamilies1 list. Print opfamilies2 list until its end. */
+		if (i == nopfamilies1)
+		{
+			logDebug("operator family %s.%s: server2", opfamilies2[j].obj.schemaname,
+					 opfamilies2[j].obj.objectname);
+
+			dumpCreateOperatorFamily(fpre, &opfamilies2[j]);
+
+			j++;
+			qstat.opfamilyadded++;
+		}
+		/* End of opfamilies2 list. Print opfamilies1 list until its end. */
+		else if (j == nopfamilies2)
+		{
+			logDebug("operator family %s.%s: server1", opfamilies1[i].obj.schemaname,
+					 opfamilies1[i].obj.objectname);
+
+			dumpDropOperatorFamily(fpost, &opfamilies1[i]);
+
+			i++;
+			qstat.opfamilyremoved++;
+		}
+		else if (compareRelations(&opfamilies1[i].obj, &opfamilies2[j].obj) == 0)
+		{
+			logDebug("operator family %s.%s: server1 server2", opfamilies1[i].obj.schemaname,
+					 opfamilies1[i].obj.objectname);
+
+			dumpAlterOperatorFamily(fpre, &opfamilies1[i], &opfamilies2[j]);
+
+			i++;
+			j++;
+		}
+		else if (compareRelations(&opfamilies1[i].obj, &opfamilies2[j].obj) < 0)
+		{
+			logDebug("operator family %s.%s: server1", opfamilies1[i].obj.schemaname,
+					 opfamilies1[i].obj.objectname);
+
+			dumpDropOperatorFamily(fpost, &opfamilies1[i]);
+
+			i++;
+			qstat.opfamilyremoved++;
+		}
+		else if (compareRelations(&opfamilies1[i].obj, &opfamilies2[j].obj) > 0)
+		{
+			logDebug("operator family %s.%s: server2", opfamilies2[j].obj.schemaname,
+					 opfamilies2[j].obj.objectname);
+
+			dumpCreateOperatorFamily(fpre, &opfamilies2[j]);
+
+			j++;
+			qstat.opfamilyadded++;
+		}
+	}
+
+	freeOperatorFamilies(opfamilies1, nopfamilies1);
+	freeOperatorFamilies(opfamilies2, nopfamilies2);
+}
+
+static void
+quarrelOperatorClasses()
+{
+	PQLOperatorClass	*opclasses1 = NULL;		/* from */
+	PQLOperatorClass	*opclasses2 = NULL;		/* to */
+	int			nopclasses1 = 0;					/* # of opclasses */
+	int			nopclasses2 = 0;
+	int			i, j;
+
+	opclasses1 = getOperatorClasses(conn1, &nopclasses1);
+	opclasses2 = getOperatorClasses(conn2, &nopclasses2);
+
+	for (i = 0; i < nopclasses1; i++)
+		logNoise("server1: %s.%s", opclasses1[i].obj.schemaname,
+				 opclasses1[i].obj.objectname);
+
+	for (i = 0; i < nopclasses2; i++)
+		logNoise("server2: %s.%s", opclasses2[i].obj.schemaname,
+				 opclasses2[i].obj.objectname);
+
+	/*
+	 * We have two sorted lists. Let's figure out which elements are not in the
+	 * other list.
+	 * We have two sorted lists. The strategy is transverse both lists only once
+	 * to figure out relations not presented in the other list.
+	 */
+	i = j = 0;
+	while (i < nopclasses1 || j < nopclasses2)
+	{
+		/* End of opclasses1 list. Print opclasses2 list until its end. */
+		if (i == nopclasses1)
+		{
+			logDebug("operator class %s.%s: server2", opclasses2[j].obj.schemaname,
+					 opclasses2[j].obj.objectname);
+
+			dumpCreateOperatorClass(fpre, &opclasses2[j]);
+
+			j++;
+			qstat.opclassadded++;
+		}
+		/* End of opclasses2 list. Print opclasses1 list until its end. */
+		else if (j == nopclasses2)
+		{
+			logDebug("operator class %s.%s: server1", opclasses1[i].obj.schemaname,
+					 opclasses1[i].obj.objectname);
+
+			dumpDropOperatorClass(fpost, &opclasses1[i]);
+
+			i++;
+			qstat.opclassremoved++;
+		}
+		else if (compareRelations(&opclasses1[i].obj, &opclasses2[j].obj) == 0)
+		{
+			logDebug("operator class %s.%s: server1 server2", opclasses1[i].obj.schemaname,
+					 opclasses1[i].obj.objectname);
+
+			dumpAlterOperatorClass(fpre, &opclasses1[i], &opclasses2[j]);
+
+			i++;
+			j++;
+		}
+		else if (compareRelations(&opclasses1[i].obj, &opclasses2[j].obj) < 0)
+		{
+			logDebug("operator class %s.%s: server1", opclasses1[i].obj.schemaname,
+					 opclasses1[i].obj.objectname);
+
+			dumpDropOperatorClass(fpost, &opclasses1[i]);
+
+			i++;
+			qstat.opclassremoved++;
+		}
+		else if (compareRelations(&opclasses1[i].obj, &opclasses2[j].obj) > 0)
+		{
+			logDebug("operator class %s.%s: server2", opclasses2[j].obj.schemaname,
+					 opclasses2[j].obj.objectname);
+
+			dumpCreateOperatorClass(fpre, &opclasses2[j]);
+
+			j++;
+			qstat.opclassadded++;
+		}
+	}
+
+	freeOperatorClasses(opclasses1, nopclasses1);
+	freeOperatorClasses(opclasses2, nopclasses2);
 }
 
 static void
@@ -3250,6 +3517,9 @@ int main(int argc, char *argv[])
 	quarrelConversions();
 	quarrelDomains();
 	quarrelTypes();
+	quarrelOperators();
+	quarrelOperatorFamilies();
+	quarrelOperatorClasses();
 	quarrelSequences();
 	quarrelTables();
 	quarrelIndexes();

@@ -53,6 +53,12 @@ typedef struct PQLStatistic
 	int		languageremoved;
 	int		matviewadded;
 	int		matviewremoved;
+	int		operatoradded;
+	int		operatorremoved;
+	int		opfamilyadded;
+	int		opfamilyremoved;
+	int		opclassadded;
+	int		opclassremoved;
 	int		ruleadded;
 	int		ruleremoved;
 	int		schemaadded;
