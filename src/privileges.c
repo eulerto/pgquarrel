@@ -162,6 +162,10 @@ splitACLItem(char *a)
 	char	*nextptr;
 	int		len;
 
+	/* protect against null input */
+	if (a == NULL)
+		return NULL;
+
 	ai = (aclItem *) malloc(sizeof(aclItem));
 	ai->next = NULL;
 

@@ -215,7 +215,7 @@ getOperatorClasses(PGconn *c, int *n)
 			d[i].family.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "opfname")));
 		}
 		if (PQgetisnull(res, i, PQfnumber(res, "storage")))
-			d[i].storagetype = strdup(PQgetvalue(res, i, PQfnumber(res, "storage")));
+			d[i].storagetype = NULL;
 		else
 			d[i].storagetype = strdup(PQgetvalue(res, i, PQfnumber(res, "storage")));
 
@@ -684,17 +684,23 @@ dumpCreateOperatorClass(FILE *output, PQLOperatorClass *c)
 {
 	char	*schema = formatObjectIdentifier(c->obj.schemaname);
 	char	*opcname = formatObjectIdentifier(c->obj.objectname);
-	char	*fschema = formatObjectIdentifier(c->family.schemaname);
-	char	*opfname = formatObjectIdentifier(c->family.objectname);
+	char	*fschema;
+	char	*opfname;
 	bool	comma = false;
 	int		i;
+
+	/* family could be null */
+	if (c->family.schemaname != NULL)
+		fschema = formatObjectIdentifier(c->family.schemaname);
+	if (c->family.objectname != NULL)
+		opfname = formatObjectIdentifier(c->family.objectname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE OPERATOR CLASS %s.%s", schema, opcname);
 	if (c->defaultopclass)
 		fprintf(output, " DEFAULT");
 	fprintf(output, " FOR TYPE %s USING %s", c->intype, c->accessmethod);
-	if (c->family.objectname)
+	if (c->family.objectname != NULL)
 		fprintf(output, " FAMILY %s.%s", fschema, opfname);
 	fprintf(output, " AS");
 
@@ -764,6 +770,10 @@ dumpCreateOperatorClass(FILE *output, PQLOperatorClass *c)
 
 	free(schema);
 	free(opcname);
+	if (fschema)
+		free(fschema);
+	if (opfname)
+		free(opfname);
 }
 
 void
