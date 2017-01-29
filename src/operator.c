@@ -684,8 +684,8 @@ dumpCreateOperatorClass(FILE *output, PQLOperatorClass *c)
 {
 	char	*schema = formatObjectIdentifier(c->obj.schemaname);
 	char	*opcname = formatObjectIdentifier(c->obj.objectname);
-	char	*fschema;
-	char	*opfname;
+	char	*fschema = NULL;
+	char	*opfname = NULL;
 	bool	comma = false;
 	int		i;
 
@@ -700,7 +700,7 @@ dumpCreateOperatorClass(FILE *output, PQLOperatorClass *c)
 	if (c->defaultopclass)
 		fprintf(output, " DEFAULT");
 	fprintf(output, " FOR TYPE %s USING %s", c->intype, c->accessmethod);
-	if (c->family.objectname != NULL)
+	if (fschema != NULL && opfname != NULL)
 		fprintf(output, " FAMILY %s.%s", fschema, opfname);
 	fprintf(output, " AS");
 
