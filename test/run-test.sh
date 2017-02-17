@@ -32,15 +32,15 @@ CLUSTERPATH=/tmp
 function getPgDir
 {
 	if [ "$vtmp" = "96" ]; then
-		echo "pg961"
+		echo "pg962"
 	elif [ "$vtmp" = "95" ]; then
-		echo "pg955"
+		echo "pg956"
 	elif [ "$vtmp" = "94" ]; then
-		echo "pg9410"
+		echo "pg9411"
 	elif [ "$vtmp" = "93" ]; then
-		echo "pg9315"
+		echo "pg9316"
 	elif [ "$vtmp" = "92" ]; then
-		echo "pg9219"
+		echo "pg9220"
 	elif [ "$vtmp" = "91" ]; then
 		echo "pg9124"
 	elif [ "$vtmp" = "90" ]; then
