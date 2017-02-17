@@ -141,9 +141,9 @@ getAggregates(PGconn *c, int *n)
 		a[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "aggowner")));
 
 		/*
-		 * Security labels are not assigned here (see getFunctionSecurityLabels),
+		 * Security labels are not assigned here (see getAggregateSecurityLabels),
 		 * but default values are essential to avoid having trouble in
-		 * freeFunctions.
+		 * freeAggregates.
 		 */
 		a[i].nseclabels = 0;
 		a[i].seclabels = NULL;
