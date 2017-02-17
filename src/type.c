@@ -109,6 +109,14 @@ getBaseTypes(PGconn *c, int *n)
 		else
 			t[i].acl = strdup(PQgetvalue(res, i, PQfnumber(res, "typacl")));
 
+		/*
+		 * Security labels are not assigned here (see getBaseTypeSecurityLabels),
+		 * but default values are essential to avoid having trouble in
+		 * freeBaseTypes.
+		 */
+		t[i].nseclabels = 0;
+		t[i].seclabels = NULL;
+
 		logDebug("base type \"%s\".\"%s\"", t[i].obj.schemaname, t[i].obj.objectname);
 	}
 
@@ -305,6 +313,14 @@ getCompositeTypes(PGconn *c, int *n)
 		else
 			t[i].acl = strdup(PQgetvalue(res, i, PQfnumber(res, "typacl")));
 
+		/*
+		 * Security labels are not assigned here (see getCompositeTypeSecurityLabels),
+		 * but default values are essential to avoid having trouble in
+		 * freeCompositeTypes.
+		 */
+		t[i].nseclabels = 0;
+		t[i].seclabels = NULL;
+
 		/* fill composite type attributes */
 		getCompositeTypeAttributes(c, &t[i]);
 
@@ -486,6 +502,14 @@ getEnumTypes(PGconn *c, int *n)
 		else
 			t[i].acl = strdup(PQgetvalue(res, i, PQfnumber(res, "typacl")));
 
+		/*
+		 * Security labels are not assigned here (see getEnumTypeSecurityLabels),
+		 * but default values are essential to avoid having trouble in
+		 * freeEnumTypes.
+		 */
+		t[i].nseclabels = 0;
+		t[i].seclabels = NULL;
+
 		/* fill enum type labels */
 		getEnumTypeLabels(c, &t[i]);
 
@@ -613,6 +637,14 @@ getRangeTypes(PGconn *c, int *n)
 			t[i].acl = NULL;
 		else
 			t[i].acl = strdup(PQgetvalue(res, i, PQfnumber(res, "typacl")));
+
+		/*
+		 * Security labels are not assigned here (see getRangeTypeSecurityLabels),
+		 * but default values are essential to avoid having trouble in
+		 * freeRangeTypes.
+		 */
+		t[i].nseclabels = 0;
+		t[i].seclabels = NULL;
 
 		logDebug("range type \"%s\".\"%s\"", t[i].obj.schemaname, t[i].obj.objectname);
 	}
