@@ -109,6 +109,8 @@ getSequences(PGconn *c, int *n)
 void
 getSequenceAttributes(PGconn *c, PQLSequence *s)
 {
+	char		*schema = formatObjectIdentifier(s->obj.schemaname);
+	char		*seqname = formatObjectIdentifier(s->obj.objectname);
 	char		*query = NULL;
 	int			nquery = PGQQRYLEN;
 	PGresult	*res;
@@ -120,7 +122,7 @@ getSequenceAttributes(PGconn *c, PQLSequence *s)
 
 		r = snprintf(query, nquery,
 					 "SELECT increment_by, start_value, max_value, min_value, cache_value, is_cycled FROM %s.%s",
-					 s->obj.schemaname, s->obj.objectname);
+					 schema, seqname);
 
 		if (r < nquery)
 			break;
@@ -134,6 +136,8 @@ getSequenceAttributes(PGconn *c, PQLSequence *s)
 	res = PQexec(c, query);
 
 	free(query);
+	free(schema);
+	free(seqname);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
