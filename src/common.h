@@ -16,6 +16,10 @@
 #include <libpq-fe.h>
 #include <c.h>			/* bool, true, false */
 
+#if defined(_WINDOWS)
+#define	strcasecmp	_stricmp
+#endif
+
 /*
  * Same as FirstNormalObjectId in access/transam.h. This value does not change
  * since a long time ago (2005). It is safe to use this value as a cutting

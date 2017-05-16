@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
-#include <getopt.h>
+#include "getopt_long.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>

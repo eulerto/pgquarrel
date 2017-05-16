@@ -35,6 +35,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(_WINDOWS)
+
+#ifndef	PGQ_DLLIMPORT
+#define	PGQ_DLLIMPORT	__declspec(dllimport)
+#endif
+
+#else
+#define	PGQ_DLLIMPORT
+#endif
+
 typedef struct _SectionData SectionData;
 struct _SectionData
 {
@@ -61,7 +71,7 @@ struct _MiniFile
 
 MiniFile *mini_file_new(const char *file_name);
 
-void mini_file_free(MiniFile *mini_file);
+PGQ_DLLIMPORT void mini_file_free(MiniFile *mini_file);
 
 MiniFile *mini_file_insert_section(MiniFile *mini_file, const char *section);
 
@@ -73,7 +83,7 @@ unsigned int mini_file_get_number_of_sections(MiniFile *mini_file);
 unsigned int mini_file_get_number_of_keys(MiniFile *mini_file,
         const char *section);
 
-char *mini_file_get_value(MiniFile *mini_file, const char *section,
+PGQ_DLLIMPORT char *mini_file_get_value(MiniFile *mini_file, const char *section,
                           const char *key);
 
 #endif /* __MINI_FILE_H__ */

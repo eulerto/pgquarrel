@@ -40,8 +40,17 @@
 #include "mini-readline.h"
 #include "mini-strip.h"
 
+#if defined(_WINDOWS)
 
-MiniFile *mini_parse_file(const char *file_name);
+#ifndef	PGQ_DLLIMPORT
+#define	PGQ_DLLIMPORT	__declspec(dllimport)
+#endif
+
+#else
+#define	PGQ_DLLIMPORT
+#endif
+
+PGQ_DLLIMPORT MiniFile *mini_parse_file(const char *file_name);
 
 #endif /* __MINI_PARSER_H__ */
 
