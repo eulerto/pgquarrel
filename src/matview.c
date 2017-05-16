@@ -136,28 +136,23 @@ void
 getMaterializedViewAttributes(PGconn *c, PQLMaterializedView *v)
 {
 	char		*query = NULL;
-	int			nquery = PGQQRYLEN;
+	int			nquery = 0;
 	PGresult	*res;
 	int			i;
-	int			r;
 
-	do
-	{
-		query = (char *) malloc(nquery * sizeof(char));
+	/* determine how many characters will be written by snprintf */
+	/* FIXME attcollation (9.1)? */
+	nquery = snprintf(query, nquery,
+				 "SELECT a.attnum, a.attname, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
+				 v->obj.oid);
 
-		/* FIXME attcollation (9.1)? */
-		r = snprintf(query, nquery,
-					 "SELECT a.attnum, a.attname, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
-					 v->obj.oid);
+	nquery++;
+	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
+	snprintf(query, nquery,
+			 "SELECT a.attnum, a.attname, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
+			 v->obj.oid);
 
-		if (r < nquery)
-			break;
-
-		logNoise("query size: required (%u) ; initial (%u)", r, nquery);
-		nquery = r + 1;	/* make enough room for query */
-		free(query);
-	}
-	while (true);
+	logNoise("materialized view: query size: %d ; query: %s", nquery, query);
 
 	res = PQexec(c, query);
 

@@ -28,7 +28,6 @@
 #define	PGQ_FIRST_USER_OID		16384
 
 #define	PGQMAXPATH			300
-#define	PGQQRYLEN			300
 
 #define logFatal(...) do { \
 	logGeneric(PGQ_FATAL, __VA_ARGS__); \

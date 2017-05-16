@@ -128,32 +128,40 @@ void
 getDomainConstraints(PGconn *c, PQLDomain *d)
 {
 	char		*query = NULL;
-	int			nquery = PGQQRYLEN;
+	int			nquery = 0;
 	PGresult	*res;
 	int			i;
-	int			r;
 
-	do
+	if (PQserverVersion(c) >= 90100)
 	{
-		query = (char *) malloc(nquery * sizeof(char));
+		/* determine how many characters will be written by snprintf */
+		nquery = snprintf(query, nquery,
+					 "SELECT conname, pg_get_constraintdef(oid) AS condef, convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
+					 d->obj.oid);
 
-		if (PQserverVersion(c) >= 90100)
-			r = snprintf(query, nquery,
-						 "SELECT conname, pg_get_constraintdef(oid) AS condef, convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
-						 d->obj.oid);
-		else
-			r = snprintf(query, nquery,
-						 "SELECT conname, pg_get_constraintdef(oid) AS condef, true AS convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
-						 d->obj.oid);
+		nquery++;
+		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
+		snprintf(query, nquery,
+					 "SELECT conname, pg_get_constraintdef(oid) AS condef, convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
+					 d->obj.oid);
 
-		if (r < nquery)
-			break;
-
-		logNoise("query size: required (%u) ; initial (%u)", r, nquery);
-		nquery = r + 1;	/* make enough room for query */
-		free(query);
+		logNoise("domain: query size: %d ; query: %s", nquery, query);
 	}
-	while (true);
+	else
+	{
+		/* determine how many characters will be written by snprintf */
+		nquery = snprintf(query, nquery,
+					 "SELECT conname, pg_get_constraintdef(oid) AS condef, true AS convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
+					 d->obj.oid);
+
+		nquery++;
+		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
+		snprintf(query, nquery,
+					 "SELECT conname, pg_get_constraintdef(oid) AS condef, true AS convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
+					 d->obj.oid);
+
+		logNoise("domain: query size: %d ; query: %s", nquery, query);
+	}
 
 	res = PQexec(c, query);
 

@@ -177,37 +177,41 @@ static void
 getCompositeTypeAttributes(PGconn *c, PQLCompositeType *t)
 {
 	char		*query = NULL;
-	int			nquery = PGQQRYLEN;
+	int			nquery = 0;
 	PGresult	*res;
 	int			i;
-	int			r;
 
-	do
+	/* typcollation is new in 9.1 */
+	if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
-		query = (char *) malloc(nquery * sizeof(char));
+		/* determine how many characters will be written by snprintf */
+		nquery = snprintf(query, nquery,
+					 "SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, p.nspname AS collschemaname, CASE WHEN a.attcollation <> u.typcollation THEN l.collname ELSE NULL END AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) LEFT JOIN pg_type u ON (u.oid = a.atttypid) LEFT JOIN (pg_collation l LEFT JOIN pg_namespace p ON (l.collnamespace = p.oid)) ON (a.attcollation = l.oid) WHERE t.oid = %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY a.attnum",
+					 t->obj.oid);
 
-		/* typcollation is new in 9.1 */
-		if (PQserverVersion(c) >= 90100)	/* extension support */
-		{
-			r = snprintf(query, nquery,
-						 "SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, p.nspname AS collschemaname, CASE WHEN a.attcollation <> u.typcollation THEN l.collname ELSE NULL END AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) LEFT JOIN pg_type u ON (u.oid = a.atttypid) LEFT JOIN (pg_collation l LEFT JOIN pg_namespace p ON (l.collnamespace = p.oid)) ON (a.attcollation = l.oid) WHERE t.oid = %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY a.attnum",
-						 t->obj.oid);
-		}
-		else
-		{
-			r = snprintf(query, nquery,
-						 "SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, NULL AS collschemaname, NULL AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) WHERE t.oid = %u ORDER BY a.attnum",
-						 t->obj.oid);
-		}
+		nquery++;
+		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
+		snprintf(query, nquery,
+					 "SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, p.nspname AS collschemaname, CASE WHEN a.attcollation <> u.typcollation THEN l.collname ELSE NULL END AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) LEFT JOIN pg_type u ON (u.oid = a.atttypid) LEFT JOIN (pg_collation l LEFT JOIN pg_namespace p ON (l.collnamespace = p.oid)) ON (a.attcollation = l.oid) WHERE t.oid = %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY a.attnum",
+					 t->obj.oid);
 
-		if (r < nquery)
-			break;
-
-		logNoise("query size: required (%u) ; initial (%u)", r, nquery);
-		nquery = r + 1;	/* make enough room for query */
-		free(query);
+		logNoise("composite type: query size: %d ; query: %s", nquery, query);
 	}
-	while (true);
+	else
+	{
+		/* determine how many characters will be written by snprintf */
+		nquery = snprintf(query, nquery,
+					 "SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, NULL AS collschemaname, NULL AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) WHERE t.oid = %u ORDER BY a.attnum",
+					 t->obj.oid);
+
+		nquery++;
+		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
+		snprintf(query, nquery,
+					 "SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, NULL AS collschemaname, NULL AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) WHERE t.oid = %u ORDER BY a.attnum",
+					 t->obj.oid);
+
+		logNoise("composite type: query size: %d ; query: %s", nquery, query);
+	}
 
 	res = PQexec(c, query);
 
@@ -384,36 +388,39 @@ static void
 getEnumTypeLabels(PGconn *c, PQLEnumType *t)
 {
 	char		*query = NULL;
-	int			nquery = PGQQRYLEN;
+	int			nquery = 0;
 	PGresult	*res;
 	int			i;
-	int			r;
 
-	do
+	/* enumsortorder is new in 9.1 */
+	if (PQserverVersion(c) >= 90100)
 	{
-		query = (char *) malloc(nquery * sizeof(char));
+		/* determine how many characters will be written by snprintf */
+		nquery = snprintf(query, nquery,
+					 "SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY enumsortorder",
+					 t->obj.oid);
 
-		/* enumsortorder is new in 9.1 */
-		if (PQserverVersion(c) >= 90100)
-		{
-			r = snprintf(query, nquery,
-						 "SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY enumsortorder",
-						 t->obj.oid);
-		}
-		else
-		{
-			r = snprintf(query, nquery,
-						 "SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY oid", t->obj.oid);
-		}
+		nquery++;
+		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
+		snprintf(query, nquery,
+					 "SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY enumsortorder",
+					 t->obj.oid);
 
-		if (r < nquery)
-			break;
-
-		logNoise("query size: required (%u) ; initial (%u)", r, nquery);
-		nquery = r + 1;	/* make enough room for query */
-		free(query);
+		logNoise("enum type: query size: %d ; query: %s", nquery, query);
 	}
-	while (true);
+	else
+	{
+		/* determine how many characters will be written by snprintf */
+		nquery = snprintf(query, nquery,
+					 "SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY oid", t->obj.oid);
+
+		nquery++;
+		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
+		snprintf(query, nquery,
+					 "SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY oid", t->obj.oid);
+
+		logNoise("enum type: query size: %d ; query: %s", nquery, query);
+	}
 
 	res = PQexec(c, query);
 

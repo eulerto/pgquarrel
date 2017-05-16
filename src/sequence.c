@@ -112,26 +112,21 @@ getSequenceAttributes(PGconn *c, PQLSequence *s)
 	char		*schema = formatObjectIdentifier(s->obj.schemaname);
 	char		*seqname = formatObjectIdentifier(s->obj.objectname);
 	char		*query = NULL;
-	int			nquery = PGQQRYLEN;
+	int			nquery = 0;
 	PGresult	*res;
-	int			r;
 
-	do
-	{
-		query = (char *) malloc(nquery * sizeof(char));
+	/* determine how many characters will be written by snprintf */
+	nquery = snprintf(query, nquery,
+				 "SELECT increment_by, start_value, max_value, min_value, cache_value, is_cycled FROM %s.%s",
+				 schema, seqname);
 
-		r = snprintf(query, nquery,
-					 "SELECT increment_by, start_value, max_value, min_value, cache_value, is_cycled FROM %s.%s",
-					 schema, seqname);
+	nquery++;
+	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
+	snprintf(query, nquery,
+				 "SELECT increment_by, start_value, max_value, min_value, cache_value, is_cycled FROM %s.%s",
+				 schema, seqname);
 
-		if (r < nquery)
-			break;
-
-		logNoise("query size: required (%u) ; initial (%u)", r, nquery);
-		nquery = r + 1;	/* make enough room for query */
-		free(query);
-	}
-	while (true);
+	logNoise("sequence: query size: %d ; query: %s", nquery, query);
 
 	res = PQexec(c, query);
 

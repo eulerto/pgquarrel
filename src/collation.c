@@ -28,11 +28,10 @@ PQLCollation *
 getCollations(PGconn *c, int *n)
 {
 	char			*query = NULL;
-	int				nquery = PGQQRYLEN;
+	int				nquery = 0;
 	PQLCollation	*d;
 	PGresult		*res;
 	int				i;
-	int				r;
 
 	logNoise("collation: server version: %d", PQserverVersion(c));
 
@@ -43,22 +42,18 @@ getCollations(PGconn *c, int *n)
 		return NULL;
 	}
 
-	do
-	{
-		query = (char *) malloc(nquery * sizeof(char));
+	/* determine how many characters will be written by snprintf */
+	nquery = snprintf(query, nquery,
+				 "SELECT c.oid, n.nspname, collname, pg_encoding_to_char(collencoding) AS collencoding, collcollate, collctype, pg_get_userbyid(collowner) AS collowner, obj_description(c.oid, 'pg_collation') AS description FROM pg_collation c INNER JOIN pg_namespace n ON (c.collnamespace = n.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, collname",
+				 PGQ_FIRST_USER_OID);
 
-		r = snprintf(query, nquery,
-					 "SELECT c.oid, n.nspname, collname, pg_encoding_to_char(collencoding) AS collencoding, collcollate, collctype, pg_get_userbyid(collowner) AS collowner, obj_description(c.oid, 'pg_collation') AS description FROM pg_collation c INNER JOIN pg_namespace n ON (c.collnamespace = n.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, collname",
-					 PGQ_FIRST_USER_OID);
+	nquery++;
+	query = (char *) malloc(nquery * sizeof(char));
+	snprintf(query, nquery,
+				 "SELECT c.oid, n.nspname, collname, pg_encoding_to_char(collencoding) AS collencoding, collcollate, collctype, pg_get_userbyid(collowner) AS collowner, obj_description(c.oid, 'pg_collation') AS description FROM pg_collation c INNER JOIN pg_namespace n ON (c.collnamespace = n.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, collname",
+				 PGQ_FIRST_USER_OID);
 
-		if (r < nquery)
-			break;
-
-		logNoise("query size: required (%u) ; initial (%u)", r, nquery);
-		nquery = r + 1;	/* make enough room for query */
-		free(query);
-	}
-	while (true);
+	logNoise("collation: query size: %d ; query: %s", nquery, query);
 
 	res = PQexec(c, query);
 
