@@ -18,6 +18,7 @@
 
 #if defined(_WINDOWS)
 #define	strcasecmp	_stricmp
+#define	snprintf	_snprintf
 #endif
 
 /*
