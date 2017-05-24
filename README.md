@@ -17,7 +17,7 @@ It works with different operating systems. It was tested on Linux and FreeBSD. I
 Installation
 ============
 
-**pgquarrel** is distributed as a source package and can be downloaded at [GitHub](http://github.com/euler/pgquarrel). The installation steps depend on your operating system.
+**pgquarrel** is distributed as a source package and can be downloaded at [GitHub](http://github.com/eulerto/pgquarrel). The installation steps depend on your operating system.
 
 You can also keep up with the latest fixes and features cloning the Git repository.
 
