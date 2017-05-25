@@ -71,11 +71,19 @@ if(PostgreSQL_FOUND)
 	if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
 		include_directories(/usr/local/include)
 	endif()
+	# some Windows include paths
+	if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+		include_directories(${PostgreSQL_INCLUDE_DIR}/server/port/win32 ${PostgreSQL_INCLUDE_DIR}/server/port/win32_msvc)
+	endif()
 else()
 	message(FATAL_ERROR "could not find PostgreSQL")
 endif(PostgreSQL_FOUND)
 
 set(LIBS ${LIBS} ${PostgreSQL_LIBRARY})
+# CMake does not include libpgport by default for Windows
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+	set(LIBS ${LIBS} ${PostgreSQL_LIBRARY_DIRS}/libpgport.lib)
+endif()
 
 include_directories(mini)
 
@@ -84,6 +92,11 @@ set(LIBS ${LIBS} mini)
 target_link_libraries(pgquarrel ${LIBS})
 
 install(TARGETS pgquarrel RUNTIME DESTINATION bin)
+# copy DLLs into bin directory for Windows
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+	install(FILES ${PostgreSQL_LIBRARY_DIRS}/libpq.dll DESTINATION bin)
+	install(FILES ${PROJECT_BINARY_DIR}/mini/$<CONFIGURATION>/mini.dll DESTINATION bin)
+endif()
 
 find_program(astyle_EXECUTABLE astyle DOC "source code indenter, formatter, and beautifier")
 
