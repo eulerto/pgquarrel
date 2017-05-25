@@ -12,7 +12,7 @@ Given two database connections, it output a file that represent the difference b
 It could work with different PostgreSQL versions. The generated file could not work as expected if the *to* PostgreSQL version is greater than *from* PostgreSQL version. That's because the tool could generate commands that does not exist in a prior PostgreSQL version.
 
 
-It works with different operating systems. It was tested on Linux and FreeBSD. I didn't try Windows yet.
+It works with different operating systems. It was tested on Linux, FreeBSD, and Windows.
 
 Installation
 ============
@@ -40,7 +40,7 @@ $ make
 Windows
 -------
 
-Sorry, never tried.
+You should have CMake 2.8.11+ installed and MS Visual Studio (tested with 2017). Open CMake Gui. If PostgreSQL is not in your path add an entry CMAKE_PREFIX_PATH (e.g. C:/Program Files/PostgreSQL/9.6). Change CMAKE_INSTALL_PREFIX if you want to install in another directory. Click on 'Configure' and then 'Generate'. Open MS Visual Studio project (path is specified in CMake Gui), right-click on ALL_BUILD and 'Compile'. After that right-click on INSTALL and 'Deploy'.
 
 Features
 ========
