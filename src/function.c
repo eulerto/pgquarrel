@@ -36,22 +36,22 @@ getFunctions(PGconn *c, int *n)
 	if (PQserverVersion(c) >= 90600)	/* parallel is new in 9.6 */
 	{
 		res = PQexec(c,
-					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, proleakproof, array_to_string(proconfig, ',') AS proconfig, proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_arguments(p.oid)");
+					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_identity_arguments(p.oid) as funciargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, proleakproof, array_to_string(proconfig, ',') AS proconfig, proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_identity_arguments(p.oid)");
 	}
 	else if (PQserverVersion(c) >= 90200)	/* proleakproof is new in 9.2 */
 	{
 		res = PQexec(c,
-					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, proleakproof, array_to_string(proconfig, ',') AS proconfig, 'n' AS proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_arguments(p.oid)");
+					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_identity_arguments(p.oid) as funciargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, proleakproof, array_to_string(proconfig, ',') AS proconfig, 'n' AS proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_identity_arguments(p.oid)");
 	}
 	else if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
 		res = PQexec(c,
-					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, false AS proleakproof, array_to_string(proconfig, ',') AS proconfig, 'n' AS proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_arguments(p.oid)");
+					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_identity_arguments(p.oid) as funciargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, false AS proleakproof, array_to_string(proconfig, ',') AS proconfig, 'n' AS proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_identity_arguments(p.oid)");
 	}
 	else
 	{
 		res = PQexec(c,
-					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, false AS proleakproof, array_to_string(proconfig, ',') AS proconfig, 'n' AS proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY nspname, proname, pg_get_function_arguments(p.oid)");
+					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_identity_arguments(p.oid) as funciargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, false AS proleakproof, array_to_string(proconfig, ',') AS proconfig, 'n' AS proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY nspname, proname, pg_get_function_identity_arguments(p.oid)");
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -77,6 +77,7 @@ getFunctions(PGconn *c, int *n)
 		f[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		f[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "proname")));
 		f[i].arguments = strdup(PQgetvalue(res, i, PQfnumber(res, "funcargs")));
+		f[i].iarguments = strdup(PQgetvalue(res, i, PQfnumber(res, "funciargs")));	/* don't print defaults */
 		f[i].body = strdup(PQgetvalue(res, i, PQfnumber(res, "prosrc")));
 		f[i].returntype = strdup(PQgetvalue(res, i, PQfnumber(res, "funcresult")));
 		f[i].language = strdup(PQgetvalue(res, i, PQfnumber(res, "lanname")));
@@ -133,7 +134,7 @@ compareFunctions(PQLFunction *a, PQLFunction *b)
 
 		/* compare arguments iif schema-qualified names are equal */
 		if (c == 0)
-			c = strcmp(a->arguments, b->arguments);
+			c = strcmp(a->iarguments, b->iarguments);
 	}
 
 	return c;
@@ -196,6 +197,7 @@ freeFunctions(PQLFunction *f, int n)
 			free(f[i].obj.schemaname);
 			free(f[i].obj.objectname);
 			free(f[i].arguments);
+			free(f[i].iarguments);
 			free(f[i].body);
 			free(f[i].returntype);
 			free(f[i].language);
@@ -234,7 +236,7 @@ dumpDropFunction(FILE *output, PQLFunction *f)
 	fprintf(output, "DROP FUNCTION %s.%s(%s);",
 			schema,
 			funcname,
-			f->arguments);
+			f->iarguments);
 
 	free(schema);
 	free(funcname);
@@ -329,7 +331,7 @@ dumpCreateFunction(FILE *output, PQLFunction *f, bool orreplace)
 		fprintf(output, "COMMENT ON FUNCTION %s.%s(%s) IS '%s';",
 				schema,
 				funcname,
-				f->arguments,
+				f->iarguments,
 				f->comment);
 	}
 
@@ -345,7 +347,7 @@ dumpCreateFunction(FILE *output, PQLFunction *f, bool orreplace)
 					f->seclabels[i].provider,
 					schema,
 					funcname,
-					f->arguments,
+					f->iarguments,
 					f->seclabels[i].label);
 		}
 	}
@@ -357,7 +359,7 @@ dumpCreateFunction(FILE *output, PQLFunction *f, bool orreplace)
 		fprintf(output, "ALTER FUNCTION %s.%s(%s) OWNER TO %s;",
 				schema,
 				funcname,
-				f->arguments,
+				f->iarguments,
 				f->owner);
 	}
 
@@ -365,7 +367,7 @@ dumpCreateFunction(FILE *output, PQLFunction *f, bool orreplace)
 	/* XXX second f->obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
 		dumpGrantAndRevoke(output, PGQ_FUNCTION, &f->obj, &f->obj, NULL, f->acl,
-						   f->arguments, NULL);
+						   f->iarguments, NULL);
 
 	free(schema);
 	free(funcname);
@@ -387,7 +389,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b->arguments);
+					schema2, funcname2, b->iarguments);
 		}
 		printalter = false;
 
@@ -407,7 +409,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b->arguments);
+					schema2, funcname2, b->iarguments);
 		}
 		printalter = false;
 
@@ -423,7 +425,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b->arguments);
+					schema2, funcname2, b->iarguments);
 		}
 		printalter = false;
 
@@ -440,7 +442,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b->arguments);
+					schema2, funcname2, b->iarguments);
 		}
 		printalter = false;
 
@@ -457,7 +459,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b->arguments);
+					schema2, funcname2, b->iarguments);
 		}
 		printalter = false;
 
@@ -477,7 +479,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b->arguments);
+					schema2, funcname2, b->iarguments);
 		}
 		printalter = false;
 
@@ -490,7 +492,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b->arguments);
+					schema2, funcname2, b->iarguments);
 		}
 		printalter = false;
 
@@ -504,7 +506,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b->arguments);
+					schema2, funcname2, b->iarguments);
 		}
 		printalter = false;
 
@@ -518,7 +520,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b->arguments);
+					schema2, funcname2, b->iarguments);
 		}
 		printalter = false;
 
@@ -557,7 +559,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b->arguments);
+					schema2, funcname2, b->iarguments);
 		}
 		printalter = false;
 
@@ -650,13 +652,13 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON FUNCTION %s.%s(%s) IS '%s';",
-					schema2, funcname2, b->arguments, b->comment);
+					schema2, funcname2, b->iarguments, b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON FUNCTION %s.%s(%s) IS NULL;",
-					schema2, funcname2, b->arguments);
+					schema2, funcname2, b->iarguments);
 		}
 	}
 
@@ -672,7 +674,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
 						b->seclabels[i].provider,
-						schema2, funcname2, b->arguments, b->seclabels[i].label);
+						schema2, funcname2, b->iarguments, b->seclabels[i].label);
 			}
 		}
 		else if (a->seclabels != NULL && b->seclabels == NULL)
@@ -684,7 +686,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 				fprintf(output, "\n\n");
 				fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS NULL;",
 						a->seclabels[i].provider,
-						schema1, funcname1, a->arguments);
+						schema1, funcname1, a->iarguments);
 			}
 		}
 		else if (a->seclabels != NULL && b->seclabels != NULL)
@@ -699,7 +701,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
 							b->seclabels[j].provider,
-							schema2, funcname2, b->arguments, b->seclabels[j].label);
+							schema2, funcname2, b->iarguments, b->seclabels[j].label);
 					j++;
 				}
 				else if (j == b->nseclabels)
@@ -707,7 +709,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS NULL;",
 							a->seclabels[i].provider,
-							schema1, funcname1, a->arguments);
+							schema1, funcname1, a->iarguments);
 					i++;
 				}
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) == 0)
@@ -717,7 +719,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 						fprintf(output, "\n\n");
 						fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
 								b->seclabels[j].provider,
-								schema2, funcname2, b->arguments, b->seclabels[j].label);
+								schema2, funcname2, b->iarguments, b->seclabels[j].label);
 					}
 					i++;
 					j++;
@@ -727,7 +729,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS NULL;",
 							a->seclabels[i].provider,
-							schema1, funcname1, a->arguments);
+							schema1, funcname1, a->iarguments);
 					i++;
 				}
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
@@ -735,7 +737,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 					fprintf(output, "\n\n");
 					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
 							b->seclabels[j].provider,
-							schema2, funcname2, b->arguments, b->seclabels[j].label);
+							schema2, funcname2, b->iarguments, b->seclabels[j].label);
 					j++;
 				}
 			}
@@ -749,7 +751,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER FUNCTION %s.%s(%s) OWNER TO %s;",
-					schema2, funcname2, b->arguments, b->owner);
+					schema2, funcname2, b->iarguments, b->owner);
 		}
 	}
 
@@ -758,7 +760,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 	{
 		if (a->acl != NULL || b->acl != NULL)
 			dumpGrantAndRevoke(output, PGQ_FUNCTION, &a->obj, &b->obj, a->acl, b->acl,
-							   a->arguments, NULL);
+							   a->iarguments, NULL);
 	}
 
 	free(schema1);

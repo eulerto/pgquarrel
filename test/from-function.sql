@@ -1,4 +1,4 @@
-CREATE FUNCTION from_function_1(args1 integer, args2 integer) RETURNS integer AS
+CREATE FUNCTION from_function_1(args1 integer, args2 integer DEFAULT 10) RETURNS integer AS
 $$
 BEGIN
 	RETURN args1 / args2;

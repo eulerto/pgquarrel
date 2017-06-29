@@ -17,6 +17,7 @@ typedef struct PQLFunction
 	PQLObject		obj;
 
 	char			*arguments;
+	char			*iarguments;	/* without DEFAULTs */
 	char			*returntype;
 	char			*language;
 	bool			iswindow;
