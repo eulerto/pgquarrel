@@ -148,7 +148,6 @@ Features
 		<td>partial</td>
 		<td></td>
 	</tr>
-
 	<tr>
 		<td>GRANT</td>
 		<td>complete</td>
