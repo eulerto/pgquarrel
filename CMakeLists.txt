@@ -79,7 +79,9 @@ else()
 	message(FATAL_ERROR "could not find PostgreSQL")
 endif(PostgreSQL_FOUND)
 
-set(LIBS ${LIBS} ${PostgreSQL_LIBRARY})
+find_package(OpenSSL REQUIRED)
+
+set(LIBS ${LIBS} ${PostgreSQL_LIBRARY} ${OPENSSL_LIBRARIES})
 # CMake does not include libpgport by default for Windows
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	set(LIBS ${LIBS} ${PostgreSQL_LIBRARY_DIRS}/libpgport.lib)

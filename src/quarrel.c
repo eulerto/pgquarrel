@@ -3506,7 +3506,7 @@ int main(int argc, char *argv[])
 
 	quarrelForeignDataWrappers();
 	quarrelForeignServers();
-	quarrelUserMappings();
+	// quarrelUserMappings();
 
 	quarrelLanguages();
 	quarrelSchemas();
