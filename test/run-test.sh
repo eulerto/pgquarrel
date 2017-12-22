@@ -31,16 +31,18 @@ CLUSTERPATH=/tmp
 
 function getPgDir
 {
-	if [ "$vtmp" = "96" ]; then
-		echo "pg962"
+	if [ "$vtmp" = "10" ]; then
+		echo "pg101"
+	elif [ "$vtmp" = "96" ]; then
+		echo "pg966"
 	elif [ "$vtmp" = "95" ]; then
-		echo "pg956"
+		echo "pg9510"
 	elif [ "$vtmp" = "94" ]; then
-		echo "pg9411"
+		echo "pg9415"
 	elif [ "$vtmp" = "93" ]; then
-		echo "pg9316"
+		echo "pg9320"
 	elif [ "$vtmp" = "92" ]; then
-		echo "pg9220"
+		echo "pg9224"
 	elif [ "$vtmp" = "91" ]; then
 		echo "pg9124"
 	elif [ "$vtmp" = "90" ]; then
@@ -48,14 +50,14 @@ function getPgDir
 	fi
 }
 
-vtmp="96"
+vtmp="10"
 if [ ! -z $1 ]; then
 	vtmp=$1
 fi
 PGV1=$vtmp
 PGDIR1=$(getPgDir)
 
-vtmp="96"
+vtmp="10"
 if [ ! -z $2 ]; then
 	vtmp=$2
 fi
