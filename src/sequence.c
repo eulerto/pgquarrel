@@ -109,30 +109,48 @@ getSequences(PGconn *c, int *n)
 void
 getSequenceAttributes(PGconn *c, PQLSequence *s)
 {
-	char		*schema = formatObjectIdentifier(s->obj.schemaname);
-	char		*seqname = formatObjectIdentifier(s->obj.objectname);
 	char		*query = NULL;
 	int			nquery = 0;
 	PGresult	*res;
 
-	/* determine how many characters will be written by snprintf */
-	nquery = snprintf(query, nquery,
-				 "SELECT increment_by, start_value, max_value, min_value, cache_value, is_cycled FROM %s.%s",
-				 schema, seqname);
+	/* pg_sequence catalog is new in 10 */
+	if (PQserverVersion(c) >= 100000)
+	{
+		/* determine how many characters will be written by snprintf */
+		nquery = snprintf(query, nquery,
+					 "SELECT seqincrement, seqstart, seqmax, seqmin, seqcache, seqcycle FROM pg_sequence WHERE seqrelid = %u",
+					 s->obj.oid);
 
-	nquery++;
-	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-	snprintf(query, nquery,
-				 "SELECT increment_by, start_value, max_value, min_value, cache_value, is_cycled FROM %s.%s",
-				 schema, seqname);
+		nquery++;
+		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
+		snprintf(query, nquery,
+					 "SELECT seqincrement, seqstart, seqmax, seqmin, seqcache, seqcycle FROM pg_sequence WHERE seqrelid = %u",
+					 s->obj.oid);
+	}
+	else
+	{
+		char *schema = formatObjectIdentifier(s->obj.schemaname);
+		char *seqname = formatObjectIdentifier(s->obj.objectname);
+
+		/* determine how many characters will be written by snprintf */
+		nquery = snprintf(query, nquery,
+					 "SELECT increment_by AS seqincrement, start_value AS seqstart, max_value AS seqmax, min_value AS seqmin, cache_value AS seqcache, is_cycled AS seqcycle FROM %s.%s",
+					 schema, seqname);
+
+		nquery++;
+		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
+		snprintf(query, nquery,
+					 "SELECT increment_by AS seqincrement, start_value AS seqstart, max_value AS seqmax, min_value AS seqmin, cache_value AS seqcache, is_cycled AS seqcycle FROM %s.%s",
+					 schema, seqname);
+		free(schema);
+		free(seqname);
+	}
 
 	logNoise("sequence: query size: %d ; query: %s", nquery, query);
 
 	res = PQexec(c, query);
 
 	free(query);
-	free(schema);
-	free(seqname);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -148,12 +166,12 @@ getSequenceAttributes(PGconn *c, PQLSequence *s)
 				 PQntuples(res));
 	else
 	{
-		s->incvalue = strdup(PQgetvalue(res, 0, PQfnumber(res, "increment_by")));
-		s->startvalue = strdup(PQgetvalue(res, 0, PQfnumber(res, "start_value")));
-		s->maxvalue = strdup(PQgetvalue(res, 0, PQfnumber(res, "max_value")));
-		s->minvalue = strdup(PQgetvalue(res, 0, PQfnumber(res, "min_value")));
-		s->cache = strdup(PQgetvalue(res, 0, PQfnumber(res, "cache_value")));
-		s->cycle = (PQgetvalue(res, 0, PQfnumber(res, "is_cycled"))[0] == 't');
+		s->incvalue = strdup(PQgetvalue(res, 0, PQfnumber(res, "seqincrement")));
+		s->startvalue = strdup(PQgetvalue(res, 0, PQfnumber(res, "seqstart")));
+		s->maxvalue = strdup(PQgetvalue(res, 0, PQfnumber(res, "seqmax")));
+		s->minvalue = strdup(PQgetvalue(res, 0, PQfnumber(res, "seqmin")));
+		s->cache = strdup(PQgetvalue(res, 0, PQfnumber(res, "seqcache")));
+		s->cycle = (PQgetvalue(res, 0, PQfnumber(res, "seqcycle"))[0] == 't');
 	}
 
 	PQclear(res);
