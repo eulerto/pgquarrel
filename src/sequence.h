@@ -29,6 +29,7 @@ typedef struct PQLSequence
 	char			*comment;
 	char			*owner;
 	char			*acl;
+	char			*typname;
 
 	/* security labels */
 	PQLSecLabel		*seclabels;

@@ -89,6 +89,7 @@ getSequences(PGconn *c, int *n)
 		s[i].minvalue = NULL;
 		s[i].maxvalue = NULL;
 		s[i].cache = NULL;
+		s[i].typname = NULL;
 
 		/*
 		 * Security labels are not assigned here (see
@@ -118,13 +119,13 @@ getSequenceAttributes(PGconn *c, PQLSequence *s)
 	{
 		/* determine how many characters will be written by snprintf */
 		nquery = snprintf(query, nquery,
-					 "SELECT seqincrement, seqstart, seqmax, seqmin, seqcache, seqcycle FROM pg_sequence WHERE seqrelid = %u",
+					 "SELECT seqincrement, seqstart, seqmax, seqmin, seqcache, seqcycle, format_type(seqtypid, NULL) AS typname FROM pg_sequence WHERE seqrelid = %u",
 					 s->obj.oid);
 
 		nquery++;
 		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
 		snprintf(query, nquery,
-					 "SELECT seqincrement, seqstart, seqmax, seqmin, seqcache, seqcycle FROM pg_sequence WHERE seqrelid = %u",
+					 "SELECT seqincrement, seqstart, seqmax, seqmin, seqcache, seqcycle, format_type(seqtypid, NULL) AS typname FROM pg_sequence WHERE seqrelid = %u",
 					 s->obj.oid);
 	}
 	else
@@ -172,6 +173,8 @@ getSequenceAttributes(PGconn *c, PQLSequence *s)
 		s->minvalue = strdup(PQgetvalue(res, 0, PQfnumber(res, "seqmin")));
 		s->cache = strdup(PQgetvalue(res, 0, PQfnumber(res, "seqcache")));
 		s->cycle = (PQgetvalue(res, 0, PQfnumber(res, "seqcycle"))[0] == 't');
+		if (PQserverVersion(c) >= 100000)
+			s->typname = strdup(PQgetvalue(res, 0, PQfnumber(res, "typname")));
 	}
 
 	PQclear(res);
@@ -249,6 +252,8 @@ freeSequences(PQLSequence *s, int n)
 				free(s[i].minvalue);
 			if (s[i].cache)
 				free(s[i].cache);
+			if (s[i].typname)
+				free(s[i].typname);
 
 			/* security labels */
 			for (j = 0; j < s[i].nseclabels; j++)
@@ -290,6 +295,8 @@ dumpCreateSequence(FILE *output, PQLSequence *s)
 	/*
 	 * dump only if it is not default
 	 */
+	if (s->typname && strcmp(s->typname, "bigint") != 0)
+		fprintf(output, " AS %s", s->typname);
 	if (strcmp(s->incvalue, "1") != 0)
 		fprintf(output, " INCREMENT BY %s", s->incvalue);
 
@@ -362,6 +369,18 @@ dumpAlterSequence(FILE *output, PQLSequence *a, PQLSequence *b)
 	char	*seqname2 = formatObjectIdentifier(b->obj.objectname);
 
 	bool	printalter = true;
+
+	if (a->typname && b->typname && strcmp(a->typname, b->typname) != 0)
+	{
+		if (printalter)
+		{
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER SEQUENCE %s.%s", schema2, seqname2);
+		}
+		printalter = false;
+
+		fprintf(output, " AS %s", b->typname);
+	}
 
 	if (strcmp(a->incvalue, b->incvalue) != 0)
 	{
