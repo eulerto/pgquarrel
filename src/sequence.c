@@ -289,6 +289,10 @@ dumpCreateSequence(FILE *output, PQLSequence *s)
 	char	*schema = formatObjectIdentifier(s->obj.schemaname);
 	char	*seqname = formatObjectIdentifier(s->obj.objectname);
 
+	bool	is_ascending;
+	char	*minv;
+	char	*maxv;
+
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE SEQUENCE %s.%s", schema, seqname);
 
@@ -300,15 +304,65 @@ dumpCreateSequence(FILE *output, PQLSequence *s)
 	if (strcmp(s->incvalue, "1") != 0)
 		fprintf(output, " INCREMENT BY %s", s->incvalue);
 
-	/* variables used above can't be null (see getSequenceAttributes) */
-	if ((atol(s->incvalue) > 0 && strcmp(s->minvalue, "1") != 0) ||
-			(atol(s->incvalue) < 0 && strcmp(s->minvalue, MINIMUM_SEQUENCE_VALUE) != 0))
+	/*
+	 * let's omit default values. We have to check each data type to ensure
+	 * that the value is a default. Before version 10, default min/max values
+	 * are 64-bit integers.
+	 */
+	minv = s->minvalue;
+	maxv = s->maxvalue;
+
+	is_ascending = s->incvalue[0] != '-';
+
+	if (is_ascending && atoi(s->minvalue) == 1)
+		minv = NULL;
+	if (!is_ascending && atoi(s->maxvalue) == -1)
+		maxv = NULL;
+
+	if (s->typname && strcmp(s->typname, "smallint") == 0)
+	{
+		if (!is_ascending && atoi(s->minvalue) == PG_INT16_MIN)
+			minv = NULL;
+		if (is_ascending && atoi(s->maxvalue) == PG_INT16_MAX)
+			maxv = NULL;
+	}
+	else if (s->typname && strcmp(s->typname, "integer") == 0)
+	{
+		if (!is_ascending && atoi(s->minvalue) == PG_INT32_MIN)
+			minv = NULL;
+		if (is_ascending && atoi(s->maxvalue) == PG_INT32_MAX)
+			maxv = NULL;
+	}
+	else
+	{
+		/*
+		 * bigint is the default data type (prior version 10, we don't
+		 * explicitly have a data type information but the default min/max
+		 * values are 64-bit integers i.e. bigint)
+		 */
+		char	bufmin[30];
+		char	bufmax[30];
+
+		snprintf(bufmin, sizeof(bufmin), INT64_FORMAT, PG_INT64_MIN);
+		snprintf(bufmax, sizeof(bufmax), INT64_FORMAT, PG_INT64_MAX);
+
+		if (!is_ascending && strcmp(s->minvalue, bufmin) == 0)
+			minv = NULL;
+		if (is_ascending && strcmp(s->maxvalue, bufmax) == 0)
+			maxv = NULL;
+	}
+
+	if (minv)
 		fprintf(output, " MINVALUE %s", s->minvalue);
+	else
+		fprintf(output, " NO MINVALUE");	/* it means use default value */
 
-	if ((atol(s->incvalue) > 0 && strcmp(s->maxvalue, MAXIMUM_SEQUENCE_VALUE) != 0) ||
-			(atol(s->incvalue) < 0 && strcmp(s->maxvalue, "-1") != 0))
+	if (maxv)
 		fprintf(output, " MAXVALUE %s", s->maxvalue);
+	else
+		fprintf(output, " NO MAXVALUE");	/* it means use default value */
 
+	/* variables used above can't be null (see getSequenceAttributes) */
 	if ((atol(s->incvalue) > 0 && strcmp(s->startvalue, s->minvalue) != 0) ||
 			(atol(s->incvalue) < 0 && strcmp(s->startvalue, s->maxvalue) != 0))
 		fprintf(output, " START WITH %s", s->startvalue);
