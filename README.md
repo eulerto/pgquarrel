@@ -219,12 +219,27 @@ Features
 		<td></td>
 	</tr>
 	<tr>
+		<td>PUBLICATION</td>
+		<td>not implemented</td>
+		<td></td>
+	</tr>
+	<tr>
+		<td>SUBSCRIPTION</td>
+		<td>not implemented</td>
+		<td></td>
+	</tr>
+	<tr>
 		<td>ALTER DEFAULT PRIVILEGES</td>
 		<td>uncertain</td>
 		<td></td>
 	</tr>
 	<tr>
 		<td>ALTER LARGE OBJECT</td>
+		<td>uncertain</td>
+		<td></td>
+	</tr>
+	<tr>
+		<td>STATISTICS</td>
 		<td>uncertain</td>
 		<td></td>
 	</tr>

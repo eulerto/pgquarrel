@@ -40,6 +40,8 @@
  *  UNSUPPORTED
  * ~~~~~~~~~~~~~
  * foreign table
+ * publication
+ * subscription
  *
  *  UNCERTAIN
  * ~~~~~~~~~~~~~
@@ -48,6 +50,7 @@
  * ALTER LARGE OBJECT
  * GRANT LARGE OBJECT
  * REVOKE LARGE OBJECT
+ * [ CREATE | ALTER | DROP ] STATISTICS
  *
  *
  * Copyright (c) 2015-2017, Euler Taveira
