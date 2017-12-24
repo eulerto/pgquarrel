@@ -31,8 +31,8 @@ UNIX based Operating Systems
 Before installing **pgquarrel**, you should have PostgreSQL 9.0+ installed (including the header files). If PostgreSQL is not in your search path add -DCMAKE_PREFIX_PATH=/path/to/pgsql to the cmake command.
 
 ```
-$ tar -zxf pgquarrel-0.2.0.tgz
-$ cd pgquarrel-0.2.0
+$ tar -zxf pgquarrel-0.3.0.tgz
+$ cd pgquarrel-0.3.0
 $ cmake .
 $ make
 ```
@@ -40,7 +40,7 @@ $ make
 Windows
 -------
 
-You should have CMake 2.8.11+ installed and MS Visual Studio (tested with 2017). Open CMake Gui. If PostgreSQL is not in your path add an entry CMAKE_PREFIX_PATH (e.g. C:/Program Files/PostgreSQL/9.6). Change CMAKE_INSTALL_PREFIX if you want to install in another directory. Click on 'Configure' and then 'Generate'. Open MS Visual Studio project (path is specified in CMake Gui), right-click on ALL_BUILD and 'Compile'. After that right-click on INSTALL and 'Deploy'.
+You should have CMake 2.8.11+ installed and MS Visual Studio (tested with 2017). Open CMake Gui. If PostgreSQL is not in your path add an entry CMAKE_PREFIX_PATH (e.g. C:/Program Files/PostgreSQL/10). Change CMAKE_INSTALL_PREFIX if you want to install in another directory. Click on 'Configure' and then 'Generate'. Open MS Visual Studio project (path is specified in CMake Gui), right-click on ALL_BUILD and 'Compile'. After that right-click on INSTALL and 'Deploy'.
 
 Features
 ========
@@ -255,9 +255,9 @@ Tests
 
 ```
 $ # adjust test/run-test.sh
-$ cd pgquarrel-0.2.0/test
-$ # test using 9.6 on both clusters
-$ ./run-test.sh 96 96 init
+$ cd pgquarrel-0.3.0/test
+$ # test using 10 on both clusters
+$ ./run-test.sh 10 10 init
 ```
 
 License
