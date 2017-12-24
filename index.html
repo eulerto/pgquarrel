@@ -59,8 +59,8 @@
 
 <p>Before installing <strong>pgquarrel</strong>, you should have PostgreSQL 9.0+ installed (including the header files). If PostgreSQL is not in your search path add -DCMAKE_PREFIX_PATH=/path/to/pgsql to the cmake command.</p>
 
-<pre><code>$ tar -zxf pgquarrel-0.2.0.tgz
-$ cd pgquarrel-0.2.0
+<pre><code>$ tar -zxf pgquarrel-0.3.0.tgz
+$ cd pgquarrel-0.3.0
 $ cmake .
 $ make
 </code></pre>
@@ -68,7 +68,7 @@ $ make
 <h2>
 <a id="windows" class="anchor" href="#windows" aria-hidden="true"><span class="octicon octicon-link"></span></a>Windows</h2>
 
-<p>You should have CMake 2.8.11+ installed and MS Visual Studio (tested with 2017). Open CMake Gui. If PostgreSQL is not in your path add an entry CMAKE_PREFIX_PATH (e.g. C:/Program Files/PostgreSQL/9.6). Change CMAKE_INSTALL_PREFIX if you want to install in another directory. Click on 'Configure' and then 'Generate'. Open MS Visual Studio project (path is specified in CMake Gui), right-click on ALL_BUILD and 'Compile'. After that right-click on INSTALL and 'Deploy'.</p>
+<p>You should have CMake 2.8.11+ installed and MS Visual Studio (tested with 2017). Open CMake Gui. If PostgreSQL is not in your path add an entry CMAKE_PREFIX_PATH (e.g. C:/Program Files/PostgreSQL/10). Change CMAKE_INSTALL_PREFIX if you want to install in another directory. Click on 'Configure' and then 'Generate'. Open MS Visual Studio project (path is specified in CMake Gui), right-click on ALL_BUILD and 'Compile'. After that right-click on INSTALL and 'Deploy'.</p>
 
 <h1>
 <a id="features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h1>
@@ -285,8 +285,8 @@ $ make
 <a id="tests" class="anchor" href="#tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tests</h1>
 
 <pre><code>$ # adjust test/run-test.sh
-$ cd pgquarrel-0.2.0/test
-$ ./run-test.sh 96 96 init
+$ cd pgquarrel-0.3.0/test
+$ ./run-test.sh 10 10 init
 </code></pre>
 
 <h1>
