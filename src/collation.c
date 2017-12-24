@@ -41,19 +41,36 @@ getCollations(PGconn *c, int *n)
 		logWarning("ignoring collations because server does not support it");
 		return NULL;
 	}
+	else if (PQserverVersion(c) >= 100000)
+	{
+		/* determine how many characters will be written by snprintf */
+		nquery = snprintf(query, nquery,
+					 "SELECT c.oid, n.nspname, collname, pg_encoding_to_char(collencoding) AS collencoding, collcollate, collctype, collprovider, pg_get_userbyid(collowner) AS collowner, obj_description(c.oid, 'pg_collation') AS description FROM pg_collation c INNER JOIN pg_namespace n ON (c.collnamespace = n.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, collname",
+					 PGQ_FIRST_USER_OID);
 
-	/* determine how many characters will be written by snprintf */
-	nquery = snprintf(query, nquery,
-				 "SELECT c.oid, n.nspname, collname, pg_encoding_to_char(collencoding) AS collencoding, collcollate, collctype, pg_get_userbyid(collowner) AS collowner, obj_description(c.oid, 'pg_collation') AS description FROM pg_collation c INNER JOIN pg_namespace n ON (c.collnamespace = n.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, collname",
-				 PGQ_FIRST_USER_OID);
+		nquery++;
+		query = (char *) malloc(nquery * sizeof(char));
+		snprintf(query, nquery,
+					 "SELECT c.oid, n.nspname, collname, pg_encoding_to_char(collencoding) AS collencoding, collcollate, collctype, collprovider, pg_get_userbyid(collowner) AS collowner, obj_description(c.oid, 'pg_collation') AS description FROM pg_collation c INNER JOIN pg_namespace n ON (c.collnamespace = n.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, collname",
+					 PGQ_FIRST_USER_OID);
 
-	nquery++;
-	query = (char *) malloc(nquery * sizeof(char));
-	snprintf(query, nquery,
-				 "SELECT c.oid, n.nspname, collname, pg_encoding_to_char(collencoding) AS collencoding, collcollate, collctype, pg_get_userbyid(collowner) AS collowner, obj_description(c.oid, 'pg_collation') AS description FROM pg_collation c INNER JOIN pg_namespace n ON (c.collnamespace = n.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, collname",
-				 PGQ_FIRST_USER_OID);
+		logNoise("collation: query size: %d ; query: %s", nquery, query);
+	}
+	else
+	{
+		/* determine how many characters will be written by snprintf */
+		nquery = snprintf(query, nquery,
+					 "SELECT c.oid, n.nspname, collname, pg_encoding_to_char(collencoding) AS collencoding, collcollate, collctype, NULL AS collprovider, pg_get_userbyid(collowner) AS collowner, obj_description(c.oid, 'pg_collation') AS description FROM pg_collation c INNER JOIN pg_namespace n ON (c.collnamespace = n.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, collname",
+					 PGQ_FIRST_USER_OID);
 
-	logNoise("collation: query size: %d ; query: %s", nquery, query);
+		nquery++;
+		query = (char *) malloc(nquery * sizeof(char));
+		snprintf(query, nquery,
+					 "SELECT c.oid, n.nspname, collname, pg_encoding_to_char(collencoding) AS collencoding, collcollate, collctype, NULL AS collprovider, pg_get_userbyid(collowner) AS collowner, obj_description(c.oid, 'pg_collation') AS description FROM pg_collation c INNER JOIN pg_namespace n ON (c.collnamespace = n.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, collname",
+					 PGQ_FIRST_USER_OID);
+
+		logNoise("collation: query size: %d ; query: %s", nquery, query);
+	}
 
 	res = PQexec(c, query);
 
@@ -85,6 +102,11 @@ getCollations(PGconn *c, int *n)
 		d[i].collate = strdup(PQgetvalue(res, i, PQfnumber(res, "collcollate")));
 		d[i].ctype = strdup(PQgetvalue(res, i, PQfnumber(res, "collctype")));
 
+		if (PQgetisnull(res, i, PQfnumber(res, "collprovider")))
+			d[i].provider = NULL;
+		else
+			d[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res, "collprovider")));
+
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			d[i].comment = NULL;
 		else
@@ -114,6 +136,8 @@ freeCollations(PQLCollation *c, int n)
 			free(c[i].encoding);
 			free(c[i].collate);
 			free(c[i].ctype);
+			if (c[i].provider)
+				free(c[i].provider);
 			if (c[i].comment)
 				free(c[i].comment);
 			free(c[i].owner);
@@ -135,11 +159,24 @@ dumpCreateCollation(FILE *output, PQLCollation *c)
 	 * collate or ctype.
 	 */
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE COLLATION %s.%s (LC_COLLATE = '%s', LC_CTYPE = '%s');",
+	fprintf(output, "CREATE COLLATION %s.%s (LC_COLLATE = '%s', LC_CTYPE = '%s'",
 			schema,
 			collname,
 			c->collate,
 			c->ctype);
+
+	if (c->provider)
+	{
+		if (c->provider[0] == 'c')
+			fprintf(output, ", PROVIDER = libc");
+		else if (c->provider[0] == 'i')
+			fprintf(output, ", PROVIDER = icu");
+		/* it is not accepted on input. remove? */
+		else if (c->provider[0] == 'd')
+			fprintf(output, ", PROVIDER = default");
+	}
+
+	fprintf(output, ");");
 
 	/* comment */
 	if (options.comment && c->comment != NULL)

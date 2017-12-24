@@ -19,6 +19,7 @@ typedef struct PQLCollation
 	char			*encoding;
 	char			*collate;
 	char			*ctype;
+	char			*provider;
 	char			*comment;
 	char			*owner;
 } PQLCollation;
