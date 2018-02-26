@@ -12,6 +12,21 @@
 #include "common.h"
 #include "privileges.h"
 
+/*
+ * Since commit 62e2a8dc2c7f6b1351a0385491933af969ed4265, postgres started to
+ * define some integer limits independently from the system definitions. We
+ * rely on some of those definitions then let's add it here to support old
+ * postgres versions.
+ */
+#if PG_VERSION_NUM < 90500
+#define PG_INT16_MIN	(-0x7FFF-1)
+#define PG_INT16_MAX	(0x7FFF)
+#define PG_INT32_MIN	(-0x7FFFFFFF-1)
+#define PG_INT32_MAX	(0x7FFFFFFF)
+#define PG_INT64_MIN	(-INT64CONST(0x7FFFFFFFFFFFFFFF) - 1)
+#define PG_INT64_MAX	INT64CONST(0x7FFFFFFFFFFFFFFF)
+#endif
+
 typedef struct PQLSequence
 {
 	PQLObject		obj;
