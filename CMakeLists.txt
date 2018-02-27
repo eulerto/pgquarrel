@@ -89,6 +89,11 @@ include_directories(mini)
 
 set(LIBS ${LIBS} mini)
 
+# postgres libraries are not installed in one of the standard system directories
+# or
+# postgres library directory is not in the dynamic linker
+#set_target_properties(pgquarrel PROPERTIES LINK_FLAGS "-L${PostgreSQL_LIBRARY_DIRS}")
+
 target_link_libraries(pgquarrel ${LIBS})
 
 install(TARGETS pgquarrel RUNTIME DESTINATION bin)
