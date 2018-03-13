@@ -135,7 +135,6 @@ dumpAlterTrigger(FILE *output, PQLTrigger *a, PQLTrigger *b)
 	char	*tabname2 = formatObjectIdentifier(b->table.objectname);
 
 	fprintf(output, "\n\n");
-	fprintf(output, "ALTER TRIGGER %s ON %s.%s RENAME TO %s;", trgname1, schema2, tabname2, trgname2);
 
 	/* comment */
 	if (options.comment)
