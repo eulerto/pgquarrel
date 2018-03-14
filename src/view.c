@@ -358,6 +358,12 @@ dumpAlterView(FILE *output, PQLView *a, PQLView *b)
 		}
 	}
 
+	if (strcmp(a->viewdef, b->viewdef) != 0)
+	{
+	  dumpDropView(output, a);
+	  dumpCreateView(output, b);
+	}
+
 	/* comment */
 	if (options.comment)
 	{
