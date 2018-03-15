@@ -34,7 +34,6 @@
  * ALTER TABLE ... NOINHERIT parent_table
  * ALTER TABLE ... OF type_name
  * ALTER TABLE ... SET TABLESPACE
- * ALTER TABLE ... REPLICA IDENTITY
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
  * Copyright (c) 2015-2018, Euler Taveira
