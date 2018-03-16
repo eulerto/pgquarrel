@@ -42,17 +42,17 @@ getViews(PGconn *c, int *n)
 	if (PQserverVersion(c) >= 90300)
 	{
 		res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, pg_get_viewdef(c.oid) AS viewdef, array_to_string(array_remove(array_remove(c.reloptions,'check_option=local'),'check_option=cascaded'), ', ') AS reloptions, CASE WHEN 'check_option=local' = ANY(c.reloptions) THEN 'LOCAL'::text WHEN 'check_option=cascaded' = ANY(c.reloptions) THEN 'CASCADED'::text ELSE NULL END AS checkoption, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'v' AND nspname !~ '^pg_' AND nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, relname");
+					 "SELECT c.oid, n.nspname, c.relname, pg_get_viewdef(c.oid) AS viewdef, array_to_string(array_remove(array_remove(c.reloptions,'check_option=local'),'check_option=cascaded'), ', ') AS reloptions, CASE WHEN 'check_option=local' = ANY(c.reloptions) THEN 'LOCAL'::text WHEN 'check_option=cascaded' = ANY(c.reloptions) THEN 'CASCADED'::text ELSE NULL END AS checkoption, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, EXISTS(SELECT 1 FROM pg_depend d WHERE d.refobjid = c.oid AND d.deptype = 'n' AND NOT EXISTS(SELECT 1 FROM pg_depend d2 WHERE d2.refobjid = d.refobjid AND d2.objid = d.objid AND deptype IN ('i', 'a'))) AS has_dependants FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'v' AND nspname !~ '^pg_' AND nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, relname");
 	}
 	else if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
 		res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, pg_get_viewdef(c.oid) AS viewdef, array_to_string(c.reloptions, ', ') AS reloptions, CASE WHEN 'check_option=local' = ANY(c.reloptions) THEN 'LOCAL'::text WHEN 'check_option=cascaded' = ANY(c.reloptions) THEN 'CASCADED'::text ELSE NULL END AS checkoption, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'v' AND nspname !~ '^pg_' AND nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, relname");
+					 "SELECT c.oid, n.nspname, c.relname, pg_get_viewdef(c.oid) AS viewdef, array_to_string(c.reloptions, ', ') AS reloptions, CASE WHEN 'check_option=local' = ANY(c.reloptions) THEN 'LOCAL'::text WHEN 'check_option=cascaded' = ANY(c.reloptions) THEN 'CASCADED'::text ELSE NULL END AS checkoption, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, EXISTS(SELECT 1 FROM pg_depend d WHERE d.refobjid = c.oid AND d.deptype = 'n' AND NOT EXISTS(SELECT 1 FROM pg_depend d2 WHERE d2.refobjid = d.refobjid AND d2.objid = d.objid AND deptype IN ('i', 'a'))) AS has_dependants FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'v' AND nspname !~ '^pg_' AND nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, relname");
 	}
 	else
 	{
 		res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, pg_get_viewdef(c.oid) AS viewdef, array_to_string(c.reloptions, ', ') AS reloptions, CASE WHEN 'check_option=local' = ANY(c.reloptions) THEN 'LOCAL'::text WHEN 'check_option=cascaded' = ANY(c.reloptions) THEN 'CASCADED'::text ELSE NULL END AS checkoption, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'v' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
+					 "SELECT c.oid, n.nspname, c.relname, pg_get_viewdef(c.oid) AS viewdef, array_to_string(c.reloptions, ', ') AS reloptions, CASE WHEN 'check_option=local' = ANY(c.reloptions) THEN 'LOCAL'::text WHEN 'check_option=cascaded' = ANY(c.reloptions) THEN 'CASCADED'::text ELSE NULL END AS checkoption, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, EXISTS(SELECT 1 FROM pg_depend d WHERE d.refobjid = c.oid AND d.deptype = 'n' AND NOT EXISTS(SELECT 1 FROM pg_depend d2 WHERE d2.refobjid = d.refobjid AND d2.objid = d.objid AND deptype IN ('i', 'a'))) AS has_dependants FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'v' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -93,6 +93,8 @@ getViews(PGconn *c, int *n)
 			v[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
 
 		v[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "relowner")));
+
+		v[i].has_dependants = (PQgetvalue(res, i, PQfnumber(res, "has_dependants"))[0] == 't');
 
 		/*
 		 * Security labels are not assigned here (see getViewSecurityLabels),
@@ -358,10 +360,24 @@ dumpAlterView(FILE *output, PQLView *a, PQLView *b)
 		}
 	}
 
+	/*
+	 * Compare view definitions.
+	 * Note: PostgreSQL 9.3 changed the way pg_get_viewdef(...) deals with indentation and line wrapping.
+	 * This may result in false positives when comparing views using < 9.3 and >= 9.3.
+	 */
 	if (strcmp(a->viewdef, b->viewdef) != 0)
 	{
-	  dumpDropView(output, a);
-	  dumpCreateView(output, b);
+		if (!a->has_dependants)
+		{
+			dumpDropView(output, a);
+			dumpCreateView(output, b);
+		}
+		else
+		{
+			logWarning("view \"%s\".\"%s\" changed definition, but cannot be replaced automatically; some other objects depend on it", a->obj.schemaname, a->obj.objectname);
+			fprintf(output, "\n\n");
+			fprintf(output, "-- view %s.%s changed definition;", a->obj.schemaname, a->obj.objectname);
+		}
 	}
 
 	/* comment */

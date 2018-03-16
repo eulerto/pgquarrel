@@ -5,3 +5,5 @@ CREATE VIEW same_view_2 AS SELECT orderdate, COUNT(*) AS total_day FROM orders G
 ALTER VIEW same_view_2 SET (security_barrier=on);
 
 CREATE VIEW same_view_3 AS SELECT orderdate, COUNT(*) AS total_day FROM orders GROUP BY orderdate;
+
+-- CREATE VIEW same_view_4 AS SELECT * FROM same_view_3;
