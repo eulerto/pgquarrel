@@ -19,7 +19,7 @@
  * ALTER TYPE ... ADD VALUE
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
- * Copyright (c) 2015-2017, Euler Taveira
+ * Copyright (c) 2015-2018, Euler Taveira
  *
  * ---------------------------------------------------------------------
  */
@@ -793,6 +793,9 @@ freeCompositeTypes(PQLCompositeType *t, int n)
 				if (t[i].attributes[j].collname)
 					free(t[i].attributes[j].collname);
 			}
+
+			if (t[i].attributes)
+				free(t[i].attributes);
 		}
 
 		free(t);

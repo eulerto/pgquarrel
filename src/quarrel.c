@@ -53,7 +53,7 @@
  * [ CREATE | ALTER | DROP ] STATISTICS
  *
  *
- * Copyright (c) 2015-2017, Euler Taveira
+ * Copyright (c) 2015-2018, Euler Taveira
  *
  *----------------------------------------------------------------------
  */

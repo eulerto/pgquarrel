@@ -2,7 +2,7 @@
  *
  * pgquarrel -- comparing database schemas
  *
- * Copyright (c) 2015-2017, Euler Taveira
+ * Copyright (c) 2015-2018, Euler Taveira
  *
  * ---------------------------------------------------------------------
  */
@@ -38,6 +38,9 @@ typedef struct PQLTable
 	char			*reloptions;
 	char			relreplident;
 	char			*relreplidentidx;
+
+	/* typed table? */
+	PQLObject		reloftype;
 
 	char			*comment;
 	char			*owner;

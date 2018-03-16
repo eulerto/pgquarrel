@@ -58,13 +58,22 @@ CREATE TABLE to_table_3 (
 --CREATE TABLE to_table_4 (
 --) INHERITS (to_table_1);
 
---CREATE TYPE to_type_1 AS (
---	nome varchar(30),
---	cnpj varchar(14),
---	endereco varchar(100)
---);
+-- typed table
+CREATE TYPE same_type_1 AS (
+	foo varchar(30),
+	bar varchar(10),
+	baz integer
+);
 
---CREATE TABLE to_table_5 OF to_type_1;
+CREATE TABLE same_table_5 (
+	foo varchar(30),
+	bar varchar(10),
+	baz integer
+);
+
+CREATE TABLE same_table_6 OF same_type_1;
+
+CREATE TABLE to_table_4 OF same_type_1;
 
 -- reloptions
 ALTER TABLE same_table_1 SET (autovacuum_enabled = off, autovacuum_vacuum_cost_delay = 13);
