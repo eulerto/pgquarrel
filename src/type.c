@@ -793,6 +793,9 @@ freeCompositeTypes(PQLCompositeType *t, int n)
 				if (t[i].attributes[j].collname)
 					free(t[i].attributes[j].collname);
 			}
+
+			if (t[i].attributes)
+				free(t[i].attributes);
 		}
 
 		free(t);
