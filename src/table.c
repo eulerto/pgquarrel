@@ -69,17 +69,17 @@ getTables(PGconn *c, int *n)
 	if (PQserverVersion(c) >= 90400)
 	{
 		res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, relreplident FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'r' AND nspname !~ '^pg_' AND nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, relname");
+					 "SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, relreplident, reloftype, o.nspname AS typnspname, y.typname FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
 	}
 	else if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
 		res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, 'v' AS relreplident FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'r' AND nspname !~ '^pg_' AND nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, relname");
+					 "SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, 'v' AS relreplident, reloftype, o.nspname AS typnspname, y.typname FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
 	}
 	else
 	{
 		res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, 'p' AS relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, 'v' AS relreplident FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'r' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
+					 "SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, 'p' AS relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, 'v' AS relreplident, 0 AS reloftype, NULL AS typnspname, NULL AS typname FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, relname");
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -146,6 +146,19 @@ getTables(PGconn *c, int *n)
 		t[i].relreplident = *(PQgetvalue(res, i, PQfnumber(res, "relreplident")));
 		/* assigned iif REPLICA IDENTITY USING INDEX; see getTableAttributes() */
 		t[i].relreplidentidx = NULL;
+
+		if (PQgetisnull(res, i, PQfnumber(res, "typname")))
+		{
+			t[i].reloftype.oid = InvalidOid;
+			t[i].reloftype.schemaname = NULL;
+			t[i].reloftype.objectname = NULL;
+		}
+		else
+		{
+			t[i].reloftype.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "reloftype")), NULL, 10);
+			t[i].reloftype.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "typnspname")));
+			t[i].reloftype.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "typname")));
+		}
 
 		/*
 		 * Security labels are not assigned here (see getTableSecurityLabels),
@@ -647,6 +660,10 @@ freeTables(PQLTable *t, int n)
 				free(t[i].reloptions);
 			if (t[i].relreplidentidx)
 				free(t[i].relreplidentidx);
+			if (t[i].reloftype.schemaname)
+				free(t[i].reloftype.schemaname);
+			if (t[i].reloftype.objectname)
+				free(t[i].reloftype.objectname);
 			if (t[i].comment)
 				free(t[i].comment);
 			if (t[i].acl)
@@ -825,48 +842,68 @@ dumpCreateTable(FILE *output, PQLTable *t)
 	char	*schema = formatObjectIdentifier(t->obj.schemaname);
 	char	*tabname = formatObjectIdentifier(t->obj.objectname);
 
+	char	*typeschema;
+	char	*typename;
+
 	int		i;
 
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE %sTABLE %s.%s (", t->unlogged ? "UNLOGGED " : "", schema, tabname);
+	fprintf(output, "CREATE %sTABLE %s.%s ", t->unlogged ? "UNLOGGED " : "", schema, tabname);
 
-	/* print attributes */
-	for (i = 0; i < t->nattributes; i++)
+	/* regular table */
+	if (t->reloftype.oid == InvalidOid)
 	{
-		if (i == 0)
-			fprintf(output, "\n");
-		else
+		fprintf(output, "(");
+
+		/* print attributes */
+		for (i = 0; i < t->nattributes; i++)
+		{
+			if (i == 0)
+				fprintf(output, "\n");
+			else
+				fprintf(output, ",\n");
+
+			/* attribute name and type */
+			fprintf(output, "%s %s", t->attributes[i].attname, t->attributes[i].atttypname);
+
+			/* collate */
+			/* XXX schema-qualified? */
+			if (t->attributes[i].attcollation != NULL)
+				fprintf(output, " COLLATE \"%s\"", t->attributes[i].attcollation);
+
+			/* default value? */
+			if (t->attributes[i].attdefexpr != NULL)
+				fprintf(output, " DEFAULT %s", t->attributes[i].attdefexpr);
+
+			/* not null? */
+			if (t->attributes[i].attnotnull)
+				fprintf(output, " NOT NULL");
+		}
+
+		/* print check constraints */
+		for (i = 0; i < t->ncheck; i++)
+		{
 			fprintf(output, ",\n");
+			fprintf(output, "CONSTRAINT %s %s", t->check[i].conname, t->check[i].condef);
+		}
 
-		/* attribute name and type */
-		fprintf(output, "%s %s", t->attributes[i].attname, t->attributes[i].atttypname);
+		fprintf(output, "\n)");
 
-		/* collate */
-		/* XXX schema-qualified? */
-		if (t->attributes[i].attcollation != NULL)
-			fprintf(output, " COLLATE \"%s\"", t->attributes[i].attcollation);
-
-		/* default value? */
-		if (t->attributes[i].attdefexpr != NULL)
-			fprintf(output, " DEFAULT %s", t->attributes[i].attdefexpr);
-
-		/* not null? */
-		if (t->attributes[i].attnotnull)
-			fprintf(output, " NOT NULL");
+		/* reloptions */
+		if (t->reloptions != NULL)
+			fprintf(output, "\nWITH (%s)", t->reloptions);
 	}
-
-	/* print check constraints */
-	for (i = 0; i < t->ncheck; i++)
+	else
 	{
-		fprintf(output, ",\n");
-		fprintf(output, "CONSTRAINT %s %s", t->check[i].conname, t->check[i].condef);
+		/* typed table */
+		typeschema = formatObjectIdentifier(t->reloftype.schemaname);
+		typename = formatObjectIdentifier(t->reloftype.objectname);
+
+		fprintf(output, "OF %s.%s", typeschema, typename);
+
+		free(typeschema);
+		free(typename);
 	}
-
-	fprintf(output, "\n)");
-
-	/* reloptions */
-	if (t->reloptions != NULL)
-		fprintf(output, "\nWITH (%s)", t->reloptions);
 
 	fprintf(output, ";");
 
@@ -1487,108 +1524,137 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 
 	int i, j;
 
-	/* the attributes are sorted by name */
-	i = j = 0;
-	while (i < a->nattributes || j < b->nattributes)
+	/* regular table */
+	if (a->reloftype.oid == InvalidOid && b->reloftype.oid == InvalidOid)
 	{
-		/*
-		 * End of table a attributes. Additional columns from table b will be
-		 * added.
-		 */
-		if (i == a->nattributes)
+		/* the attributes are sorted by name */
+		i = j = 0;
+		while (i < a->nattributes || j < b->nattributes)
 		{
-			logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) added",
-					 b->obj.schemaname, b->obj.objectname,
-					 b->attributes[j].attname, b->attributes[j].atttypname);
-
-			dumpAddColumn(output, b, j);
-
-			dumpAlterColumnSetStatistics(output, b, j, false);	/* statistics target */
-			dumpAlterColumnSetStorage(output, b, j, false);		/* storage */
-
-			j++;
-		}
-		/*
-		 * End of table b attributes. Additional columns from table a will be
-		 * removed.
-		 */
-		else if (j == b->nattributes)
-		{
-			logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) removed", a->obj.schemaname, a->obj.objectname, a->attributes[i].attname, a->attributes[i].atttypname);
-
-			dumpRemoveColumn(output, a, i);
-			i++;
-		}
-		else if (strcmp(a->attributes[i].attname, b->attributes[j].attname) == 0)
-		{
-			/* same column name but different data types */
 			/*
-			 * XXX If we choose to DROP COLUMN follows by ADD COLUMN the data in
-			 * XXX the old column will be discarded and won't have the chance to
-			 * XXX be converted. That way, we try to convert between data types.
-			 * XXX One day, this piece of code will be smarter to warn the OP
-			 * XXX that postgres cannot automagically convert that column.
+			 * End of table a attributes. Additional columns from table b will be
+			 * added.
 			 */
-			if (strcmp(a->attributes[i].atttypname, b->attributes[j].atttypname) != 0 ||
-					a->attributes[i].attnotnull != b->attributes[j].attnotnull)
+			if (i == a->nattributes)
 			{
-				logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) altered to (%s)",
+				logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) added",
+						 b->obj.schemaname, b->obj.objectname,
+						 b->attributes[j].attname, b->attributes[j].atttypname);
+
+				dumpAddColumn(output, b, j);
+
+				dumpAlterColumnSetStatistics(output, b, j, false);	/* statistics target */
+				dumpAlterColumnSetStorage(output, b, j, false);		/* storage */
+
+				j++;
+			}
+			/*
+			 * End of table b attributes. Additional columns from table a will be
+			 * removed.
+			 */
+			else if (j == b->nattributes)
+			{
+				logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) removed", a->obj.schemaname, a->obj.objectname, a->attributes[i].attname, a->attributes[i].atttypname);
+
+				dumpRemoveColumn(output, a, i);
+				i++;
+			}
+			else if (strcmp(a->attributes[i].attname, b->attributes[j].attname) == 0)
+			{
+				/* same column name but different data types */
+				/*
+				 * XXX If we choose to DROP COLUMN follows by ADD COLUMN the data in
+				 * XXX the old column will be discarded and won't have the chance to
+				 * XXX be converted. That way, we try to convert between data types.
+				 * XXX One day, this piece of code will be smarter to warn the OP
+				 * XXX that postgres cannot automagically convert that column.
+				 */
+				if (strcmp(a->attributes[i].atttypname, b->attributes[j].atttypname) != 0 ||
+						a->attributes[i].attnotnull != b->attributes[j].attnotnull)
+				{
+					logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) altered to (%s)",
+							 a->obj.schemaname, a->obj.objectname,
+							 a->attributes[i].attname, a->attributes[i].atttypname, b->attributes[j].atttypname);
+
+					dumpAlterColumn(output, a, i, b, j);
+				}
+
+				/* do attribute options change? */
+				dumpAlterColumnSetOptions(output, a, i, b, j);
+
+				/* column statistics changed */
+				if (a->attributes[i].attstattarget != b->attributes[j].attstattarget)
+					dumpAlterColumnSetStatistics(output, b, j, true);
+
+				/* storage changed */
+				if (a->attributes[i].defstorage != b->attributes[j].defstorage)
+					dumpAlterColumnSetStorage(output, b, j, true);
+
+				/* attribute ACL changed */
+				if (options.privileges)
+				{
+					char *attname = formatObjectIdentifier(a->attributes[i].attname);
+
+					if (a->attributes[i].acl != NULL && b->attributes[j].acl == NULL)
+						dumpGrantAndRevoke(output, PGQ_TABLE, &a->obj, &b->obj, a->attributes[i].acl, NULL, NULL, attname);
+					else if (a->attributes[i].acl == NULL && b->attributes[j].acl != NULL)
+						dumpGrantAndRevoke(output, PGQ_TABLE, &a->obj, &b->obj, NULL, b->attributes[j].acl, NULL, attname);
+					else if (a->attributes[i].acl != NULL && b->attributes[j].acl != NULL && strcmp(a->attributes[i].acl, b->attributes[j].acl) != 0)
+						dumpGrantAndRevoke(output, PGQ_TABLE, &a->obj, &b->obj, a->attributes[i].acl, b->attributes[j].acl, NULL, attname);
+
+					free(attname);
+				}
+
+				i++;
+				j++;
+			}
+			else if (strcmp(a->attributes[i].attname, b->attributes[j].attname) < 0)
+			{
+				logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) removed",
 						 a->obj.schemaname, a->obj.objectname,
-						 a->attributes[i].attname, a->attributes[i].atttypname, b->attributes[j].atttypname);
+						 a->attributes[i].attname, a->attributes[i].atttypname);
 
-				dumpAlterColumn(output, a, i, b, j);
+				dumpRemoveColumn(output, a, i);
+				i++;
 			}
-
-			/* do attribute options change? */
-			dumpAlterColumnSetOptions(output, a, i, b, j);
-
-			/* column statistics changed */
-			if (a->attributes[i].attstattarget != b->attributes[j].attstattarget)
-				dumpAlterColumnSetStatistics(output, b, j, true);
-
-			/* storage changed */
-			if (a->attributes[i].defstorage != b->attributes[j].defstorage)
-				dumpAlterColumnSetStorage(output, b, j, true);
-
-			/* attribute ACL changed */
-			if (options.privileges)
+			else if (strcmp(a->attributes[i].attname, b->attributes[j].attname) > 0)
 			{
-				char *attname = formatObjectIdentifier(a->attributes[i].attname);
+				logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) added",
+						 b->obj.schemaname, b->obj.objectname,
+						 b->attributes[j].attname, b->attributes[j].atttypname);
 
-				if (a->attributes[i].acl != NULL && b->attributes[j].acl == NULL)
-					dumpGrantAndRevoke(output, PGQ_TABLE, &a->obj, &b->obj, a->attributes[i].acl, NULL, NULL, attname);
-				else if (a->attributes[i].acl == NULL && b->attributes[j].acl != NULL)
-					dumpGrantAndRevoke(output, PGQ_TABLE, &a->obj, &b->obj, NULL, b->attributes[j].acl, NULL, attname);
-				else if (a->attributes[i].acl != NULL && b->attributes[j].acl != NULL && strcmp(a->attributes[i].acl, b->attributes[j].acl) != 0)
-					dumpGrantAndRevoke(output, PGQ_TABLE, &a->obj, &b->obj, a->attributes[i].acl, b->attributes[j].acl, NULL, attname);
+				dumpAddColumn(output, b, j);
 
-				free(attname);
+				dumpAlterColumnSetStatistics(output, b, j, false);	/* statistics target */
+				dumpAlterColumnSetStorage(output, b, j, false);		/* storage */
+
+				j++;
 			}
-
-			i++;
-			j++;
 		}
-		else if (strcmp(a->attributes[i].attname, b->attributes[j].attname) < 0)
+	}
+	else
+	{
+		/* typed table */
+		if (a->reloftype.oid == InvalidOid && b->reloftype.oid != InvalidOid)
 		{
-			logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) removed",
-					 a->obj.schemaname, a->obj.objectname,
-					 a->attributes[i].attname, a->attributes[i].atttypname);
+			char	*typeschema = formatObjectIdentifier(b->reloftype.schemaname);
+			char	*typename = formatObjectIdentifier(b->reloftype.objectname);
 
-			dumpRemoveColumn(output, a, i);
-			i++;
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER TABLE ONLY %s.%s OF %s.%s;", schema2, tabname2, typeschema, typename);
+
+			free(typeschema);
+			free(typename);
 		}
-		else if (strcmp(a->attributes[i].attname, b->attributes[j].attname) > 0)
+		else if (a->reloftype.oid != InvalidOid && b->reloftype.oid == InvalidOid)
 		{
-			logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) added",
-					 b->obj.schemaname, b->obj.objectname,
-					 b->attributes[j].attname, b->attributes[j].atttypname);
-
-			dumpAddColumn(output, b, j);
-
-			dumpAlterColumnSetStatistics(output, b, j, false);	/* statistics target */
-			dumpAlterColumnSetStorage(output, b, j, false);		/* storage */
-
-			j++;
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER TABLE ONLY %s.%s NOT OF;", schema2, tabname2);
+		}
+		else
+		{
+			/* TODO check if it is safe to change the type of a typed table */
+			logWarning("typed table \"%s\".\"%s\" changed its type", schema2, tabname2);
 		}
 	}
 

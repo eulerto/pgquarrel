@@ -39,6 +39,9 @@ typedef struct PQLTable
 	char			relreplident;
 	char			*relreplidentidx;
 
+	/* typed table? */
+	PQLObject		reloftype;
+
 	char			*comment;
 	char			*owner;
 	char			*acl;

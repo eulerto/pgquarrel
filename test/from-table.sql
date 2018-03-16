@@ -34,6 +34,21 @@ CREATE TABLE from_table1 (
 	PRIMARY KEY(a)
 );
 
+-- typed table
+CREATE TYPE same_type_1 AS (
+	foo varchar(30),
+	bar varchar(10),
+	baz integer
+);
+
+CREATE TABLE same_table_5 OF same_type_1;
+
+CREATE TABLE same_table_6 (
+	foo varchar(30),
+	bar varchar(10),
+	baz integer
+);
+
 -- reloptions
 ALTER TABLE same_table_1 SET (autovacuum_enabled = off, autovacuum_vacuum_cost_delay = 25, autovacuum_analyze_threshold = 1234);
 ALTER TABLE same_table_3 SET (autovacuum_analyze_scale_factor = 0.36, autovacuum_vacuum_scale_factor = 0.44);
