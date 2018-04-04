@@ -290,6 +290,135 @@ loadConfig(const char *cf, QuarrelOptions *options)
 			options->general.privileges = parseBoolean("privileges", mini_file_get_value(config,
 											   "general", "privileges"));
 
+		/*
+		 * select objects that will be compared
+		 */
+		if (mini_file_get_value(config, "general", "aggregate") == NULL)
+			options->general.aggregate = true;		/* default */
+		else
+			options->general.aggregate = parseBoolean("aggregate", mini_file_get_value(config,
+										  "general", "aggregate"));
+
+		if (mini_file_get_value(config, "general", "cast") == NULL)
+			options->general.cast = true;		/* default */
+		else
+			options->general.cast = parseBoolean("cast", mini_file_get_value(config,
+										  "general", "cast"));
+
+		if (mini_file_get_value(config, "general", "collation") == NULL)
+			options->general.collation = true;		/* default */
+		else
+			options->general.collation = parseBoolean("collation", mini_file_get_value(config,
+										  "general", "collation"));
+
+		if (mini_file_get_value(config, "general", "conversion") == NULL)
+			options->general.conversion = true;		/* default */
+		else
+			options->general.conversion = parseBoolean("conversion", mini_file_get_value(config,
+										  "general", "conversion"));
+
+		if (mini_file_get_value(config, "general", "domain") == NULL)
+			options->general.domain = true;		/* default */
+		else
+			options->general.domain = parseBoolean("domain", mini_file_get_value(config,
+										  "general", "domain"));
+
+		if (mini_file_get_value(config, "general", "event-trigger") == NULL)
+			options->general.eventtrigger = true;		/* default */
+		else
+			options->general.eventtrigger = parseBoolean("event-trigger", mini_file_get_value(config,
+										  "general", "event-trigger"));
+
+		if (mini_file_get_value(config, "general", "extension") == NULL)
+			options->general.extension = true;		/* default */
+		else
+			options->general.extension = parseBoolean("extension", mini_file_get_value(config,
+										  "general", "extension"));
+
+		if (mini_file_get_value(config, "general", "fdw") == NULL)
+			options->general.fdw = true;		/* default */
+		else
+			options->general.fdw = parseBoolean("fdw", mini_file_get_value(config,
+										  "general", "fdw"));
+
+		if (mini_file_get_value(config, "general", "function") == NULL)
+			options->general.function = true;		/* default */
+		else
+			options->general.function = parseBoolean("function", mini_file_get_value(config,
+										  "general", "function"));
+
+		if (mini_file_get_value(config, "general", "index") == NULL)
+			options->general.index = true;		/* default */
+		else
+			options->general.index = parseBoolean("index", mini_file_get_value(config,
+										  "general", "index"));
+
+		if (mini_file_get_value(config, "general", "language") == NULL)
+			options->general.language = true;		/* default */
+		else
+			options->general.language = parseBoolean("language", mini_file_get_value(config,
+										  "general", "language"));
+
+		if (mini_file_get_value(config, "general", "materialized-view") == NULL)
+			options->general.matview = true;		/* default */
+		else
+			options->general.matview = parseBoolean("materialized-view", mini_file_get_value(config,
+										  "general", "materialized-view"));
+
+		if (mini_file_get_value(config, "general", "operator") == NULL)
+			options->general.operator = true;		/* default */
+		else
+			options->general.operator = parseBoolean("operator", mini_file_get_value(config,
+										  "general", "operator"));
+
+		if (mini_file_get_value(config, "general", "rule") == NULL)
+			options->general.rule = true;		/* default */
+		else
+			options->general.rule = parseBoolean("rule", mini_file_get_value(config,
+										  "general", "rule"));
+
+		if (mini_file_get_value(config, "general", "schema") == NULL)
+			options->general.schema = true;		/* default */
+		else
+			options->general.schema = parseBoolean("schema", mini_file_get_value(config,
+										  "general", "schema"));
+
+		if (mini_file_get_value(config, "general", "sequence") == NULL)
+			options->general.sequence = true;		/* default */
+		else
+			options->general.sequence = parseBoolean("sequence", mini_file_get_value(config,
+										  "general", "sequence"));
+
+		if (mini_file_get_value(config, "general", "table") == NULL)
+			options->general.table = true;		/* default */
+		else
+			options->general.table = parseBoolean("table", mini_file_get_value(config,
+										  "general", "table"));
+
+		if (mini_file_get_value(config, "general", "text-search") == NULL)
+			options->general.textsearch = true;		/* default */
+		else
+			options->general.textsearch = parseBoolean("text-search", mini_file_get_value(config,
+										  "general", "text-search"));
+
+		if (mini_file_get_value(config, "general", "trigger") == NULL)
+			options->general.trigger = true;		/* default */
+		else
+			options->general.trigger = parseBoolean("trigger", mini_file_get_value(config,
+										  "general", "trigger"));
+
+		if (mini_file_get_value(config, "general", "type") == NULL)
+			options->general.type = true;		/* default */
+		else
+			options->general.type = parseBoolean("type", mini_file_get_value(config,
+										  "general", "type"));
+
+		if (mini_file_get_value(config, "general", "view") == NULL)
+			options->general.view = true;		/* default */
+		else
+			options->general.view = parseBoolean("view", mini_file_get_value(config,
+										  "general", "view"));
+
 		/* from options */
 		tmp = mini_file_get_value(config, "from", "host");
 		if (tmp != NULL)
@@ -3507,38 +3636,66 @@ int main(int argc, char *argv[])
 	 * problems with the dependencies. Generally, CREATE commands will be output
 	 * at the beginning (in a pre-defined order) and DROP commands at the end
 	 * (in a reverse order -- to solve dependency problems).
+	 * Only selected objects will be compared.
 	 */
 
-	quarrelForeignDataWrappers();
-	quarrelForeignServers();
-	quarrelUserMappings();
+	if (options.fdw)
+	{
+		quarrelForeignDataWrappers();
+		quarrelForeignServers();
+		quarrelUserMappings();
+	}
 
-	quarrelLanguages();
-	quarrelSchemas();
-	quarrelExtensions();
+	if (options.language)
+		quarrelLanguages();
+	if (options.schema)
+		quarrelSchemas();
+	if (options.extension)
+		quarrelExtensions();
 
-	quarrelCasts();
-	quarrelCollations();
-	quarrelConversions();
-	quarrelDomains();
-	quarrelTypes();
-	quarrelOperators();
-	quarrelOperatorFamilies();
-	quarrelOperatorClasses();
-	quarrelSequences();
-	quarrelTables();
-	quarrelIndexes();
-	quarrelFunctions();
-	quarrelAggregates();
-	quarrelViews();
-	quarrelMaterializedViews();
-	quarrelTriggers();
-	quarrelRules();
-	quarrelEventTriggers();
-	quarrelTextSearchParsers();
-	quarrelTextSearchTemplates();
-	quarrelTextSearchDicts();
-	quarrelTextSearchConfigs();
+	if (options.cast)
+		quarrelCasts();
+	if (options.collation)
+		quarrelCollations();
+	if (options.conversion)
+		quarrelConversions();
+	if (options.domain)
+		quarrelDomains();
+	if (options.type)
+		quarrelTypes();
+	if (options.operator)
+	{
+		quarrelOperators();
+		quarrelOperatorFamilies();
+		quarrelOperatorClasses();
+	}
+	if (options.sequence)
+		quarrelSequences();
+	if (options.table)
+		quarrelTables();
+	if (options.index)
+		quarrelIndexes();
+	if (options.function)
+		quarrelFunctions();
+	if (options.aggregate)
+		quarrelAggregates();
+	if (options.view)
+		quarrelViews();
+	if (options.matview)
+		quarrelMaterializedViews();
+	if (options.trigger)
+		quarrelTriggers();
+	if (options.rule)
+		quarrelRules();
+	if (options.eventtrigger)
+		quarrelEventTriggers();
+	if (options.textsearch)
+	{
+		quarrelTextSearchParsers();
+		quarrelTextSearchTemplates();
+		quarrelTextSearchDicts();
+		quarrelTextSearchConfigs();
+	}
 
 	/*
 	 * Print header iff there is at least one command. Check if one of the

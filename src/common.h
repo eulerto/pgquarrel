@@ -60,6 +60,29 @@ typedef struct QuarrelGeneralOptions
 	bool			owner;
 	bool			privileges;
 	bool			securitylabels;
+
+	/* select objects */
+	bool			aggregate;
+	bool			cast;
+	bool			collation;
+	bool			conversion;
+	bool			domain;
+	bool			eventtrigger;
+	bool			extension;
+	bool			fdw;
+	bool			function;
+	bool			index;
+	bool			language;
+	bool			matview;
+	bool			operator;
+	bool			rule;
+	bool			schema;
+	bool			sequence;
+	bool			table;
+	bool			textsearch;
+	bool			trigger;
+	bool			type;
+	bool			view;
 } QuarrelGeneralOptions;
 
 typedef struct QuarrelDatabaseOptions
