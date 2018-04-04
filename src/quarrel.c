@@ -294,25 +294,25 @@ loadConfig(const char *cf, QuarrelOptions *options)
 		 * select objects that will be compared
 		 */
 		if (mini_file_get_value(config, "general", "aggregate") == NULL)
-			options->general.aggregate = true;		/* default */
+			options->general.aggregate = false;		/* default */
 		else
 			options->general.aggregate = parseBoolean("aggregate", mini_file_get_value(config,
 										  "general", "aggregate"));
 
 		if (mini_file_get_value(config, "general", "cast") == NULL)
-			options->general.cast = true;		/* default */
+			options->general.cast = false;		/* default */
 		else
 			options->general.cast = parseBoolean("cast", mini_file_get_value(config,
 										  "general", "cast"));
 
 		if (mini_file_get_value(config, "general", "collation") == NULL)
-			options->general.collation = true;		/* default */
+			options->general.collation = false;		/* default */
 		else
 			options->general.collation = parseBoolean("collation", mini_file_get_value(config,
 										  "general", "collation"));
 
 		if (mini_file_get_value(config, "general", "conversion") == NULL)
-			options->general.conversion = true;		/* default */
+			options->general.conversion = false;		/* default */
 		else
 			options->general.conversion = parseBoolean("conversion", mini_file_get_value(config,
 										  "general", "conversion"));
@@ -324,7 +324,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 										  "general", "domain"));
 
 		if (mini_file_get_value(config, "general", "event-trigger") == NULL)
-			options->general.eventtrigger = true;		/* default */
+			options->general.eventtrigger = false;		/* default */
 		else
 			options->general.eventtrigger = parseBoolean("event-trigger", mini_file_get_value(config,
 										  "general", "event-trigger"));
@@ -336,7 +336,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 										  "general", "extension"));
 
 		if (mini_file_get_value(config, "general", "fdw") == NULL)
-			options->general.fdw = true;		/* default */
+			options->general.fdw = false;		/* default */
 		else
 			options->general.fdw = parseBoolean("fdw", mini_file_get_value(config,
 										  "general", "fdw"));
@@ -354,7 +354,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 										  "general", "index"));
 
 		if (mini_file_get_value(config, "general", "language") == NULL)
-			options->general.language = true;		/* default */
+			options->general.language = false;		/* default */
 		else
 			options->general.language = parseBoolean("language", mini_file_get_value(config,
 										  "general", "language"));
@@ -366,13 +366,13 @@ loadConfig(const char *cf, QuarrelOptions *options)
 										  "general", "materialized-view"));
 
 		if (mini_file_get_value(config, "general", "operator") == NULL)
-			options->general.operator = true;		/* default */
+			options->general.operator = false;		/* default */
 		else
 			options->general.operator = parseBoolean("operator", mini_file_get_value(config,
 										  "general", "operator"));
 
 		if (mini_file_get_value(config, "general", "rule") == NULL)
-			options->general.rule = true;		/* default */
+			options->general.rule = false;		/* default */
 		else
 			options->general.rule = parseBoolean("rule", mini_file_get_value(config,
 										  "general", "rule"));
@@ -396,7 +396,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 										  "general", "table"));
 
 		if (mini_file_get_value(config, "general", "text-search") == NULL)
-			options->general.textsearch = true;		/* default */
+			options->general.textsearch = false;		/* default */
 		else
 			options->general.textsearch = parseBoolean("text-search", mini_file_get_value(config,
 										  "general", "text-search"));
