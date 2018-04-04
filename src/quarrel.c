@@ -272,11 +272,11 @@ loadConfig(const char *cf, QuarrelOptions *options)
 			options->general.comment = parseBoolean("comment", mini_file_get_value(config,
 											"general", "comment"));
 
-		if (mini_file_get_value(config, "general", "securitylabels") == NULL)
+		if (mini_file_get_value(config, "general", "security-labels") == NULL)
 			options->general.securitylabels = false;		/* default */
 		else
-			options->general.securitylabels = parseBoolean("securitylabels", mini_file_get_value(config,
-											"general", "securitylabels"));
+			options->general.securitylabels = parseBoolean("security-labels", mini_file_get_value(config,
+											"general", "security-labels"));
 
 		if (mini_file_get_value(config, "general", "owner") == NULL)
 			options->general.owner = false;		/* default */
