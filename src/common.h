@@ -50,9 +50,8 @@
 	logGeneric(PGQ_NOISE, __VA_ARGS__); \
 	} while (0)
 
-typedef struct QuarrelOptions
+typedef struct QuarrelGeneralOptions
 {
-	/* General */
 	char			*output;
 	char			*tmpdir;
 	bool			verbose;
@@ -61,20 +60,22 @@ typedef struct QuarrelOptions
 	bool			owner;
 	bool			privileges;
 	bool			securitylabels;
+} QuarrelGeneralOptions;
 
-	/* From */
-	char			*fhost;
-	char			*fport;
-	char			*fusername;
-	char			*fpassword;
-	char			*fdbname;
+typedef struct QuarrelDatabaseOptions
+{
+	char			*host;
+	char			*port;
+	char			*username;
+	char			*password;
+	char			*dbname;
+} QuarrelDatabaseOptions;
 
-	/* To */
-	char			*thost;
-	char			*tport;
-	char			*tusername;
-	char			*tpassword;
-	char			*tdbname;
+typedef struct QuarrelOptions
+{
+	QuarrelGeneralOptions	general;
+	QuarrelDatabaseOptions	from;
+	QuarrelDatabaseOptions	to;
 } QuarrelOptions;
 
 typedef struct PQLSecLabel
@@ -137,7 +138,7 @@ extern enum PQLLogLevel loglevel;
 extern int pgversion1;
 extern int pgversion2;
 
-extern QuarrelOptions options;
+extern QuarrelGeneralOptions options;
 
 typedef struct stringListCell
 {

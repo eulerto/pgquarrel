@@ -95,7 +95,7 @@ int					pgversion2;
 PGconn				*conn1;
 PGconn				*conn2;
 
-QuarrelOptions		options;
+QuarrelGeneralOptions		options;	/* general options */
 
 PQLStatistic		qstat = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -116,8 +116,7 @@ static int compareMajorVersion(int a, int b);
 static bool parseBoolean(const char *key, const char *s);
 static void help(void);
 static void loadConfig(const char *c, QuarrelOptions *o);
-static PGconn *connectDatabase(const char *host, const char *port,
-							   const char *user, const char *password, const char *dbname);
+static PGconn *connectDatabase(QuarrelDatabaseOptions opt);
 
 static void mergeTempFiles(FILE *pre, FILE *post, FILE *output);
 static FILE *openTempFile(char *p);
@@ -235,9 +234,9 @@ loadConfig(const char *cf, QuarrelOptions *options)
 		/* general options */
 		tmp = mini_file_get_value(config, "general", "output");
 		if (tmp != NULL)
-			options->output = strdup(tmp);
+			options->general.output = strdup(tmp);
 		else
-			options->output = strdup("quarrel.sql");		/* default */
+			options->general.output = strdup("quarrel.sql");		/* default */
 
 		tmp = mini_file_get_value(config, "general", "tmpdir");
 		if (tmp != NULL)
@@ -248,111 +247,111 @@ loadConfig(const char *cf, QuarrelOptions *options)
 				logError("tmpdir is too long (max: 256)");
 				exit(EXIT_FAILURE);
 			}
-			options->tmpdir = strdup(tmp);
+			options->general.tmpdir = strdup(tmp);
 		}
 		else
 		{
-			options->tmpdir = strdup("/tmp");				/* default */
+			options->general.tmpdir = strdup("/tmp");				/* default */
 		}
 
 		if (mini_file_get_value(config, "general", "verbose") == NULL)
-			options->verbose = false;	/* default */
+			options->general.verbose = false;	/* default */
 		else
-			options->verbose = parseBoolean("verbose", mini_file_get_value(config,
+			options->general.verbose = parseBoolean("verbose", mini_file_get_value(config,
 											"general", "verbose"));
 
 		if (mini_file_get_value(config, "general", "statistics") == NULL)
-			options->statistics = false;	/* default */
+			options->general.statistics = false;	/* default */
 		else
-			options->statistics = parseBoolean("statistics", mini_file_get_value(config,
+			options->general.statistics = parseBoolean("statistics", mini_file_get_value(config,
 											   "general", "statistics"));
 
 		if (mini_file_get_value(config, "general", "comment") == NULL)
-			options->comment = false;		/* default */
+			options->general.comment = false;		/* default */
 		else
-			options->comment = parseBoolean("comment", mini_file_get_value(config,
+			options->general.comment = parseBoolean("comment", mini_file_get_value(config,
 											"general", "comment"));
 
 		if (mini_file_get_value(config, "general", "securitylabels") == NULL)
-			options->securitylabels = false;		/* default */
+			options->general.securitylabels = false;		/* default */
 		else
-			options->securitylabels = parseBoolean("securitylabels", mini_file_get_value(config,
+			options->general.securitylabels = parseBoolean("securitylabels", mini_file_get_value(config,
 											"general", "securitylabels"));
 
 		if (mini_file_get_value(config, "general", "owner") == NULL)
-			options->owner = false;		/* default */
+			options->general.owner = false;		/* default */
 		else
-			options->owner = parseBoolean("owner", mini_file_get_value(config,
+			options->general.owner = parseBoolean("owner", mini_file_get_value(config,
 										  "general", "owner"));
 
 		if (mini_file_get_value(config, "general", "privileges") == NULL)
-			options->privileges = false;		/* default */
+			options->general.privileges = false;		/* default */
 		else
-			options->privileges = parseBoolean("privileges", mini_file_get_value(config,
+			options->general.privileges = parseBoolean("privileges", mini_file_get_value(config,
 											   "general", "privileges"));
 
 		/* from options */
 		tmp = mini_file_get_value(config, "from", "host");
 		if (tmp != NULL)
-			options->fhost = strdup(tmp);
+			options->from.host = strdup(tmp);
 		else
-			options->fhost = NULL;
+			options->from.host = NULL;
 
 		tmp = mini_file_get_value(config, "from", "port");
 		if (tmp != NULL)
-			options->fport = strdup(tmp);
+			options->from.port = strdup(tmp);
 		else
-			options->fport = NULL;
+			options->from.port = NULL;
 
 		tmp = mini_file_get_value(config, "from", "user");
 		if (tmp != NULL)
-			options->fusername = strdup(tmp);
+			options->from.username = strdup(tmp);
 		else
-			options->fusername = NULL;
+			options->from.username = NULL;
 
 		tmp = mini_file_get_value(config, "from", "password");
 		if (tmp != NULL)
-			options->fpassword = strdup(tmp);
+			options->from.password = strdup(tmp);
 		else
-			options->fpassword = NULL;
+			options->from.password = NULL;
 
 		tmp = mini_file_get_value(config, "from", "dbname");
 		if (tmp != NULL)
-			options->fdbname = strdup(tmp);
+			options->from.dbname = strdup(tmp);
 		else
-			options->fdbname = NULL;
+			options->from.dbname = NULL;
 
 
 		/* to options */
 		tmp = mini_file_get_value(config, "to", "host");
 		if (tmp != NULL)
-			options->thost = strdup(tmp);
+			options->to.host = strdup(tmp);
 		else
-			options->thost = NULL;
+			options->to.host = NULL;
 
 		tmp = mini_file_get_value(config, "to", "port");
 		if (tmp != NULL)
-			options->tport = strdup(tmp);
+			options->to.port = strdup(tmp);
 		else
-			options->tport = NULL;
+			options->to.port = NULL;
 
 		tmp = mini_file_get_value(config, "to", "user");
 		if (tmp != NULL)
-			options->tusername = strdup(tmp);
+			options->to.username = strdup(tmp);
 		else
-			options->tusername = NULL;
+			options->to.username = NULL;
 
 		tmp = mini_file_get_value(config, "to", "password");
 		if (tmp != NULL)
-			options->tpassword = strdup(tmp);
+			options->to.password = strdup(tmp);
 		else
-			options->tpassword = NULL;
+			options->to.password = NULL;
 
 		tmp = mini_file_get_value(config, "to", "dbname");
 		if (tmp != NULL)
-			options->tdbname = strdup(tmp);
+			options->to.dbname = strdup(tmp);
 		else
-			options->tdbname = NULL;
+			options->to.dbname = NULL;
 	}
 	else
 	{
@@ -365,8 +364,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 }
 
 static PGconn *
-connectDatabase(const char *host, const char *port, const char *user,
-				const char *password, const char *dbname)
+connectDatabase(QuarrelDatabaseOptions opt)
 {
 	PGconn	*conn;
 
@@ -375,15 +373,15 @@ connectDatabase(const char *host, const char *port, const char *user,
 	const char **values = malloc(NUMBER_OF_PARAMS * sizeof(*values));
 
 	keywords[0] = "host";
-	values[0] = host;
+	values[0] = opt.host;
 	keywords[1] = "port";
-	values[1] = port;
+	values[1] = opt.port;
 	keywords[2] = "user";
-	values[2] = user;
+	values[2] = opt.username;
 	keywords[3] = "password";
-	values[3] = password;
+	values[3] = opt.password;
 	keywords[4] = "dbname";
-	values[4] = dbname;
+	values[4] = opt.dbname;
 	keywords[5] = "fallback_application_name";
 	values[5] = PGQ_NAME;
 	keywords[6] = values[6] = NULL;
@@ -3362,6 +3360,9 @@ int main(int argc, char *argv[])
 	bool		statistics = false;
 	int			ignoreversion = false;
 
+	/* general and connection options */
+	QuarrelOptions	opts;
+
 
 	if (argc > 1)
 	{
@@ -3406,10 +3407,13 @@ int main(int argc, char *argv[])
 	}
 
 	/* read configuration file */
-	loadConfig(configfile, &options);
+	loadConfig(configfile, &opts);
 
 	/* config filename was not used anymore; free it */
 	free(configfile);
+
+	/* expose only general options */
+	options = opts.general;
 
 	/* command-line options take precedence over config options */
 	if (options.verbose && loglevel == PGQ_ERROR)	/* it wasn't defined on command-line so use config value */
@@ -3418,8 +3422,7 @@ int main(int argc, char *argv[])
 		statistics = true;
 
 	/* connecting to server1 ... */
-	conn1 = connectDatabase(options.fhost, options.fport, options.fusername,
-							options.fpassword, options.fdbname);
+	conn1 = connectDatabase(opts.from);
 	logDebug("connected to server1");
 
 	/* is it a supported postgresql version? */
@@ -3436,8 +3439,7 @@ int main(int argc, char *argv[])
 	logDebug("server1 version: %s", PQparameterStatus(conn1, "server_version"));
 
 	/* connecting to server2 ... */
-	conn2 = connectDatabase(options.thost, options.tport, options.tusername,
-							options.tpassword, options.tdbname);
+	conn2 = connectDatabase(opts.to);
 	logDebug("connected to server2");
 
 	/* is it a supported postgresql version? */
