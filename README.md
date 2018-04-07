@@ -229,6 +229,16 @@ Features
 		<td></td>
 	</tr>
 	<tr>
+		<td>POLICY</td>
+		<td>not implemented</td>
+		<td></td>
+	</tr>
+	<tr>
+		<td>TRANSFORM</td>
+		<td>not implemented</td>
+		<td></td>
+	</tr>
+	<tr>
 		<td>ALTER DEFAULT PRIVILEGES</td>
 		<td>uncertain</td>
 		<td></td>
