@@ -17,6 +17,7 @@
  * ALTER TYPE ... RENAME TO
  * ALTER TYPE ... SET SCHEMA
  * ALTER TYPE ... ADD VALUE
+ * ALTER TYPE ... RENAME VALUE
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
  * Copyright (c) 2015-2018, Euler Taveira

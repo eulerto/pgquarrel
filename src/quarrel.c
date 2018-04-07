@@ -40,8 +40,11 @@
  *  UNSUPPORTED
  * ~~~~~~~~~~~~~
  * foreign table
+ * policy
  * publication
  * subscription
+ * statistics
+ * transform
  *
  *  UNCERTAIN
  * ~~~~~~~~~~~~~
