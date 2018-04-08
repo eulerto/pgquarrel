@@ -42,6 +42,8 @@ add_executable(pgquarrel
 	src/sequence.h
 	src/server.c
 	src/server.h
+	src/statistics.c
+	src/statistics.h
 	src/table.c
 	src/table.h
 	src/textsearch.c

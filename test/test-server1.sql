@@ -50,4 +50,6 @@ CREATE EXTENSION file_fdw;
 
 \i from-server.sql
 
+\i from-statistics.sql
+
 --\i from-user-mapping.sql

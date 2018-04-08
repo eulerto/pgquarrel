@@ -43,7 +43,6 @@
  * policy
  * publication
  * subscription
- * statistics
  * transform
  *
  *  UNCERTAIN
@@ -53,7 +52,6 @@
  * ALTER LARGE OBJECT
  * GRANT LARGE OBJECT
  * REVOKE LARGE OBJECT
- * [ CREATE | ALTER | DROP ] STATISTICS
  *
  *
  * Copyright (c) 2015-2018, Euler Taveira
@@ -81,6 +79,7 @@
 #include "schema.h"
 #include "sequence.h"
 #include "server.h"
+#include "statistics.h"
 #include "table.h"
 #include "textsearch.h"
 #include "trigger.h"
@@ -105,7 +104,7 @@ PQLStatistic		qstat = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-							 0, 0, 0, 0, 0, 0
+							 0, 0, 0, 0, 0, 0, 0, 0
 					  };
 
 FILE				*fout;			/* output file */
@@ -145,6 +144,7 @@ static void quarrelOperatorClasses();
 static void quarrelRules();
 static void quarrelSchemas();
 static void quarrelSequences();
+static void quarrelStatistics();
 static void quarrelTables();
 static void quarrelTextSearchConfigs();
 static void quarrelTextSearchDicts();
@@ -391,6 +391,12 @@ loadConfig(const char *cf, QuarrelOptions *options)
 		else
 			options->general.sequence = parseBoolean("sequence", mini_file_get_value(config,
 										  "general", "sequence"));
+
+		if (mini_file_get_value(config, "general", "statistics") == NULL)
+			options->general.statistics = true;		/* default */
+		else
+			options->general.statistics = parseBoolean("statistics", mini_file_get_value(config,
+										  "general", "statistics"));
 
 		if (mini_file_get_value(config, "general", "table") == NULL)
 			options->general.table = true;		/* default */
@@ -2234,6 +2240,93 @@ quarrelSequences()
 }
 
 static void
+quarrelStatistics()
+{
+	PQLStatistics	*statistics1 = NULL;	/* from */
+	PQLStatistics	*statistics2 = NULL;	/* to */
+	int				nstatistics1 = 0;		/* # of statistics */
+	int				nstatistics2 = 0;
+	int				i, j;
+
+	statistics1 = getStatistics(conn1, &nstatistics1);
+	statistics2 = getStatistics(conn2, &nstatistics2);
+
+	for (i = 0; i < nstatistics1; i++)
+		logNoise("server1: %s.%s", statistics1[i].obj.schemaname,
+				 statistics1[i].obj.objectname);
+
+	for (i = 0; i < nstatistics2; i++)
+		logNoise("server2: %s.%s", statistics2[i].obj.schemaname,
+				 statistics2[i].obj.objectname);
+
+	/*
+	 * We have two sorted lists. Let's figure out which elements are not in the
+	 * other list.
+	 * We have two sorted lists. The strategy is transverse both lists only once
+	 * to figure out relations not presented in the other list.
+	 */
+	i = j = 0;
+	while (i < nstatistics1 || j < nstatistics2)
+	{
+		/* End of statistics1 list. Print statistics2 list until its end. */
+		if (i == nstatistics1)
+		{
+			logDebug("statistics %s.%s: server2", statistics2[j].obj.schemaname,
+					 statistics2[j].obj.objectname);
+
+			dumpCreateStatistics(fpre, &statistics2[j]);
+
+			j++;
+			qstat.stxadded++;
+		}
+		/* End of statistics2 list. Print statistics1 list until its end. */
+		else if (j == nstatistics2)
+		{
+			logDebug("statistics %s.%s: server1", statistics1[i].obj.schemaname,
+					 statistics1[i].obj.objectname);
+
+			dumpDropStatistics(fpost, &statistics1[i]);
+
+			i++;
+			qstat.stxremoved++;
+		}
+		else if (compareRelations(&statistics1[i].obj, &statistics2[j].obj) == 0)
+		{
+			logDebug("statistics %s.%s: server1 server2", statistics1[i].obj.schemaname,
+					 statistics1[i].obj.objectname);
+
+			dumpAlterStatistics(fpre, &statistics1[i], &statistics2[j]);
+
+			i++;
+			j++;
+		}
+		else if (compareRelations(&statistics1[i].obj, &statistics2[j].obj) < 0)
+		{
+			logDebug("statistics %s.%s: server1", statistics1[i].obj.schemaname,
+					 statistics1[i].obj.objectname);
+
+			dumpDropStatistics(fpost, &statistics1[i]);
+
+			i++;
+			qstat.stxremoved++;
+		}
+		else if (compareRelations(&statistics1[i].obj, &statistics2[j].obj) > 0)
+		{
+			logDebug("statistics %s.%s: server2", statistics2[j].obj.schemaname,
+					 statistics2[j].obj.objectname);
+
+			dumpCreateStatistics(fpre, &statistics2[j]);
+
+			j++;
+			qstat.stxadded++;
+		}
+	}
+
+	freeStatistics(statistics1, nstatistics1);
+	freeStatistics(statistics2, nstatistics2);
+}
+
+static void
 quarrelTables()
 {
 	PQLTable	*tables1 = NULL;	/* from */
@@ -3699,6 +3792,8 @@ int main(int argc, char *argv[])
 		quarrelTextSearchDicts();
 		quarrelTextSearchConfigs();
 	}
+	if (options.statistics)
+		quarrelStatistics();
 
 	/*
 	 * Print header iff there is at least one command. Check if one of the

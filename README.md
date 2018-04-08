@@ -250,7 +250,7 @@ Features
 	</tr>
 	<tr>
 		<td>STATISTICS</td>
-		<td>uncertain</td>
+		<td>complete</td>
 		<td></td>
 	</tr>
 </table>
