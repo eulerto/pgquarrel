@@ -55,7 +55,7 @@ typedef struct QuarrelGeneralOptions
 	char			*output;
 	char			*tmpdir;
 	bool			verbose;
-	bool			statistics;
+	bool			summary;
 	bool			comment;
 	bool			owner;
 	bool			privileges;

@@ -199,7 +199,7 @@ help(void)
 	printf("  %s [OPTION]...\n", PGQ_NAME);
 	printf("\nOptions:\n");
 	printf("  -c, --config=FILENAME      configuration file\n");
-	printf("  -s, --statistics           print statistics\n");
+	printf("  -s, --summary              print a summary of changes\n");
 	printf("  -v, --verbose              verbose mode\n");
 	printf("  --help                     show this help, then exit\n");
 	printf("  --version                  output version information, then exit\n");
@@ -263,11 +263,11 @@ loadConfig(const char *cf, QuarrelOptions *options)
 			options->general.verbose = parseBoolean("verbose", mini_file_get_value(config,
 											"general", "verbose"));
 
-		if (mini_file_get_value(config, "general", "statistics") == NULL)
-			options->general.statistics = false;	/* default */
+		if (mini_file_get_value(config, "general", "summary") == NULL)
+			options->general.summary = false;	/* default */
 		else
-			options->general.statistics = parseBoolean("statistics", mini_file_get_value(config,
-											   "general", "statistics"));
+			options->general.summary = parseBoolean("summary", mini_file_get_value(config,
+											   "general", "summary"));
 
 		if (mini_file_get_value(config, "general", "comment") == NULL)
 			options->general.comment = false;		/* default */
@@ -3463,7 +3463,7 @@ isEmptyFile(char *p)
 }
 
 static void
-printStatistics(void)
+printSummary(void)
 {
 	fprintf(stderr, "%d table(s) added, %d table(s) removed\n", qstat.tableadded,
 			qstat.tableremoved);
@@ -3480,7 +3480,7 @@ int main(int argc, char *argv[])
 	{
 		{"config", required_argument, NULL, 'c'},
 		{"ignore-version", no_argument, NULL, 'i'},
-		{"statistics", no_argument, NULL, 's'},
+		{"summary", no_argument, NULL, 's'},
 		{"verbose", no_argument, NULL, 'v'},
 		{NULL, 0, NULL, 0}
 	};
@@ -3489,7 +3489,7 @@ int main(int argc, char *argv[])
 	int			c;
 
 	char		*configfile = NULL;
-	bool		statistics = false;
+	bool		summary = false;
 	int			ignoreversion = false;
 
 	/* general and connection options */
@@ -3522,7 +3522,7 @@ int main(int argc, char *argv[])
 				ignoreversion = true;
 				break;
 			case 's':
-				statistics = true;
+				summary = true;
 				break;
 			case 'v':
 				if (loglevel == PGQ_ERROR)
@@ -3550,8 +3550,8 @@ int main(int argc, char *argv[])
 	/* command-line options take precedence over config options */
 	if (options.verbose && loglevel == PGQ_ERROR)	/* it wasn't defined on command-line so use config value */
 		loglevel = PGQ_DEBUG;
-	if (options.statistics)
-		statistics = true;
+	if (options.summary)
+		summary = true;
 
 	/* connecting to server1 ... */
 	conn1 = connectDatabase(opts.from);
@@ -3729,8 +3729,8 @@ int main(int argc, char *argv[])
 	logDebug("server1 connection is closed");
 	logDebug("server2 connection is closed");
 
-	if (statistics)
-		printStatistics();
+	if (summary)
+		printSummary();
 
 	/* flush and close the output file */
 	fflush(fout);
