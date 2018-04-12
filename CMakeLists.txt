@@ -110,14 +110,18 @@ find_program(astyle_EXECUTABLE astyle DOC "source code indenter, formatter, and 
 add_custom_target("style" COMMAND
 	"${astyle_EXECUTABLE}"
 	--style=bsd
+#	--attach-closing-while
 	--indent=force-tab=4
 	--indent-switches
 	--pad-oper
 	--align-pointer=name
+	--align-reference=name
 	--remove-brackets
+#	--break-return-type
+#	--break-return-type-decl
 	--max-code-length=80
 	--break-after-logical
-#	--suffix=none
+	--suffix=none
 	--lineend=linux
 	${CMAKE_CURRENT_SOURCE_DIR}/src/*.c
 	${CMAKE_CURRENT_SOURCE_DIR}/src/*.h
