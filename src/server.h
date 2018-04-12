@@ -31,7 +31,7 @@ PQLForeignServer *getForeignServers(PGconn *c, int *n);
 void dumpDropForeignServer(FILE *output, PQLForeignServer *s);
 void dumpCreateForeignServer(FILE *output, PQLForeignServer *s);
 void dumpAlterForeignServer(FILE *output, PQLForeignServer *a,
-							   PQLForeignServer *b);
+							PQLForeignServer *b);
 
 void freeForeignServers(PQLForeignServer *s, int n);
 

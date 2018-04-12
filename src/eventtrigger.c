@@ -102,7 +102,9 @@ getEventTriggerSecurityLabels(PGconn *c, PQLEventTrigger *e)
 		return;
 	}
 
-	snprintf(query, 200, "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_event_trigger' AND s.objoid = %u ORDER BY provider", e->oid);
+	snprintf(query, 200,
+			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_event_trigger' AND s.objoid = %u ORDER BY provider",
+			 e->oid);
 
 	res = PQexec(c, query);
 
@@ -121,11 +123,13 @@ getEventTriggerSecurityLabels(PGconn *c, PQLEventTrigger *e)
 	else
 		e->seclabels = NULL;
 
-	logDebug("number of security labels in event trigger \"%s\": %d", e->trgname, e->nseclabels);
+	logDebug("number of security labels in event trigger \"%s\": %d", e->trgname,
+			 e->nseclabels);
 
 	for (i = 0; i < e->nseclabels; i++)
 	{
-		e->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res, "provider")));
+		e->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
+										  "provider")));
 		e->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
 	}
 

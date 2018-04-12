@@ -36,9 +36,11 @@
 
 
 static void dumpAddOperatorOpFamily(FILE *output, PQLOperatorFamily *f, int i);
-static void dumpRemoveOperatorOpFamily(FILE *output, PQLOperatorFamily *f, int i);
+static void dumpRemoveOperatorOpFamily(FILE *output, PQLOperatorFamily *f,
+									   int i);
 static void dumpAddFunctionOpFamily(FILE *output, PQLOperatorFamily *f, int i);
-static void dumpRemoveFunctionOpFamily(FILE *output, PQLOperatorFamily *f, int i);
+static void dumpRemoveFunctionOpFamily(FILE *output, PQLOperatorFamily *f,
+									   int i);
 
 PQLOperator *
 getOperators(PGconn *c, int *n)
@@ -53,14 +55,14 @@ getOperators(PGconn *c, int *n)
 
 	/* determine how many characters will be written by snprintf */
 	nquery = snprintf(query, nquery,
-			"SELECT o.oid, n.nspname, o.oprname, oprcode::regprocedure, oprleft::regtype, oprright::regtype, oprcom::regoperator, oprnegate::regoperator, oprrest::regprocedure, oprjoin::regprocedure, oprcanhash, oprcanmerge, obj_description(o.oid, 'pg_operator') AS description, pg_get_userbyid(o.oprowner) AS oprowner FROM pg_operator o INNER JOIN pg_namespace n ON (o.oprnamespace = n.oid) WHERE o.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE o.oid = d.objid AND deptype = 'e') ORDER BY n.nspname, o.oprname, o.oprleft, o.oprright",
-			PGQ_FIRST_USER_OID);
+					  "SELECT o.oid, n.nspname, o.oprname, oprcode::regprocedure, oprleft::regtype, oprright::regtype, oprcom::regoperator, oprnegate::regoperator, oprrest::regprocedure, oprjoin::regprocedure, oprcanhash, oprcanmerge, obj_description(o.oid, 'pg_operator') AS description, pg_get_userbyid(o.oprowner) AS oprowner FROM pg_operator o INNER JOIN pg_namespace n ON (o.oprnamespace = n.oid) WHERE o.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE o.oid = d.objid AND deptype = 'e') ORDER BY n.nspname, o.oprname, o.oprleft, o.oprright",
+					  PGQ_FIRST_USER_OID);
 
 	nquery++;
 	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
 	snprintf(query, nquery,
-			"SELECT o.oid, n.nspname, o.oprname, oprcode::regprocedure, oprleft::regtype, oprright::regtype, oprcom::regoperator, oprnegate::regoperator, oprrest::regprocedure, oprjoin::regprocedure, oprcanhash, oprcanmerge, obj_description(o.oid, 'pg_operator') AS description, pg_get_userbyid(o.oprowner) AS oprowner FROM pg_operator o INNER JOIN pg_namespace n ON (o.oprnamespace = n.oid) WHERE o.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE o.oid = d.objid AND deptype = 'e') ORDER BY n.nspname, o.oprname, o.oprleft, o.oprright",
-			PGQ_FIRST_USER_OID);
+			 "SELECT o.oid, n.nspname, o.oprname, oprcode::regprocedure, oprleft::regtype, oprright::regtype, oprcom::regoperator, oprnegate::regoperator, oprrest::regprocedure, oprjoin::regprocedure, oprcanhash, oprcanmerge, obj_description(o.oid, 'pg_operator') AS description, pg_get_userbyid(o.oprowner) AS oprowner FROM pg_operator o INNER JOIN pg_namespace n ON (o.oprnamespace = n.oid) WHERE o.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE o.oid = d.objid AND deptype = 'e') ORDER BY n.nspname, o.oprname, o.oprleft, o.oprright",
+			 PGQ_FIRST_USER_OID);
 
 	logNoise("operator: query size: %d ; query: %s", nquery, query);
 
@@ -133,11 +135,14 @@ getOperators(PGconn *c, int *n)
 		o[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "oprowner")));
 
 		if (o[i].lefttype != NULL && o[i].righttype != NULL)
-			logDebug("operator \"%s\".\"%s\"(%s, %s)", o[i].obj.schemaname, o[i].obj.objectname, o[i].lefttype, o[i].righttype);
+			logDebug("operator \"%s\".\"%s\"(%s, %s)", o[i].obj.schemaname,
+					 o[i].obj.objectname, o[i].lefttype, o[i].righttype);
 		else if (o[i].lefttype != NULL)
-			logDebug("operator \"%s\".\"%s\"(%s, NONE)", o[i].obj.schemaname, o[i].obj.objectname, o[i].lefttype);
+			logDebug("operator \"%s\".\"%s\"(%s, NONE)", o[i].obj.schemaname,
+					 o[i].obj.objectname, o[i].lefttype);
 		else if (o[i].righttype != NULL)
-			logDebug("operator \"%s\".\"%s\"(NONE, %s)", o[i].obj.schemaname, o[i].obj.objectname, o[i].righttype);
+			logDebug("operator \"%s\".\"%s\"(NONE, %s)", o[i].obj.schemaname,
+					 o[i].obj.objectname, o[i].righttype);
 	}
 
 	PQclear(res);
@@ -158,14 +163,14 @@ getOperatorClasses(PGconn *c, int *n)
 
 	/* determine how many characters will be written by snprintf */
 	nquery = snprintf(query, nquery,
-			"SELECT c.oid, n.nspname AS opcnspname, c.opcname, c.opcdefault, c.opcintype::regtype, a.amname, o.nspname AS opfnspname, f.opfname, CASE WHEN c.opckeytype = 0 THEN NULL ELSE c.opckeytype::regtype END AS storage, obj_description(c.oid, 'pg_opclass') AS description, pg_get_userbyid(c.opcowner) AS opcowner FROM pg_opclass c INNER JOIN pg_namespace n ON (c.opcnamespace = n.oid) INNER JOIN pg_am a ON (c.opcmethod = a.oid) LEFT JOIN (pg_opfamily f INNER JOIN pg_namespace o ON (f.opfnamespace = o.oid)) ON (c.opcfamily = f.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND deptype = 'e') ORDER BY c.opcnamespace, c.opcname",
-			PGQ_FIRST_USER_OID);
+					  "SELECT c.oid, n.nspname AS opcnspname, c.opcname, c.opcdefault, c.opcintype::regtype, a.amname, o.nspname AS opfnspname, f.opfname, CASE WHEN c.opckeytype = 0 THEN NULL ELSE c.opckeytype::regtype END AS storage, obj_description(c.oid, 'pg_opclass') AS description, pg_get_userbyid(c.opcowner) AS opcowner FROM pg_opclass c INNER JOIN pg_namespace n ON (c.opcnamespace = n.oid) INNER JOIN pg_am a ON (c.opcmethod = a.oid) LEFT JOIN (pg_opfamily f INNER JOIN pg_namespace o ON (f.opfnamespace = o.oid)) ON (c.opcfamily = f.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND deptype = 'e') ORDER BY c.opcnamespace, c.opcname",
+					  PGQ_FIRST_USER_OID);
 
 	nquery++;
 	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
 	snprintf(query, nquery,
-			"SELECT c.oid, n.nspname AS opcnspname, c.opcname, c.opcdefault, c.opcintype::regtype, a.amname, o.nspname AS opfnspname, f.opfname, CASE WHEN c.opckeytype = 0 THEN NULL ELSE c.opckeytype::regtype END AS storage, obj_description(c.oid, 'pg_opclass') AS description, pg_get_userbyid(c.opcowner) AS opcowner FROM pg_opclass c INNER JOIN pg_namespace n ON (c.opcnamespace = n.oid) INNER JOIN pg_am a ON (c.opcmethod = a.oid) LEFT JOIN (pg_opfamily f INNER JOIN pg_namespace o ON (f.opfnamespace = o.oid)) ON (c.opcfamily = f.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND deptype = 'e') ORDER BY c.opcnamespace, c.opcname",
-			PGQ_FIRST_USER_OID);
+			 "SELECT c.oid, n.nspname AS opcnspname, c.opcname, c.opcdefault, c.opcintype::regtype, a.amname, o.nspname AS opfnspname, f.opfname, CASE WHEN c.opckeytype = 0 THEN NULL ELSE c.opckeytype::regtype END AS storage, obj_description(c.oid, 'pg_opclass') AS description, pg_get_userbyid(c.opcowner) AS opcowner FROM pg_opclass c INNER JOIN pg_namespace n ON (c.opcnamespace = n.oid) INNER JOIN pg_am a ON (c.opcmethod = a.oid) LEFT JOIN (pg_opfamily f INNER JOIN pg_namespace o ON (f.opfnamespace = o.oid)) ON (c.opcfamily = f.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND deptype = 'e') ORDER BY c.opcnamespace, c.opcname",
+			 PGQ_FIRST_USER_OID);
 
 	logNoise("operator class: query size: %d ; query: %s", nquery, query);
 
@@ -195,7 +200,8 @@ getOperatorClasses(PGconn *c, int *n)
 		d[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		d[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "opcnspname")));
 		d[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "opcname")));
-		d[i].defaultopclass = (PQgetvalue(res, i, PQfnumber(res, "opcdefault"))[0] == 't');
+		d[i].defaultopclass = (PQgetvalue(res, i, PQfnumber(res,
+										  "opcdefault"))[0] == 't');
 		d[i].intype = strdup(PQgetvalue(res, i, PQfnumber(res, "opcintype")));
 		d[i].accessmethod = strdup(PQgetvalue(res, i, PQfnumber(res, "amname")));
 		if (PQgetisnull(res, i, PQfnumber(res, "opfname")))
@@ -205,7 +211,8 @@ getOperatorClasses(PGconn *c, int *n)
 		}
 		else
 		{
-			d[i].family.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "opfnspname")));
+			d[i].family.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res,
+											"opfnspname")));
 			d[i].family.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "opfname")));
 		}
 		if (PQgetisnull(res, i, PQfnumber(res, "storage")))
@@ -249,14 +256,14 @@ getOperatorFamilies(PGconn *c, int *n)
 
 	/* determine how many characters will be written by snprintf */
 	nquery = snprintf(query, nquery,
-			"SELECT f.oid, n.nspname AS opfnspname, f.opfname, a.amname, obj_description(f.oid, 'pg_opfamily') AS description, pg_get_userbyid(f.opfowner) AS opfowner FROM pg_opfamily f INNER JOIN pg_namespace n ON (f.opfnamespace = n.oid) INNER JOIN pg_am a ON (f.opfmethod = a.oid) WHERE f.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE f.oid = d.objid AND deptype = 'e') ORDER BY opfnspname, f.opfname",
-			PGQ_FIRST_USER_OID);
+					  "SELECT f.oid, n.nspname AS opfnspname, f.opfname, a.amname, obj_description(f.oid, 'pg_opfamily') AS description, pg_get_userbyid(f.opfowner) AS opfowner FROM pg_opfamily f INNER JOIN pg_namespace n ON (f.opfnamespace = n.oid) INNER JOIN pg_am a ON (f.opfmethod = a.oid) WHERE f.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE f.oid = d.objid AND deptype = 'e') ORDER BY opfnspname, f.opfname",
+					  PGQ_FIRST_USER_OID);
 
 	nquery++;
 	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
 	snprintf(query, nquery,
-			"SELECT f.oid, n.nspname AS opfnspname, f.opfname, a.amname, obj_description(f.oid, 'pg_opfamily') AS description, pg_get_userbyid(f.opfowner) AS opfowner FROM pg_opfamily f INNER JOIN pg_namespace n ON (f.opfnamespace = n.oid) INNER JOIN pg_am a ON (f.opfmethod = a.oid) WHERE f.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE f.oid = d.objid AND deptype = 'e') ORDER BY opfnspname, f.opfname",
-			PGQ_FIRST_USER_OID);
+			 "SELECT f.oid, n.nspname AS opfnspname, f.opfname, a.amname, obj_description(f.oid, 'pg_opfamily') AS description, pg_get_userbyid(f.opfowner) AS opfowner FROM pg_opfamily f INNER JOIN pg_namespace n ON (f.opfnamespace = n.oid) INNER JOIN pg_am a ON (f.opfmethod = a.oid) WHERE f.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE f.oid = d.objid AND deptype = 'e') ORDER BY opfnspname, f.opfname",
+			 PGQ_FIRST_USER_OID);
 
 	logNoise("operator family: query size: %d ; query: %s", nquery, query);
 
@@ -323,12 +330,14 @@ getOpFuncAttributes(PGconn *c, Oid o, PQLOpAndFunc *d)
 
 	/* determine how many characters will be written by snprintf */
 	nquery = snprintf(query, nquery,
-			"SELECT amopopr::regoperator, amopstrategy, f.oid AS opfoid, n.nspname AS opfnspname, f.opfname FROM pg_amop a LEFT JOIN (pg_opfamily f INNER JOIN pg_namespace n ON (f.opfnamespace = n.oid)) ON (a.amopsortfamily = f.oid) WHERE a.amopfamily = %u", o);
+					  "SELECT amopopr::regoperator, amopstrategy, f.oid AS opfoid, n.nspname AS opfnspname, f.opfname FROM pg_amop a LEFT JOIN (pg_opfamily f INNER JOIN pg_namespace n ON (f.opfnamespace = n.oid)) ON (a.amopsortfamily = f.oid) WHERE a.amopfamily = %u",
+					  o);
 
 	nquery++;
 	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
 	snprintf(query, nquery,
-			"SELECT amopopr::regoperator, amopstrategy, f.oid AS opfoid, n.nspname AS opfnspname, f.opfname FROM pg_amop a LEFT JOIN (pg_opfamily f INNER JOIN pg_namespace n ON (f.opfnamespace = n.oid)) ON (a.amopsortfamily = f.oid) WHERE a.amopfamily = %u", o);
+			 "SELECT amopopr::regoperator, amopstrategy, f.oid AS opfoid, n.nspname AS opfnspname, f.opfname FROM pg_amop a LEFT JOIN (pg_opfamily f INNER JOIN pg_namespace n ON (f.opfnamespace = n.oid)) ON (a.amopsortfamily = f.oid) WHERE a.amopfamily = %u",
+			 o);
 
 	logNoise("operator family: query size: %d ; query: %s", nquery, query);
 
@@ -347,7 +356,8 @@ getOpFuncAttributes(PGconn *c, Oid o, PQLOpAndFunc *d)
 
 	d->noperators = PQntuples(res);
 	if (d->noperators > 0)
-		d->operators = (PQLOpOperators *) malloc(d->noperators * sizeof(PQLOpOperators));
+		d->operators = (PQLOpOperators *) malloc(d->noperators * sizeof(
+						   PQLOpOperators));
 	else
 		d->operators = NULL;
 
@@ -355,8 +365,9 @@ getOpFuncAttributes(PGconn *c, Oid o, PQLOpAndFunc *d)
 
 	for (i = 0; i < d->noperators; i++)
 	{
-		d->operators[i].strategy = strtoul(PQgetvalue(res, i, PQfnumber(res, "amopstrategy")),
-										  NULL, 10);
+		d->operators[i].strategy = strtoul(PQgetvalue(res, i, PQfnumber(res,
+										   "amopstrategy")),
+										   NULL, 10);
 		d->operators[i].oprname = strdup(PQgetvalue(res, i, PQfnumber(res, "amopopr")));
 		if (PQgetisnull(res, i, PQfnumber(res, "opfname")))
 		{
@@ -366,14 +377,17 @@ getOpFuncAttributes(PGconn *c, Oid o, PQLOpAndFunc *d)
 		}
 		else
 		{
-			d->operators[i].sortfamily.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "opfoid")), NULL, 10);
-			d->operators[i].sortfamily.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "opfnspname")));
-			d->operators[i].sortfamily.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "opfname")));
+			d->operators[i].sortfamily.oid = strtoul(PQgetvalue(res, i, PQfnumber(res,
+											 "opfoid")), NULL, 10);
+			d->operators[i].sortfamily.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res,
+													"opfnspname")));
+			d->operators[i].sortfamily.objectname = strdup(PQgetvalue(res, i, PQfnumber(res,
+													"opfname")));
 		}
 
 		logDebug("operator: \"%s\".\"%s\" ; strategy %d",
-					d->operators[i].oprname,
-					d->operators[i].strategy);
+				 d->operators[i].oprname,
+				 d->operators[i].strategy);
 	}
 
 	PQclear(res);
@@ -383,11 +397,13 @@ getOpFuncAttributes(PGconn *c, Oid o, PQLOpAndFunc *d)
 	query = NULL;
 	nquery = 0;
 	/* determine how many characters will be written by snprintf */
-	nquery = snprintf(query, nquery, "SELECT amproc::regprocedure, amprocnum FROM pg_amop WHERE amopfamily = %u", o);
+	nquery = snprintf(query, nquery,
+					  "SELECT amproc::regprocedure, amprocnum FROM pg_amop WHERE amopfamily = %u", o);
 
 	nquery++;
 	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-	snprintf(query, nquery, "SELECT amproc::regprocedure, amprocnum FROM pg_amop WHERE amopfamily = %u", o);
+	snprintf(query, nquery,
+			 "SELECT amproc::regprocedure, amprocnum FROM pg_amop WHERE amopfamily = %u", o);
 
 	logNoise("operator family: query size: %d ; query: %s", nquery, query);
 
@@ -406,7 +422,8 @@ getOpFuncAttributes(PGconn *c, Oid o, PQLOpAndFunc *d)
 
 	d->nfunctions = PQntuples(res);
 	if (d->nfunctions > 0)
-		d->functions = (PQLOpFunctions *) malloc(d->nfunctions * sizeof(PQLOpFunctions));
+		d->functions = (PQLOpFunctions *) malloc(d->nfunctions * sizeof(
+						   PQLOpFunctions));
 	else
 		d->functions = NULL;
 
@@ -414,13 +431,14 @@ getOpFuncAttributes(PGconn *c, Oid o, PQLOpAndFunc *d)
 
 	for (i = 0; i < d->nfunctions; i++)
 	{
-		d->functions[i].support = strtoul(PQgetvalue(res, i, PQfnumber(res, "amprocnum")),
+		d->functions[i].support = strtoul(PQgetvalue(res, i, PQfnumber(res,
+										  "amprocnum")),
 										  NULL, 10);
 		d->functions[i].funcname = strdup(PQgetvalue(res, i, PQfnumber(res, "amproc")));
 
 		logDebug("function: \"%s\" ; support %d",
-					d->functions[i].funcname,
-					d->functions[i].support);
+				 d->functions[i].funcname,
+				 d->functions[i].support);
 	}
 
 	PQclear(res);
@@ -439,7 +457,8 @@ compareOperators(PQLOperator *a, PQLOperator *b)
 		c = strcmp(a->obj.objectname, b->obj.objectname);
 		/* compare operands iif objectname are equal */
 		if (c == 0)
-			c = ((strcmp(a->lefttype, b->lefttype) == 0) && (strcmp(a->righttype, b->righttype) == 0));
+			c = ((strcmp(a->lefttype, b->lefttype) == 0) &&
+				 (strcmp(a->righttype, b->righttype) == 0));
 	}
 
 	return c;
@@ -512,9 +531,7 @@ freeOperatorClasses(PQLOperatorClass *c, int n)
 
 			/* functions */
 			for (j = 0; j < c[i].opandfunc.nfunctions; j++)
-			{
 				free(c[i].opandfunc.functions[j].funcname);
-			}
 
 			if (c[i].comment)
 				free(c[i].comment);
@@ -552,9 +569,7 @@ freeOperatorFamilies(PQLOperatorFamily *f, int n)
 
 			/* functions */
 			for (j = 0; j < f[i].opandfunc.nfunctions; j++)
-			{
 				free(f[i].opandfunc.functions[j].funcname);
-			}
 
 			if (f[i].comment)
 				free(f[i].comment);
@@ -573,9 +588,9 @@ dumpDropOperator(FILE *output, PQLOperator *o)
 
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP OPERATOR %s.%s(%s,%s);",
-						schema, oprname,
-						(o->lefttype) ? o->lefttype : "NONE",
-						(o->righttype) ? o->righttype : "NONE");
+			schema, oprname,
+			(o->lefttype) ? o->lefttype : "NONE",
+			(o->righttype) ? o->righttype : "NONE");
 
 	free(schema);
 	free(oprname);
@@ -588,7 +603,8 @@ dumpDropOperatorClass(FILE *output, PQLOperatorClass *c)
 	char	*opcname = formatObjectIdentifier(c->obj.objectname);
 
 	fprintf(output, "\n\n");
-	fprintf(output, "DROP OPERATOR CLASS %s.%s USING %s;", schema, opcname, c->accessmethod);
+	fprintf(output, "DROP OPERATOR CLASS %s.%s USING %s;", schema, opcname,
+			c->accessmethod);
 
 	free(schema);
 	free(opcname);
@@ -601,7 +617,8 @@ dumpDropOperatorFamily(FILE *output, PQLOperatorFamily *f)
 	char	*opfname = formatObjectIdentifier(f->obj.objectname);
 
 	fprintf(output, "\n\n");
-	fprintf(output, "DROP OPERATOR FAMILY %s.%s USING %s;", schema, opfname, f->accessmethod);
+	fprintf(output, "DROP OPERATOR FAMILY %s.%s USING %s;", schema, opfname,
+			f->accessmethod);
 
 	free(schema);
 	free(opfname);
@@ -641,10 +658,10 @@ dumpCreateOperator(FILE *output, PQLOperator *o)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON OPERATOR %s.%s(%s,%s) IS '%s';",
-						schema, oprname,
-						(o->lefttype) ? o->lefttype : "NONE",
-						(o->righttype) ? o->righttype : "NONE",
-						o->comment);
+					schema, oprname,
+					(o->lefttype) ? o->lefttype : "NONE",
+					(o->righttype) ? o->righttype : "NONE",
+					o->comment);
 		}
 	}
 
@@ -653,10 +670,10 @@ dumpCreateOperator(FILE *output, PQLOperator *o)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER OPERATOR %s.%s(%s,%s) OWNER TO %s;",
-					schema, oprname,
-					(o->lefttype) ? o->lefttype : "NONE",
-					(o->righttype) ? o->righttype : "NONE",
-					o->owner);
+				schema, oprname,
+				(o->lefttype) ? o->lefttype : "NONE",
+				(o->righttype) ? o->righttype : "NONE",
+				o->owner);
 	}
 
 	free(schema);
@@ -704,7 +721,8 @@ dumpCreateOperatorClass(FILE *output, PQLOperatorClass *c)
 			fprintf(output, ",\n");
 		else
 			comma = true;
-		fprintf(output, " OPERATOR %d %s", c->opandfunc.operators[i].strategy, c->opandfunc.operators[i].oprname);
+		fprintf(output, " OPERATOR %d %s", c->opandfunc.operators[i].strategy,
+				c->opandfunc.operators[i].oprname);
 		if (c->opandfunc.operators[i].sortfamily.objectname)
 		{
 			tmps = formatObjectIdentifier(c->opandfunc.operators[i].sortfamily.schemaname);
@@ -725,7 +743,8 @@ dumpCreateOperatorClass(FILE *output, PQLOperatorClass *c)
 			fprintf(output, ",\n");
 		else
 			comma = true;
-		fprintf(output, " FUNCTION %d %s", c->opandfunc.functions[i].support, c->opandfunc.functions[i].funcname);
+		fprintf(output, " FUNCTION %d %s", c->opandfunc.functions[i].support,
+				c->opandfunc.functions[i].funcname);
 	}
 	fprintf(output, ";");
 
@@ -736,9 +755,9 @@ dumpCreateOperatorClass(FILE *output, PQLOperatorClass *c)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON OPERATOR CLASS %s.%s USING %s IS '%s';",
-						schema, opcname,
-						c->accessmethod,
-						c->comment);
+					schema, opcname,
+					c->accessmethod,
+					c->comment);
 		}
 	}
 
@@ -747,9 +766,9 @@ dumpCreateOperatorClass(FILE *output, PQLOperatorClass *c)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER OPERATOR CLASS %s.%s USING %s OWNER TO %s;",
-					schema, opcname,
-					c->accessmethod,
-					c->owner);
+				schema, opcname,
+				c->accessmethod,
+				c->owner);
 	}
 
 	free(schema);
@@ -767,7 +786,8 @@ dumpCreateOperatorFamily(FILE *output, PQLOperatorFamily *f)
 	char	*opfname = formatObjectIdentifier(f->obj.objectname);
 
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE OPERATOR FAMILY %s.%s USING %s;", schema, opfname, f->accessmethod);
+	fprintf(output, "CREATE OPERATOR FAMILY %s.%s USING %s;", schema, opfname,
+			f->accessmethod);
 
 	/* comment */
 	if (options.comment)
@@ -776,9 +796,9 @@ dumpCreateOperatorFamily(FILE *output, PQLOperatorFamily *f)
 		{
 			fprintf(output, "\n\n");
 			fprintf(output, "COMMENT ON OPERATOR FAMILY %s.%s USING %s IS '%s';",
-						schema, opfname,
-						f->accessmethod,
-						f->comment);
+					schema, opfname,
+					f->accessmethod,
+					f->comment);
 		}
 	}
 
@@ -787,9 +807,9 @@ dumpCreateOperatorFamily(FILE *output, PQLOperatorFamily *f)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER OPERATOR FAMILY %s.%s USING %s OWNER TO %s;",
-					schema, opfname,
-					f->accessmethod,
-					f->owner);
+				schema, opfname,
+				f->accessmethod,
+				f->owner);
 	}
 
 	free(schema);
@@ -810,24 +830,16 @@ dumpAlterOperator(FILE *output, PQLOperator *a, PQLOperator *b)
 	if ((a->restriction == NULL && b->restriction != NULL) ||
 			(a->restriction != NULL && b->restriction != NULL &&
 			 strcmp(a->restriction, b->restriction) != 0))
-	{
 		r = strdup(b->restriction);
-	}
 	else if (a->restriction != NULL && b->restriction == NULL)
-	{
 		r = strdup("NONE");
-	}
 
 	if ((a->join == NULL && b->join != NULL) ||
 			(a->join != NULL && b->join != NULL &&
 			 strcmp(a->join, b->join) != 0))
-	{
 		j = strdup(b->join);
-	}
 	else if (a->join != NULL && b->join == NULL)
-	{
 		j = strdup("NONE");
-	}
 
 	if (r != NULL || j != NULL)
 	{
@@ -909,9 +921,9 @@ dumpAddOperatorOpFamily(FILE *output, PQLOperatorFamily *f, int i)
 
 	fprintf(output, "\n\n");
 	fprintf(output, "ALTER OPERATOR FAMILY %s.%s USING %s ADD OPERATOR %d %s",
-					schema, opfname, f->accessmethod,
-					f->opandfunc.operators[i].strategy,
-					f->opandfunc.operators[i].oprname);
+			schema, opfname, f->accessmethod,
+			f->opandfunc.operators[i].strategy,
+			f->opandfunc.operators[i].oprname);
 	if (f->opandfunc.operators[i].sortfamily.objectname)
 	{
 		tmps = formatObjectIdentifier(f->opandfunc.operators[i].sortfamily.schemaname);
@@ -937,8 +949,8 @@ dumpRemoveOperatorOpFamily(FILE *output, PQLOperatorFamily *f, int i)
 
 	fprintf(output, "\n\n");
 	fprintf(output, "ALTER OPERATOR FAMILY %s.%s USING %s DROP OPERATOR %d;",
-					schema, opfname, f->accessmethod,
-					f->opandfunc.operators[i].strategy);
+			schema, opfname, f->accessmethod,
+			f->opandfunc.operators[i].strategy);
 
 	free(schema);
 	free(opfname);
@@ -952,9 +964,9 @@ dumpAddFunctionOpFamily(FILE *output, PQLOperatorFamily *f, int i)
 
 	fprintf(output, "\n\n");
 	fprintf(output, "ALTER OPERATOR FAMILY %s.%s USING %s ADD FUNCTION %d %s;",
-					schema, opfname, f->accessmethod,
-					f->opandfunc.functions[i].support,
-					f->opandfunc.functions[i].funcname);
+			schema, opfname, f->accessmethod,
+			f->opandfunc.functions[i].support,
+			f->opandfunc.functions[i].funcname);
 
 	free(schema);
 	free(opfname);
@@ -968,8 +980,8 @@ dumpRemoveFunctionOpFamily(FILE *output, PQLOperatorFamily *f, int i)
 
 	fprintf(output, "\n\n");
 	fprintf(output, "ALTER OPERATOR FAMILY %s.%s USING %s DROP FUNCTION %d;",
-					schema, opfname, f->accessmethod,
-					f->opandfunc.functions[i].support);
+			schema, opfname, f->accessmethod,
+			f->opandfunc.functions[i].support);
 
 	free(schema);
 	free(opfname);
@@ -1028,7 +1040,8 @@ dumpAlterOperatorClass(FILE *output, PQLOperatorClass *a, PQLOperatorClass *b)
 }
 
 void
-dumpAlterOperatorFamily(FILE *output, PQLOperatorFamily *a, PQLOperatorFamily *b)
+dumpAlterOperatorFamily(FILE *output, PQLOperatorFamily *a,
+						PQLOperatorFamily *b)
 {
 	char	*schema1 = formatObjectIdentifier(a->obj.schemaname);
 	char	*opfname1 = formatObjectIdentifier(a->obj.objectname);
@@ -1048,7 +1061,7 @@ dumpAlterOperatorFamily(FILE *output, PQLOperatorFamily *a, PQLOperatorFamily *b
 		if (i == a->opandfunc.noperators)
 		{
 			logDebug("operator class \"%s\".\"%s\" operator \"%s\" added",
-						b->obj.schemaname, b->obj.objectname, b->opandfunc.operators[j].oprname);
+					 b->obj.schemaname, b->obj.objectname, b->opandfunc.operators[j].oprname);
 			dumpAddOperatorOpFamily(output, b, j);
 			j++;
 		}
@@ -1059,27 +1072,30 @@ dumpAlterOperatorFamily(FILE *output, PQLOperatorFamily *a, PQLOperatorFamily *b
 		else if (j == b->opandfunc.noperators)
 		{
 			logDebug("operator class \"%s\".\"%s\" operator \"%s\" removed",
-						a->obj.schemaname, a->obj.objectname, a->opandfunc.operators[i].oprname);
+					 a->obj.schemaname, a->obj.objectname, a->opandfunc.operators[i].oprname);
 			dumpRemoveOperatorOpFamily(output, a, i);
 			i++;
 		}
-		else if (a->opandfunc.operators[i].strategy == b->opandfunc.operators[j].strategy)
+		else if (a->opandfunc.operators[i].strategy ==
+				 b->opandfunc.operators[j].strategy)
 		{
 			/* do nothing */
 			i++;
 			j++;
 		}
-		else if (a->opandfunc.operators[i].strategy < b->opandfunc.operators[j].strategy)
+		else if (a->opandfunc.operators[i].strategy <
+				 b->opandfunc.operators[j].strategy)
 		{
 			logDebug("operator class \"%s\".\"%s\" operator \"%s\" removed",
-						a->obj.schemaname, a->obj.objectname, a->opandfunc.operators[i].oprname);
+					 a->obj.schemaname, a->obj.objectname, a->opandfunc.operators[i].oprname);
 			dumpRemoveOperatorOpFamily(output, a, i);
 			i++;
 		}
-		else if (a->opandfunc.operators[i].strategy > b->opandfunc.operators[j].strategy)
+		else if (a->opandfunc.operators[i].strategy >
+				 b->opandfunc.operators[j].strategy)
 		{
 			logDebug("operator class \"%s\".\"%s\" operator \"%s\" added",
-						b->obj.schemaname, b->obj.objectname, b->opandfunc.operators[j].oprname);
+					 b->obj.schemaname, b->obj.objectname, b->opandfunc.operators[j].oprname);
 			dumpAddOperatorOpFamily(output, b, j);
 			j++;
 		}
@@ -1096,7 +1112,7 @@ dumpAlterOperatorFamily(FILE *output, PQLOperatorFamily *a, PQLOperatorFamily *b
 		if (i == a->opandfunc.nfunctions)
 		{
 			logDebug("operator class \"%s\".\"%s\" function \"%s\" added",
-						b->obj.schemaname, b->obj.objectname, b->opandfunc.functions[j].funcname);
+					 b->obj.schemaname, b->obj.objectname, b->opandfunc.functions[j].funcname);
 			dumpAddFunctionOpFamily(output, b, j);
 			j++;
 		}
@@ -1107,7 +1123,7 @@ dumpAlterOperatorFamily(FILE *output, PQLOperatorFamily *a, PQLOperatorFamily *b
 		else if (j == b->opandfunc.nfunctions)
 		{
 			logDebug("operator class \"%s\".\"%s\" function \"%s\" removed",
-						a->obj.schemaname, a->obj.objectname, a->opandfunc.functions[i].funcname);
+					 a->obj.schemaname, a->obj.objectname, a->opandfunc.functions[i].funcname);
 			dumpRemoveFunctionOpFamily(output, a, i);
 			i++;
 		}
@@ -1120,14 +1136,14 @@ dumpAlterOperatorFamily(FILE *output, PQLOperatorFamily *a, PQLOperatorFamily *b
 		else if (a->opandfunc.functions[i].support < b->opandfunc.functions[j].support)
 		{
 			logDebug("operator class \"%s\".\"%s\" function \"%s\" removed",
-						a->obj.schemaname, a->obj.objectname, a->opandfunc.functions[i].funcname);
+					 a->obj.schemaname, a->obj.objectname, a->opandfunc.functions[i].funcname);
 			dumpRemoveFunctionOpFamily(output, a, i);
 			i++;
 		}
 		else if (a->opandfunc.functions[i].support > b->opandfunc.functions[j].support)
 		{
 			logDebug("operator class \"%s\".\"%s\" function \"%s\" added",
-						b->obj.schemaname, b->obj.objectname, b->opandfunc.functions[j].funcname);
+					 b->obj.schemaname, b->obj.objectname, b->opandfunc.functions[j].funcname);
 			dumpAddFunctionOpFamily(output, b, j);
 			j++;
 		}

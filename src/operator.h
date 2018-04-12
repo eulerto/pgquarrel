@@ -90,8 +90,10 @@ void dumpCreateOperator(FILE *output, PQLOperator *o);
 void dumpCreateOperatorClass(FILE *output, PQLOperatorClass *c);
 void dumpCreateOperatorFamily(FILE *output, PQLOperatorFamily *f);
 void dumpAlterOperator(FILE *output, PQLOperator *a, PQLOperator *b);
-void dumpAlterOperatorClass(FILE *output, PQLOperatorClass *a, PQLOperatorClass *b);
-void dumpAlterOperatorFamily(FILE *output, PQLOperatorFamily *a, PQLOperatorFamily *b);
+void dumpAlterOperatorClass(FILE *output, PQLOperatorClass *a,
+							PQLOperatorClass *b);
+void dumpAlterOperatorFamily(FILE *output, PQLOperatorFamily *a,
+							 PQLOperatorFamily *b);
 
 void freeOperators(PQLOperator *o, int n);
 void freeOperatorClasses(PQLOperatorClass *c, int n);

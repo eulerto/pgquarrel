@@ -136,14 +136,14 @@ getDomainConstraints(PGconn *c, PQLDomain *d)
 	{
 		/* determine how many characters will be written by snprintf */
 		nquery = snprintf(query, nquery,
-					 "SELECT conname, pg_get_constraintdef(oid) AS condef, convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
-					 d->obj.oid);
+						  "SELECT conname, pg_get_constraintdef(oid) AS condef, convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
+						  d->obj.oid);
 
 		nquery++;
 		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
 		snprintf(query, nquery,
-					 "SELECT conname, pg_get_constraintdef(oid) AS condef, convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
-					 d->obj.oid);
+				 "SELECT conname, pg_get_constraintdef(oid) AS condef, convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
+				 d->obj.oid);
 
 		logNoise("domain: query size: %d ; query: %s", nquery, query);
 	}
@@ -151,14 +151,14 @@ getDomainConstraints(PGconn *c, PQLDomain *d)
 	{
 		/* determine how many characters will be written by snprintf */
 		nquery = snprintf(query, nquery,
-					 "SELECT conname, pg_get_constraintdef(oid) AS condef, true AS convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
-					 d->obj.oid);
+						  "SELECT conname, pg_get_constraintdef(oid) AS condef, true AS convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
+						  d->obj.oid);
 
 		nquery++;
 		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
 		snprintf(query, nquery,
-					 "SELECT conname, pg_get_constraintdef(oid) AS condef, true AS convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
-					 d->obj.oid);
+				 "SELECT conname, pg_get_constraintdef(oid) AS condef, true AS convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
+				 d->obj.oid);
 
 		logNoise("domain: query size: %d ; query: %s", nquery, query);
 	}
@@ -182,7 +182,8 @@ getDomainConstraints(PGconn *c, PQLDomain *d)
 	else
 		d->check = NULL;
 
-	logDebug("number of check constraints in domain \"%s\".\"%s\": %d", d->obj.schemaname, d->obj.objectname, d->ncheck);
+	logDebug("number of check constraints in domain \"%s\".\"%s\": %d",
+			 d->obj.schemaname, d->obj.objectname, d->ncheck);
 
 	for (i = 0; i < d->ncheck; i++)
 	{
@@ -212,7 +213,9 @@ getDomainSecurityLabels(PGconn *c, PQLDomain *d)
 	 * Don't bother to check the kind of type because can't be duplicated oids
 	 * in the same catalog.
 	 */
-	snprintf(query, 200, "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_type' AND s.objoid = %u ORDER BY provider", d->obj.oid);
+	snprintf(query, 200,
+			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_type' AND s.objoid = %u ORDER BY provider",
+			 d->obj.oid);
 
 	res = PQexec(c, query);
 
@@ -231,11 +234,13 @@ getDomainSecurityLabels(PGconn *c, PQLDomain *d)
 	else
 		d->seclabels = NULL;
 
-	logDebug("number of security labels in domain \"%s\".\"%s\": %d", d->obj.schemaname, d->obj.objectname, d->nseclabels);
+	logDebug("number of security labels in domain \"%s\".\"%s\": %d",
+			 d->obj.schemaname, d->obj.objectname, d->nseclabels);
 
 	for (i = 0; i < d->nseclabels; i++)
 	{
-		d->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res, "provider")));
+		d->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
+										  "provider")));
 		d->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
 	}
 
@@ -319,7 +324,8 @@ dumpCreateDomain(FILE *output, PQLDomain *d)
 	/* CHECK constraint */
 	/* XXX consider dump it separately? */
 	for (i = 0; i < d->ncheck; i++)
-		fprintf(output, "\n\tCONSTRAINT %s %s", d->check[i].conname, d->check[i].condef);
+		fprintf(output, "\n\tCONSTRAINT %s %s", d->check[i].conname,
+				d->check[i].condef);
 
 	fprintf(output, ";");
 
@@ -360,7 +366,8 @@ dumpCreateDomain(FILE *output, PQLDomain *d)
 	/* privileges */
 	/* XXX second d->obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
-		dumpGrantAndRevoke(output, PGQ_DOMAIN, &d->obj, &d->obj, NULL, d->acl, NULL, NULL);
+		dumpGrantAndRevoke(output, PGQ_DOMAIN, &d->obj, &d->obj, NULL, d->acl, NULL,
+						   NULL);
 
 	free(schema);
 	free(domname);
@@ -548,7 +555,8 @@ dumpAlterDomain(FILE *output, PQLDomain *a, PQLDomain *b)
 	if (options.privileges)
 	{
 		if (a->acl != NULL || b->acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_DOMAIN, &a->obj, &b->obj, a->acl, b->acl, NULL, NULL);
+			dumpGrantAndRevoke(output, PGQ_DOMAIN, &a->obj, &b->obj, a->acl, b->acl, NULL,
+							   NULL);
 	}
 
 	free(schema1);

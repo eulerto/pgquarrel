@@ -185,7 +185,8 @@ dumpAlterIndex(FILE *output, PQLIndex *a, PQLIndex *b)
 		stringList	*rlist;
 
 		/* reset all options */
-		rlist = setOperationOptions(a->reloptions, b->reloptions, PGQ_SETDIFFERENCE, false, true);
+		rlist = setOperationOptions(a->reloptions, b->reloptions, PGQ_SETDIFFERENCE,
+									false, true);
 		if (rlist)
 		{
 			char	*resetlist;
@@ -205,7 +206,8 @@ dumpAlterIndex(FILE *output, PQLIndex *a, PQLIndex *b)
 		stringList	*rlist, *ilist, *slist;
 
 		/* reset options that are only presented in the first set */
-		rlist = setOperationOptions(a->reloptions, b->reloptions, PGQ_SETDIFFERENCE, false, true);
+		rlist = setOperationOptions(a->reloptions, b->reloptions, PGQ_SETDIFFERENCE,
+									false, true);
 		if (rlist)
 		{
 			char	*resetlist;
@@ -223,7 +225,8 @@ dumpAlterIndex(FILE *output, PQLIndex *a, PQLIndex *b)
 		 * Include intersection between option sets. However, exclude options
 		 * that don't change.
 		 */
-		ilist = setOperationOptions(a->reloptions, b->reloptions, PGQ_INTERSECT, true, true);
+		ilist = setOperationOptions(a->reloptions, b->reloptions, PGQ_INTERSECT, true,
+									true);
 		if (ilist)
 		{
 			char	*setlist;
@@ -240,7 +243,8 @@ dumpAlterIndex(FILE *output, PQLIndex *a, PQLIndex *b)
 		/*
 		 * Set options that are only presented in the second set.
 		 */
-		slist = setOperationOptions(b->reloptions, a->reloptions, PGQ_SETDIFFERENCE, true, true);
+		slist = setOperationOptions(b->reloptions, a->reloptions, PGQ_SETDIFFERENCE,
+									true, true);
 		if (slist)
 		{
 			char	*setlist;

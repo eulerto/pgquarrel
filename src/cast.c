@@ -48,8 +48,8 @@ getCasts(PGconn *c, int *n)
 	{
 		/* determine how many characters will be written by snprintf */
 		nquery = snprintf(query, nquery,
-				 "SELECT c.oid, format_type(c.castsource, t.typtypmod) as source, format_type(c.casttarget, u.typtypmod) as target, castmethod, quote_ident(n.nspname) || '.' || quote_ident(f.proname) || '(' || pg_get_function_arguments(f.oid) || ')' as funcname, castcontext, obj_description(c.oid, 'pg_cast') AS description FROM pg_cast c LEFT JOIN pg_type t ON (c.castsource = t.oid) LEFT JOIN pg_type u ON (c.casttarget = u.oid) LEFT JOIN pg_proc f ON (c.castfunc = f.oid) LEFT JOIN pg_namespace n ON (f.pronamespace = n.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY source, target",
-				 PGQ_FIRST_USER_OID);
+						  "SELECT c.oid, format_type(c.castsource, t.typtypmod) as source, format_type(c.casttarget, u.typtypmod) as target, castmethod, quote_ident(n.nspname) || '.' || quote_ident(f.proname) || '(' || pg_get_function_arguments(f.oid) || ')' as funcname, castcontext, obj_description(c.oid, 'pg_cast') AS description FROM pg_cast c LEFT JOIN pg_type t ON (c.castsource = t.oid) LEFT JOIN pg_type u ON (c.casttarget = u.oid) LEFT JOIN pg_proc f ON (c.castfunc = f.oid) LEFT JOIN pg_namespace n ON (f.pronamespace = n.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY source, target",
+						  PGQ_FIRST_USER_OID);
 
 		nquery++;
 		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
@@ -63,8 +63,8 @@ getCasts(PGconn *c, int *n)
 	{
 		/* determine how many characters will be written by snprintf */
 		nquery = snprintf(query, nquery,
-				 "SELECT c.oid, format_type(c.castsource, t.typtypmod) as source, format_type(c.casttarget, u.typtypmod) as target, castmethod, quote_ident(n.nspname) || '.' || quote_ident(f.proname) || '(' || pg_get_function_arguments(f.oid) || ')' as funcname, castcontext, obj_description(c.oid, 'pg_cast') AS description FROM pg_cast c LEFT JOIN pg_type t ON (c.castsource = t.oid) LEFT JOIN pg_type u ON (c.casttarget = u.oid) LEFT JOIN pg_proc f ON (c.castfunc = f.oid) LEFT JOIN pg_namespace n ON (f.pronamespace = n.oid) WHERE c.oid >= %u ORDER BY source, target",
-				 PGQ_FIRST_USER_OID);
+						  "SELECT c.oid, format_type(c.castsource, t.typtypmod) as source, format_type(c.casttarget, u.typtypmod) as target, castmethod, quote_ident(n.nspname) || '.' || quote_ident(f.proname) || '(' || pg_get_function_arguments(f.oid) || ')' as funcname, castcontext, obj_description(c.oid, 'pg_cast') AS description FROM pg_cast c LEFT JOIN pg_type t ON (c.castsource = t.oid) LEFT JOIN pg_type u ON (c.casttarget = u.oid) LEFT JOIN pg_proc f ON (c.castfunc = f.oid) LEFT JOIN pg_namespace n ON (f.pronamespace = n.oid) WHERE c.oid >= %u ORDER BY source, target",
+						  PGQ_FIRST_USER_OID);
 
 		nquery++;
 		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */

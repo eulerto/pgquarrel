@@ -111,7 +111,8 @@ getMaterializedViews(PGconn *c, int *n)
 		v[i].nseclabels = 0;
 		v[i].seclabels = NULL;
 
-		logDebug("materialized view \"%s\".\"%s\"", v[i].obj.schemaname, v[i].obj.objectname);
+		logDebug("materialized view \"%s\".\"%s\"", v[i].obj.schemaname,
+				 v[i].obj.objectname);
 
 		/*
 		 * These values are not assigned here (see
@@ -122,9 +123,11 @@ getMaterializedViews(PGconn *c, int *n)
 		v[i].attributes = NULL;
 
 		if (v[i].reloptions)
-			logDebug("materialized view \"%s\".\"%s\": reloptions: %s", v[i].obj.schemaname, v[i].obj.objectname, v[i].reloptions);
+			logDebug("materialized view \"%s\".\"%s\": reloptions: %s", v[i].obj.schemaname,
+					 v[i].obj.objectname, v[i].reloptions);
 		else
-			logDebug("materialized view \"%s\".\"%s\": no reloptions", v[i].obj.schemaname, v[i].obj.objectname);
+			logDebug("materialized view \"%s\".\"%s\": no reloptions", v[i].obj.schemaname,
+					 v[i].obj.objectname);
 	}
 
 	PQclear(res);
@@ -143,8 +146,8 @@ getMaterializedViewAttributes(PGconn *c, PQLMaterializedView *v)
 	/* determine how many characters will be written by snprintf */
 	/* FIXME attcollation (9.1)? */
 	nquery = snprintf(query, nquery,
-				 "SELECT a.attnum, a.attname, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
-				 v->obj.oid);
+					  "SELECT a.attnum, a.attname, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
+					  v->obj.oid);
 
 	nquery++;
 	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
@@ -173,7 +176,8 @@ getMaterializedViewAttributes(PGconn *c, PQLMaterializedView *v)
 	else
 		v->attributes = NULL;
 
-	logDebug("number of attributes in materialized view \"%s\".\"%s\": %d", v->obj.schemaname, v->obj.objectname, v->nattributes);
+	logDebug("number of attributes in materialized view \"%s\".\"%s\": %d",
+			 v->obj.schemaname, v->obj.objectname, v->nattributes);
 
 	for (i = 0; i < v->nattributes; i++)
 	{
@@ -242,7 +246,9 @@ getMaterializedViewSecurityLabels(PGconn *c, PQLMaterializedView *v)
 		return;
 	}
 
-	snprintf(query, 200, "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_class' AND s.objoid = %u ORDER BY provider", v->obj.oid);
+	snprintf(query, 200,
+			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_class' AND s.objoid = %u ORDER BY provider",
+			 v->obj.oid);
 
 	res = PQexec(c, query);
 
@@ -261,11 +267,13 @@ getMaterializedViewSecurityLabels(PGconn *c, PQLMaterializedView *v)
 	else
 		v->seclabels = NULL;
 
-	logDebug("number of security labels in materialized view \"%s\".\"%s\": %d", v->obj.schemaname, v->obj.objectname, v->nseclabels);
+	logDebug("number of security labels in materialized view \"%s\".\"%s\": %d",
+			 v->obj.schemaname, v->obj.objectname, v->nseclabels);
 
 	for (i = 0; i < v->nseclabels; i++)
 	{
-		v->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res, "provider")));
+		v->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
+										  "provider")));
 		v->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
 	}
 
@@ -372,7 +380,8 @@ dumpCreateMaterializedView(FILE *output, PQLMaterializedView *v)
 	if (options.comment && v->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON MATERIALIZED VIEW %s.%s IS '%s';", schema, matvname, v->comment);
+		fprintf(output, "COMMENT ON MATERIALIZED VIEW %s.%s IS '%s';", schema, matvname,
+				v->comment);
 	}
 
 	/* security labels */
@@ -393,7 +402,8 @@ dumpCreateMaterializedView(FILE *output, PQLMaterializedView *v)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER MATERIALIZED VIEW %s.%s OWNER TO %s;", schema, matvname, v->owner);
+		fprintf(output, "ALTER MATERIALIZED VIEW %s.%s OWNER TO %s;", schema, matvname,
+				v->owner);
 	}
 
 	free(schema);
@@ -468,8 +478,9 @@ dumpAlterColumnSetOptions(FILE *output, PQLMaterializedView *a,
 		stringList	*rlist;
 
 		/* reset all options */
-		rlist = setOperationOptions(a->attributes[i].attoptions, b->attributes[i].attoptions,
-							   PGQ_SETDIFFERENCE, false, true);
+		rlist = setOperationOptions(a->attributes[i].attoptions,
+									b->attributes[i].attoptions,
+									PGQ_SETDIFFERENCE, false, true);
 		if (rlist)
 		{
 			char	*resetlist;
@@ -493,8 +504,9 @@ dumpAlterColumnSetOptions(FILE *output, PQLMaterializedView *a,
 		stringList	*rlist, *ilist, *slist;
 
 		/* reset options that are only presented in the first set */
-		rlist = setOperationOptions(a->attributes[i].attoptions, b->attributes[i].attoptions,
-							   PGQ_SETDIFFERENCE, false, true);
+		rlist = setOperationOptions(a->attributes[i].attoptions,
+									b->attributes[i].attoptions,
+									PGQ_SETDIFFERENCE, false, true);
 		if (rlist)
 		{
 			char	*resetlist;
@@ -515,7 +527,8 @@ dumpAlterColumnSetOptions(FILE *output, PQLMaterializedView *a,
 		 * Include intersection between option sets. However, exclude
 		 * options that don't change.
 		 */
-		ilist = setOperationOptions(a->attributes[i].attoptions, b->attributes[i].attoptions, PGQ_INTERSECT, true, true);
+		ilist = setOperationOptions(a->attributes[i].attoptions,
+									b->attributes[i].attoptions, PGQ_INTERSECT, true, true);
 		if (ilist)
 		{
 			char	*setlist;
@@ -535,7 +548,8 @@ dumpAlterColumnSetOptions(FILE *output, PQLMaterializedView *a,
 		/*
 		 * Set options that are only presented in the second set.
 		 */
-		slist = setOperationOptions(b->attributes[i].attoptions, a->attributes[i].attoptions, PGQ_SETDIFFERENCE, true, true);
+		slist = setOperationOptions(b->attributes[i].attoptions,
+									a->attributes[i].attoptions, PGQ_SETDIFFERENCE, true, true);
 		if (slist)
 		{
 			char	*setlist;
@@ -596,7 +610,8 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView *a,
 	{
 		stringList	*rlist;
 
-		rlist = setOperationOptions(a->reloptions, b->reloptions, PGQ_SETDIFFERENCE, false, true);
+		rlist = setOperationOptions(a->reloptions, b->reloptions, PGQ_SETDIFFERENCE,
+									false, true);
 		if (rlist)
 		{
 			char	*resetlist;
@@ -618,7 +633,8 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView *a,
 		stringList	*rlist, *ilist, *slist;
 
 		/* reset options that are only presented in the first set */
-		rlist = setOperationOptions(a->reloptions, b->reloptions, PGQ_SETDIFFERENCE, false, true);
+		rlist = setOperationOptions(a->reloptions, b->reloptions, PGQ_SETDIFFERENCE,
+									false, true);
 		if (rlist)
 		{
 			char	*resetlist;
@@ -638,7 +654,8 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView *a,
 		 * Include intersection between option sets. However, exclude options
 		 * that don't change.
 		 */
-		ilist = setOperationOptions(a->reloptions, b->reloptions, PGQ_INTERSECT, true, true);
+		ilist = setOperationOptions(a->reloptions, b->reloptions, PGQ_INTERSECT, true,
+									true);
 		if (ilist)
 		{
 			char	*setlist;
@@ -657,7 +674,8 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView *a,
 		/*
 		 * Set options that are only presented in the second set.
 		 */
-		slist = setOperationOptions(b->reloptions, a->reloptions, PGQ_SETDIFFERENCE, true, true);
+		slist = setOperationOptions(b->reloptions, a->reloptions, PGQ_SETDIFFERENCE,
+									true, true);
 		if (slist)
 		{
 			char	*setlist;

@@ -64,10 +64,14 @@ void dumpCreateTextSearchDict(FILE *output, PQLTextSearchDict *d);
 void dumpCreateTextSearchParser(FILE *output, PQLTextSearchParser *p);
 void dumpCreateTextSearchTemplate(FILE *output, PQLTextSearchTemplate *t);
 
-void dumpAlterTextSearchConfig(FILE *output, PQLTextSearchConfig *a, PQLTextSearchConfig *b);
-void dumpAlterTextSearchDict(FILE *output, PQLTextSearchDict *a, PQLTextSearchDict *b);
-void dumpAlterTextSearchParser(FILE *output, PQLTextSearchParser *a, PQLTextSearchParser *b);
-void dumpAlterTextSearchTemplate(FILE *output, PQLTextSearchTemplate *a, PQLTextSearchTemplate *b);
+void dumpAlterTextSearchConfig(FILE *output, PQLTextSearchConfig *a,
+							   PQLTextSearchConfig *b);
+void dumpAlterTextSearchDict(FILE *output, PQLTextSearchDict *a,
+							 PQLTextSearchDict *b);
+void dumpAlterTextSearchParser(FILE *output, PQLTextSearchParser *a,
+							   PQLTextSearchParser *b);
+void dumpAlterTextSearchTemplate(FILE *output, PQLTextSearchTemplate *a,
+								 PQLTextSearchTemplate *b);
 
 void freeTextSearchConfigs(PQLTextSearchConfig *t, int n);
 void freeTextSearchDicts(PQLTextSearchDict *t, int n);

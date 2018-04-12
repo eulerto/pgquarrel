@@ -114,14 +114,16 @@ dumpCreateStatistics(FILE *output, PQLStatistics *s)
 	if (options.comment && s->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON STATISTICS %s.%s IS '%s';", schema, stxname, s->comment);
+		fprintf(output, "COMMENT ON STATISTICS %s.%s IS '%s';", schema, stxname,
+				s->comment);
 	}
 
 	/* owner */
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER STATISTICS %s.%s OWNER TO %s;", schema, stxname, s->owner);
+		fprintf(output, "ALTER STATISTICS %s.%s OWNER TO %s;", schema, stxname,
+				s->owner);
 	}
 
 	free(schema);
@@ -157,7 +159,8 @@ dumpAlterStatistics(FILE *output, PQLStatistics *a, PQLStatistics *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON STATISTICS %s.%s IS '%s';", schema2, stxname2, b->comment);
+			fprintf(output, "COMMENT ON STATISTICS %s.%s IS '%s';", schema2, stxname2,
+					b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
 		{
@@ -172,7 +175,8 @@ dumpAlterStatistics(FILE *output, PQLStatistics *a, PQLStatistics *b)
 		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER STATISTICS %s.%s OWNER TO %s;", schema2, stxname2, b->owner);
+			fprintf(output, "ALTER STATISTICS %s.%s OWNER TO %s;", schema2, stxname2,
+					b->owner);
 		}
 	}
 

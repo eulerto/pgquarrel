@@ -61,7 +61,8 @@ getRules(PGconn *c, int *n)
 		else
 			r[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
 
-		logDebug("rule \"%s\" on \"%s\".\"%s\"", r[i].rulename, r[i].table.schemaname, r[i].table.objectname);
+		logDebug("rule \"%s\" on \"%s\".\"%s\"", r[i].rulename, r[i].table.schemaname,
+				 r[i].table.objectname);
 	}
 
 	PQclear(res);
@@ -119,7 +120,8 @@ dumpCreateRule(FILE *output, PQLRule *r)
 	if (options.comment && r->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON RULE %s ON %s.%s IS '%s';", rulename, schema, objname, r->comment);
+		fprintf(output, "COMMENT ON RULE %s ON %s.%s IS '%s';", rulename, schema,
+				objname, r->comment);
 	}
 
 	free(schema);
@@ -138,7 +140,8 @@ dumpAlterRule(FILE *output, PQLRule *a, PQLRule *b)
 	if (strcmp(a->rulename, b->rulename) != 0)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER RULE %s ON %s.%s RENAME TO %s;", rulename1, schema, objname, rulename2);
+		fprintf(output, "ALTER RULE %s ON %s.%s RENAME TO %s;", rulename1, schema,
+				objname, rulename2);
 	}
 
 	/* comment */
@@ -149,12 +152,14 @@ dumpAlterRule(FILE *output, PQLRule *a, PQLRule *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON RULE %s ON %s.%s IS '%s';", rulename2, schema, objname, b->comment);
+			fprintf(output, "COMMENT ON RULE %s ON %s.%s IS '%s';", rulename2, schema,
+					objname, b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON RULE %s ON %s.%s IS NULL;", rulename2, schema, objname);
+			fprintf(output, "COMMENT ON RULE %s ON %s.%s IS NULL;", rulename2, schema,
+					objname);
 		}
 	}
 

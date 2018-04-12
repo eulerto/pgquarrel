@@ -143,7 +143,9 @@ getBaseTypeSecurityLabels(PGconn *c, PQLBaseType *t)
 	 * Don't bother to check the kind of type because can't be duplicated oids
 	 * in the same catalog.
 	 */
-	snprintf(query, 200, "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_type' AND s.objoid = %u ORDER BY provider", t->obj.oid);
+	snprintf(query, 200,
+			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_type' AND s.objoid = %u ORDER BY provider",
+			 t->obj.oid);
 
 	res = PQexec(c, query);
 
@@ -162,11 +164,13 @@ getBaseTypeSecurityLabels(PGconn *c, PQLBaseType *t)
 	else
 		t->seclabels = NULL;
 
-	logDebug("number of security labels in base type \"%s\".\"%s\": %d", t->obj.schemaname, t->obj.objectname, t->nseclabels);
+	logDebug("number of security labels in base type \"%s\".\"%s\": %d",
+			 t->obj.schemaname, t->obj.objectname, t->nseclabels);
 
 	for (i = 0; i < t->nseclabels; i++)
 	{
-		t->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res, "provider")));
+		t->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
+										  "provider")));
 		t->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
 	}
 
@@ -187,14 +191,14 @@ getCompositeTypeAttributes(PGconn *c, PQLCompositeType *t)
 	{
 		/* determine how many characters will be written by snprintf */
 		nquery = snprintf(query, nquery,
-					 "SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, p.nspname AS collschemaname, CASE WHEN a.attcollation <> u.typcollation THEN l.collname ELSE NULL END AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) LEFT JOIN pg_type u ON (u.oid = a.atttypid) LEFT JOIN (pg_collation l LEFT JOIN pg_namespace p ON (l.collnamespace = p.oid)) ON (a.attcollation = l.oid) WHERE t.oid = %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY a.attnum",
-					 t->obj.oid);
+						  "SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, p.nspname AS collschemaname, CASE WHEN a.attcollation <> u.typcollation THEN l.collname ELSE NULL END AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) LEFT JOIN pg_type u ON (u.oid = a.atttypid) LEFT JOIN (pg_collation l LEFT JOIN pg_namespace p ON (l.collnamespace = p.oid)) ON (a.attcollation = l.oid) WHERE t.oid = %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY a.attnum",
+						  t->obj.oid);
 
 		nquery++;
 		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
 		snprintf(query, nquery,
-					 "SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, p.nspname AS collschemaname, CASE WHEN a.attcollation <> u.typcollation THEN l.collname ELSE NULL END AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) LEFT JOIN pg_type u ON (u.oid = a.atttypid) LEFT JOIN (pg_collation l LEFT JOIN pg_namespace p ON (l.collnamespace = p.oid)) ON (a.attcollation = l.oid) WHERE t.oid = %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY a.attnum",
-					 t->obj.oid);
+				 "SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, p.nspname AS collschemaname, CASE WHEN a.attcollation <> u.typcollation THEN l.collname ELSE NULL END AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) LEFT JOIN pg_type u ON (u.oid = a.atttypid) LEFT JOIN (pg_collation l LEFT JOIN pg_namespace p ON (l.collnamespace = p.oid)) ON (a.attcollation = l.oid) WHERE t.oid = %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY a.attnum",
+				 t->obj.oid);
 
 		logNoise("composite type: query size: %d ; query: %s", nquery, query);
 	}
@@ -202,14 +206,14 @@ getCompositeTypeAttributes(PGconn *c, PQLCompositeType *t)
 	{
 		/* determine how many characters will be written by snprintf */
 		nquery = snprintf(query, nquery,
-					 "SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, NULL AS collschemaname, NULL AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) WHERE t.oid = %u ORDER BY a.attnum",
-					 t->obj.oid);
+						  "SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, NULL AS collschemaname, NULL AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) WHERE t.oid = %u ORDER BY a.attnum",
+						  t->obj.oid);
 
 		nquery++;
 		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
 		snprintf(query, nquery,
-					 "SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, NULL AS collschemaname, NULL AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) WHERE t.oid = %u ORDER BY a.attnum",
-					 t->obj.oid);
+				 "SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, NULL AS collschemaname, NULL AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) WHERE t.oid = %u ORDER BY a.attnum",
+				 t->obj.oid);
 
 		logNoise("composite type: query size: %d ; query: %s", nquery, query);
 	}
@@ -271,17 +275,17 @@ getCompositeTypes(PGconn *c, int *n)
 	if (PQserverVersion(c) >= 90200)	/* support for privileges on data types */
 	{
 		res = PQexec(c,
-				 "SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'c' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
+					 "SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'c' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
 	}
 	else if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
 		res = PQexec(c,
-				 "SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, NULL AS typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'c' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
+					 "SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, NULL AS typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'c' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
 	}
 	else
 	{
 		res = PQexec(c,
-				 "SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, NULL AS typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'c' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, t.typname");
+					 "SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, NULL AS typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'c' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, t.typname");
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -355,7 +359,9 @@ getCompositeTypeSecurityLabels(PGconn *c, PQLCompositeType *t)
 	 * Don't bother to check the kind of type because can't be duplicated oids
 	 * in the same catalog.
 	 */
-	snprintf(query, 200, "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_type' AND s.objoid = %u ORDER BY provider", t->obj.oid);
+	snprintf(query, 200,
+			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_type' AND s.objoid = %u ORDER BY provider",
+			 t->obj.oid);
 
 	res = PQexec(c, query);
 
@@ -374,11 +380,13 @@ getCompositeTypeSecurityLabels(PGconn *c, PQLCompositeType *t)
 	else
 		t->seclabels = NULL;
 
-	logDebug("number of security labels in composite type \"%s\".\"%s\": %d", t->obj.schemaname, t->obj.objectname, t->nseclabels);
+	logDebug("number of security labels in composite type \"%s\".\"%s\": %d",
+			 t->obj.schemaname, t->obj.objectname, t->nseclabels);
 
 	for (i = 0; i < t->nseclabels; i++)
 	{
-		t->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res, "provider")));
+		t->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
+										  "provider")));
 		t->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
 	}
 
@@ -398,14 +406,14 @@ getEnumTypeLabels(PGconn *c, PQLEnumType *t)
 	{
 		/* determine how many characters will be written by snprintf */
 		nquery = snprintf(query, nquery,
-					 "SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY enumsortorder",
-					 t->obj.oid);
+						  "SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY enumsortorder",
+						  t->obj.oid);
 
 		nquery++;
 		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
 		snprintf(query, nquery,
-					 "SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY enumsortorder",
-					 t->obj.oid);
+				 "SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY enumsortorder",
+				 t->obj.oid);
 
 		logNoise("enum type: query size: %d ; query: %s", nquery, query);
 	}
@@ -413,12 +421,12 @@ getEnumTypeLabels(PGconn *c, PQLEnumType *t)
 	{
 		/* determine how many characters will be written by snprintf */
 		nquery = snprintf(query, nquery,
-					 "SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY oid", t->obj.oid);
+						  "SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY oid", t->obj.oid);
 
 		nquery++;
 		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
 		snprintf(query, nquery,
-					 "SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY oid", t->obj.oid);
+				 "SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY oid", t->obj.oid);
 
 		logNoise("enum type: query size: %d ; query: %s", nquery, query);
 	}
@@ -463,17 +471,17 @@ getEnumTypes(PGconn *c, int *n)
 	if (PQserverVersion(c) >= 90200)		/* support for privileges on data types */
 	{
 		res = PQexec(c,
-				 "SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'e' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
+					 "SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'e' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
 	}
 	else if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
 		res = PQexec(c,
-				 "SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, NULL AS typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'e' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
+					 "SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, NULL AS typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'e' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname");
 	}
 	else
 	{
 		res = PQexec(c,
-				 "SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, NULL AS typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'e' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, t.typname");
+					 "SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, NULL AS typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'e' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, t.typname");
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -546,7 +554,9 @@ getEnumTypeSecurityLabels(PGconn *c, PQLEnumType *t)
 	 * Don't bother to check the kind of type because can't be duplicated oids
 	 * in the same catalog.
 	 */
-	snprintf(query, 200, "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_type' AND s.objoid = %u ORDER BY provider", t->obj.oid);
+	snprintf(query, 200,
+			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_type' AND s.objoid = %u ORDER BY provider",
+			 t->obj.oid);
 
 	res = PQexec(c, query);
 
@@ -565,11 +575,13 @@ getEnumTypeSecurityLabels(PGconn *c, PQLEnumType *t)
 	else
 		t->seclabels = NULL;
 
-	logDebug("number of security labels in enum type \"%s\".\"%s\": %d", t->obj.schemaname, t->obj.objectname, t->nseclabels);
+	logDebug("number of security labels in enum type \"%s\".\"%s\": %d",
+			 t->obj.schemaname, t->obj.objectname, t->nseclabels);
 
 	for (i = 0; i < t->nseclabels; i++)
 	{
-		t->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res, "provider")));
+		t->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
+										  "provider")));
 		t->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
 	}
 
@@ -679,7 +691,9 @@ getRangeTypeSecurityLabels(PGconn *c, PQLRangeType *t)
 	 * Don't bother to check the kind of type because can't be duplicated oids
 	 * in the same catalog.
 	 */
-	snprintf(query, 200, "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_type' AND s.objoid = %u ORDER BY provider", t->obj.oid);
+	snprintf(query, 200,
+			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_type' AND s.objoid = %u ORDER BY provider",
+			 t->obj.oid);
 
 	res = PQexec(c, query);
 
@@ -698,11 +712,13 @@ getRangeTypeSecurityLabels(PGconn *c, PQLRangeType *t)
 	else
 		t->seclabels = NULL;
 
-	logDebug("number of security labels in range type \"%s\".\"%s\": %d", t->obj.schemaname, t->obj.objectname, t->nseclabels);
+	logDebug("number of security labels in range type \"%s\".\"%s\": %d",
+			 t->obj.schemaname, t->obj.objectname, t->nseclabels);
 
 	for (i = 0; i < t->nseclabels; i++)
 	{
-		t->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res, "provider")));
+		t->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
+										  "provider")));
 		t->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
 	}
 
@@ -987,7 +1003,8 @@ dumpCreateBaseType(FILE *output, PQLBaseType *t)
 	/* privileges */
 	/* XXX second t->obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
-		dumpGrantAndRevoke(output, PGQ_TYPE, &t->obj, &t->obj, NULL, t->acl, NULL, NULL);
+		dumpGrantAndRevoke(output, PGQ_TYPE, &t->obj, &t->obj, NULL, t->acl, NULL,
+						   NULL);
 
 	free(schema);
 	free(typname);
@@ -1008,7 +1025,8 @@ dumpCreateCompositeType(FILE *output, PQLCompositeType *t)
 	{
 		if (i > 0)
 			fprintf(output, ",");
-		fprintf(output, "\n\t%s %s", t->attributes[i].attname, t->attributes[i].typname);
+		fprintf(output, "\n\t%s %s", t->attributes[i].attname,
+				t->attributes[i].typname);
 
 		if (t->attributes[i].collname != NULL)
 		{
@@ -1055,7 +1073,8 @@ dumpCreateCompositeType(FILE *output, PQLCompositeType *t)
 	/* privileges */
 	/* XXX second t->obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
-		dumpGrantAndRevoke(output, PGQ_TYPE, &t->obj, &t->obj, NULL, t->acl, NULL, NULL);
+		dumpGrantAndRevoke(output, PGQ_TYPE, &t->obj, &t->obj, NULL, t->acl, NULL,
+						   NULL);
 
 	free(schema);
 	free(typname);
@@ -1112,7 +1131,8 @@ dumpCreateEnumType(FILE *output, PQLEnumType *t)
 	/* privileges */
 	/* XXX second t->obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
-		dumpGrantAndRevoke(output, PGQ_TYPE, &t->obj, &t->obj, NULL, t->acl, NULL, NULL);
+		dumpGrantAndRevoke(output, PGQ_TYPE, &t->obj, &t->obj, NULL, t->acl, NULL,
+						   NULL);
 
 	free(schema);
 	free(typname);
@@ -1193,7 +1213,8 @@ dumpCreateRangeType(FILE *output, PQLRangeType *t)
 	/* privileges */
 	/* XXX second t->obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
-		dumpGrantAndRevoke(output, PGQ_TYPE, &t->obj, &t->obj, NULL, t->acl, NULL, NULL);
+		dumpGrantAndRevoke(output, PGQ_TYPE, &t->obj, &t->obj, NULL, t->acl, NULL,
+						   NULL);
 
 	free(schema);
 	free(typname);
@@ -1267,7 +1288,8 @@ dumpAlterBaseType(FILE *output, PQLBaseType *a, PQLBaseType *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema2, typname2, b->comment);
+			fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema2, typname2,
+					b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
 		{
@@ -1383,7 +1405,8 @@ dumpAlterBaseType(FILE *output, PQLBaseType *a, PQLBaseType *b)
 	if (options.privileges)
 	{
 		if (a->acl != NULL || b->acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_TYPE, &a->obj, &b->obj, a->acl, b->acl, NULL, NULL);
+			dumpGrantAndRevoke(output, PGQ_TYPE, &a->obj, &b->obj, a->acl, b->acl, NULL,
+							   NULL);
 	}
 
 	free(schema1);
@@ -1408,7 +1431,8 @@ dumpAlterCompositeType(FILE *output, PQLCompositeType *a, PQLCompositeType *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema2, typname2, b->comment);
+			fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema2, typname2,
+					b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
 		{
@@ -1524,7 +1548,8 @@ dumpAlterCompositeType(FILE *output, PQLCompositeType *a, PQLCompositeType *b)
 	if (options.privileges)
 	{
 		if (a->acl != NULL || b->acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_TYPE, &a->obj, &b->obj, a->acl, b->acl, NULL, NULL);
+			dumpGrantAndRevoke(output, PGQ_TYPE, &a->obj, &b->obj, a->acl, b->acl, NULL,
+							   NULL);
 	}
 
 	free(schema1);
@@ -1549,7 +1574,8 @@ dumpAlterEnumType(FILE *output, PQLEnumType *a, PQLEnumType *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema2, typname2, b->comment);
+			fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema2, typname2,
+					b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
 		{
@@ -1665,7 +1691,8 @@ dumpAlterEnumType(FILE *output, PQLEnumType *a, PQLEnumType *b)
 	if (options.privileges)
 	{
 		if (a->acl != NULL || b->acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_TYPE, &a->obj, &b->obj, a->acl, b->acl, NULL, NULL);
+			dumpGrantAndRevoke(output, PGQ_TYPE, &a->obj, &b->obj, a->acl, b->acl, NULL,
+							   NULL);
 	}
 
 	free(schema1);
@@ -1690,7 +1717,8 @@ dumpAlterRangeType(FILE *output, PQLRangeType *a, PQLRangeType *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema2, typname2, b->comment);
+			fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema2, typname2,
+					b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
 		{
@@ -1806,7 +1834,8 @@ dumpAlterRangeType(FILE *output, PQLRangeType *a, PQLRangeType *b)
 	if (options.privileges)
 	{
 		if (a->acl != NULL || b->acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_TYPE, &a->obj, &b->obj, a->acl, b->acl, NULL, NULL);
+			dumpGrantAndRevoke(output, PGQ_TYPE, &a->obj, &b->obj, a->acl, b->acl, NULL,
+							   NULL);
 	}
 
 	free(schema1);

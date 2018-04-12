@@ -41,7 +41,8 @@ getUserMappings(PGconn *c, int *n)
 
 	logNoise("user mapping: server version: %d", PQserverVersion(c));
 
-	res = PQexec(c, "SELECT u.oid, u.umuser AS useroid, CASE WHEN umuser = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(u.umuser) END AS username, s.srvname AS servername, array_to_string(u.umoptions, ', ') AS options FROM pg_user_mapping u INNER JOIN pg_foreign_server s ON (u.umserver = s.oid) ORDER BY username, servername");
+	res = PQexec(c,
+				 "SELECT u.oid, u.umuser AS useroid, CASE WHEN umuser = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(u.umuser) END AS username, s.srvname AS servername, array_to_string(u.umoptions, ', ') AS options FROM pg_user_mapping u INNER JOIN pg_foreign_server s ON (u.umserver = s.oid) ORDER BY username, servername");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -135,9 +136,7 @@ dumpCreateUserMapping(FILE *output, PQLUserMapping *u)
 				first = false;
 			}
 			else
-			{
 				fprintf(output, ", %s '%s'", cell->value, str);
-			}
 		}
 		fprintf(output, ")");
 
@@ -159,7 +158,8 @@ dumpAlterUserMapping(FILE *output, PQLUserMapping *a, PQLUserMapping *b)
 
 		sl = buildStringList(b->options);
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER USER MAPPING FOR %s SERVER %s OPTIONS (", b->user, b->server);
+		fprintf(output, "ALTER USER MAPPING FOR %s SERVER %s OPTIONS (", b->user,
+				b->server);
 		for (cell = sl->head; cell; cell = cell->next)
 		{
 			char	*str;
@@ -173,9 +173,7 @@ dumpAlterUserMapping(FILE *output, PQLUserMapping *a, PQLUserMapping *b)
 				first = false;
 			}
 			else
-			{
 				fprintf(output, ", ADD %s '%s'", cell->value, str);
-			}
 		}
 		fprintf(output, ");");
 
@@ -189,7 +187,8 @@ dumpAlterUserMapping(FILE *output, PQLUserMapping *a, PQLUserMapping *b)
 
 		sl = buildStringList(a->options);
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER USER MAPPING FOR %s SERVER %s OPTIONS (", a->user, a->server);
+		fprintf(output, "ALTER USER MAPPING FOR %s SERVER %s OPTIONS (", a->user,
+				a->server);
 		for (cell = sl->head; cell; cell = cell->next)
 		{
 			char	*str;
@@ -203,27 +202,28 @@ dumpAlterUserMapping(FILE *output, PQLUserMapping *a, PQLUserMapping *b)
 				first = false;
 			}
 			else
-			{
 				fprintf(output, ", DROP %s", cell->value);
-			}
 		}
 		fprintf(output, ");");
 
 		freeStringList(sl);
 	}
-	else if (a->options != NULL && b->options != NULL && strcmp(a->options, b->options) != 0)
+	else if (a->options != NULL && b->options != NULL &&
+			 strcmp(a->options, b->options) != 0)
 	{
 		stringList	*rlist, *ilist, *slist;
 		bool		first = true;
 
 		/* reset options that are only presented in the first set */
-		rlist = setOperationOptions(a->options, b->options, PGQ_SETDIFFERENCE, false, true);
+		rlist = setOperationOptions(a->options, b->options, PGQ_SETDIFFERENCE, false,
+									true);
 		if (rlist)
 		{
 			stringListCell	*cell;
 
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER USER MAPPING FOR %s SERVER %s OPTIONS (", a->user, a->server);
+			fprintf(output, "ALTER USER MAPPING FOR %s SERVER %s OPTIONS (", a->user,
+					a->server);
 			for (cell = rlist->head; cell; cell = cell->next)
 			{
 				if (first)
@@ -232,9 +232,7 @@ dumpAlterUserMapping(FILE *output, PQLUserMapping *a, PQLUserMapping *b)
 					first = false;
 				}
 				else
-				{
 					fprintf(output, ", DROP %s", cell->value);
-				}
 			}
 			fprintf(output, ");");
 
@@ -251,7 +249,8 @@ dumpAlterUserMapping(FILE *output, PQLUserMapping *a, PQLUserMapping *b)
 			stringListCell	*cell;
 
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER USER MAPPING FOR %s SERVER %s OPTIONS (", a->user, a->server);
+			fprintf(output, "ALTER USER MAPPING FOR %s SERVER %s OPTIONS (", a->user,
+					a->server);
 			for (cell = ilist->head; cell; cell = cell->next)
 			{
 				char	*str;
@@ -265,9 +264,7 @@ dumpAlterUserMapping(FILE *output, PQLUserMapping *a, PQLUserMapping *b)
 					first = false;
 				}
 				else
-				{
 					fprintf(output, ", SET %s '%s'", cell->value, str);
-				}
 			}
 			fprintf(output, ");");
 
@@ -277,14 +274,16 @@ dumpAlterUserMapping(FILE *output, PQLUserMapping *a, PQLUserMapping *b)
 		/*
 		 * Set options that are only presented in the second set.
 		 */
-		slist = setOperationOptions(b->options, a->options, PGQ_SETDIFFERENCE, true, true);
+		slist = setOperationOptions(b->options, a->options, PGQ_SETDIFFERENCE, true,
+									true);
 		if (slist)
 		{
 			stringListCell	*cell;
 			bool			first = true;
 
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER USER MAPPING FOR %s SERVER %s OPTIONS (", a->user, a->server);
+			fprintf(output, "ALTER USER MAPPING FOR %s SERVER %s OPTIONS (", a->user,
+					a->server);
 			for (cell = slist->head; cell; cell = cell->next)
 			{
 				char	*str;
@@ -298,9 +297,7 @@ dumpAlterUserMapping(FILE *output, PQLUserMapping *a, PQLUserMapping *b)
 					first = false;
 				}
 				else
-				{
 					fprintf(output, ", ADD %s '%s'", cell->value, str);
-				}
 			}
 			fprintf(output, ");");
 

@@ -32,7 +32,8 @@ void getEventTriggerSecurityLabels(PGconn *c, PQLEventTrigger *e);
 
 void dumpDropEventTrigger(FILE *output, PQLEventTrigger *e);
 void dumpCreateEventTrigger(FILE *output, PQLEventTrigger *e);
-void dumpAlterEventTrigger(FILE *output, PQLEventTrigger *a, PQLEventTrigger *b);
+void dumpAlterEventTrigger(FILE *output, PQLEventTrigger *a,
+						   PQLEventTrigger *b);
 
 void freeEventTriggers(PQLEventTrigger *e, int n);
 

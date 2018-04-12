@@ -261,37 +261,39 @@ loadConfig(const char *cf, QuarrelOptions *options)
 			options->general.verbose = false;	/* default */
 		else
 			options->general.verbose = parseBoolean("verbose", mini_file_get_value(config,
-											"general", "verbose"));
+													"general", "verbose"));
 
 		if (mini_file_get_value(config, "general", "summary") == NULL)
 			options->general.summary = false;	/* default */
 		else
 			options->general.summary = parseBoolean("summary", mini_file_get_value(config,
-											   "general", "summary"));
+													"general", "summary"));
 
 		if (mini_file_get_value(config, "general", "comment") == NULL)
 			options->general.comment = false;		/* default */
 		else
 			options->general.comment = parseBoolean("comment", mini_file_get_value(config,
-											"general", "comment"));
+													"general", "comment"));
 
 		if (mini_file_get_value(config, "general", "security-labels") == NULL)
 			options->general.securitylabels = false;		/* default */
 		else
-			options->general.securitylabels = parseBoolean("security-labels", mini_file_get_value(config,
-											"general", "security-labels"));
+			options->general.securitylabels = parseBoolean("security-labels",
+											  mini_file_get_value(config,
+													  "general", "security-labels"));
 
 		if (mini_file_get_value(config, "general", "owner") == NULL)
 			options->general.owner = false;		/* default */
 		else
 			options->general.owner = parseBoolean("owner", mini_file_get_value(config,
-										  "general", "owner"));
+												  "general", "owner"));
 
 		if (mini_file_get_value(config, "general", "privileges") == NULL)
 			options->general.privileges = false;		/* default */
 		else
-			options->general.privileges = parseBoolean("privileges", mini_file_get_value(config,
-											   "general", "privileges"));
+			options->general.privileges = parseBoolean("privileges",
+										  mini_file_get_value(config,
+												  "general", "privileges"));
 
 		/*
 		 * select objects that will be compared
@@ -299,134 +301,142 @@ loadConfig(const char *cf, QuarrelOptions *options)
 		if (mini_file_get_value(config, "general", "aggregate") == NULL)
 			options->general.aggregate = false;		/* default */
 		else
-			options->general.aggregate = parseBoolean("aggregate", mini_file_get_value(config,
-										  "general", "aggregate"));
+			options->general.aggregate = parseBoolean("aggregate",
+										 mini_file_get_value(config,
+												 "general", "aggregate"));
 
 		if (mini_file_get_value(config, "general", "cast") == NULL)
 			options->general.cast = false;		/* default */
 		else
 			options->general.cast = parseBoolean("cast", mini_file_get_value(config,
-										  "general", "cast"));
+												 "general", "cast"));
 
 		if (mini_file_get_value(config, "general", "collation") == NULL)
 			options->general.collation = false;		/* default */
 		else
-			options->general.collation = parseBoolean("collation", mini_file_get_value(config,
-										  "general", "collation"));
+			options->general.collation = parseBoolean("collation",
+										 mini_file_get_value(config,
+												 "general", "collation"));
 
 		if (mini_file_get_value(config, "general", "conversion") == NULL)
 			options->general.conversion = false;		/* default */
 		else
-			options->general.conversion = parseBoolean("conversion", mini_file_get_value(config,
-										  "general", "conversion"));
+			options->general.conversion = parseBoolean("conversion",
+										  mini_file_get_value(config,
+												  "general", "conversion"));
 
 		if (mini_file_get_value(config, "general", "domain") == NULL)
 			options->general.domain = true;		/* default */
 		else
 			options->general.domain = parseBoolean("domain", mini_file_get_value(config,
-										  "general", "domain"));
+												   "general", "domain"));
 
 		if (mini_file_get_value(config, "general", "event-trigger") == NULL)
 			options->general.eventtrigger = false;		/* default */
 		else
-			options->general.eventtrigger = parseBoolean("event-trigger", mini_file_get_value(config,
-										  "general", "event-trigger"));
+			options->general.eventtrigger = parseBoolean("event-trigger",
+											mini_file_get_value(config,
+													"general", "event-trigger"));
 
 		if (mini_file_get_value(config, "general", "extension") == NULL)
 			options->general.extension = true;		/* default */
 		else
-			options->general.extension = parseBoolean("extension", mini_file_get_value(config,
-										  "general", "extension"));
+			options->general.extension = parseBoolean("extension",
+										 mini_file_get_value(config,
+												 "general", "extension"));
 
 		if (mini_file_get_value(config, "general", "fdw") == NULL)
 			options->general.fdw = false;		/* default */
 		else
 			options->general.fdw = parseBoolean("fdw", mini_file_get_value(config,
-										  "general", "fdw"));
+												"general", "fdw"));
 
 		if (mini_file_get_value(config, "general", "function") == NULL)
 			options->general.function = true;		/* default */
 		else
 			options->general.function = parseBoolean("function", mini_file_get_value(config,
-										  "general", "function"));
+										"general", "function"));
 
 		if (mini_file_get_value(config, "general", "index") == NULL)
 			options->general.index = true;		/* default */
 		else
 			options->general.index = parseBoolean("index", mini_file_get_value(config,
-										  "general", "index"));
+												  "general", "index"));
 
 		if (mini_file_get_value(config, "general", "language") == NULL)
 			options->general.language = false;		/* default */
 		else
 			options->general.language = parseBoolean("language", mini_file_get_value(config,
-										  "general", "language"));
+										"general", "language"));
 
 		if (mini_file_get_value(config, "general", "materialized-view") == NULL)
 			options->general.matview = true;		/* default */
 		else
-			options->general.matview = parseBoolean("materialized-view", mini_file_get_value(config,
-										  "general", "materialized-view"));
+			options->general.matview = parseBoolean("materialized-view",
+													mini_file_get_value(config,
+															"general", "materialized-view"));
 
 		if (mini_file_get_value(config, "general", "operator") == NULL)
 			options->general.operator = false;		/* default */
 		else
 			options->general.operator = parseBoolean("operator", mini_file_get_value(config,
-										  "general", "operator"));
+										"general", "operator"));
 
 		if (mini_file_get_value(config, "general", "rule") == NULL)
 			options->general.rule = false;		/* default */
 		else
 			options->general.rule = parseBoolean("rule", mini_file_get_value(config,
-										  "general", "rule"));
+												 "general", "rule"));
 
 		if (mini_file_get_value(config, "general", "schema") == NULL)
 			options->general.schema = true;		/* default */
 		else
 			options->general.schema = parseBoolean("schema", mini_file_get_value(config,
-										  "general", "schema"));
+												   "general", "schema"));
 
 		if (mini_file_get_value(config, "general", "sequence") == NULL)
 			options->general.sequence = true;		/* default */
 		else
 			options->general.sequence = parseBoolean("sequence", mini_file_get_value(config,
-										  "general", "sequence"));
+										"general", "sequence"));
 
 		if (mini_file_get_value(config, "general", "statistics") == NULL)
 			options->general.statistics = true;		/* default */
 		else
-			options->general.statistics = parseBoolean("statistics", mini_file_get_value(config,
-										  "general", "statistics"));
+			options->general.statistics = parseBoolean("statistics",
+										  mini_file_get_value(config,
+												  "general", "statistics"));
 
 		if (mini_file_get_value(config, "general", "table") == NULL)
 			options->general.table = true;		/* default */
 		else
 			options->general.table = parseBoolean("table", mini_file_get_value(config,
-										  "general", "table"));
+												  "general", "table"));
 
 		if (mini_file_get_value(config, "general", "text-search") == NULL)
 			options->general.textsearch = false;		/* default */
 		else
-			options->general.textsearch = parseBoolean("text-search", mini_file_get_value(config,
-										  "general", "text-search"));
+			options->general.textsearch = parseBoolean("text-search",
+										  mini_file_get_value(config,
+												  "general", "text-search"));
 
 		if (mini_file_get_value(config, "general", "trigger") == NULL)
 			options->general.trigger = true;		/* default */
 		else
 			options->general.trigger = parseBoolean("trigger", mini_file_get_value(config,
-										  "general", "trigger"));
+													"general", "trigger"));
 
 		if (mini_file_get_value(config, "general", "type") == NULL)
 			options->general.type = true;		/* default */
 		else
 			options->general.type = parseBoolean("type", mini_file_get_value(config,
-										  "general", "type"));
+												 "general", "type"));
 
 		if (mini_file_get_value(config, "general", "view") == NULL)
 			options->general.view = true;		/* default */
 		else
 			options->general.view = parseBoolean("view", mini_file_get_value(config,
-										  "general", "view"));
+												 "general", "view"));
 
 		/* from options */
 		tmp = mini_file_get_value(config, "from", "host");
@@ -1843,7 +1853,8 @@ quarrelOperatorFamilies()
 		}
 		else if (compareRelations(&opfamilies1[i].obj, &opfamilies2[j].obj) == 0)
 		{
-			logDebug("operator family %s.%s: server1 server2", opfamilies1[i].obj.schemaname,
+			logDebug("operator family %s.%s: server1 server2",
+					 opfamilies1[i].obj.schemaname,
 					 opfamilies1[i].obj.objectname);
 
 			dumpAlterOperatorFamily(fpre, &opfamilies1[i], &opfamilies2[j]);
@@ -2489,7 +2500,8 @@ quarrelTextSearchConfigs()
 		}
 		else if (compareRelations(&tsconfigs1[i].obj, &tsconfigs2[j].obj) == 0)
 		{
-			logDebug("text search config %s.%s: server1 server2", tsconfigs1[i].obj.schemaname,
+			logDebug("text search config %s.%s: server1 server2",
+					 tsconfigs1[i].obj.schemaname,
 					 tsconfigs1[i].obj.objectname);
 
 			dumpAlterTextSearchConfig(fpre, &tsconfigs1[i], &tsconfigs2[j]);
@@ -2577,7 +2589,8 @@ quarrelTextSearchDicts()
 		}
 		else if (compareRelations(&tsdicts1[i].obj, &tsdicts2[j].obj) == 0)
 		{
-			logDebug("text search dictionary %s.%s: server1 server2", tsdicts1[i].obj.schemaname,
+			logDebug("text search dictionary %s.%s: server1 server2",
+					 tsdicts1[i].obj.schemaname,
 					 tsdicts1[i].obj.objectname);
 
 			dumpAlterTextSearchDict(fpre, &tsdicts1[i], &tsdicts2[j]);
@@ -2665,7 +2678,8 @@ quarrelTextSearchParsers()
 		}
 		else if (compareRelations(&tsparsers1[i].obj, &tsparsers2[j].obj) == 0)
 		{
-			logDebug("text search parser %s.%s: server1 server2", tsparsers1[i].obj.schemaname,
+			logDebug("text search parser %s.%s: server1 server2",
+					 tsparsers1[i].obj.schemaname,
 					 tsparsers1[i].obj.objectname);
 
 			dumpAlterTextSearchParser(fpre, &tsparsers1[i], &tsparsers2[j]);
@@ -2753,7 +2767,8 @@ quarrelTextSearchTemplates()
 		}
 		else if (compareRelations(&tstemplates1[i].obj, &tstemplates2[j].obj) == 0)
 		{
-			logDebug("text search template %s.%s: server1 server2", tstemplates1[i].obj.schemaname,
+			logDebug("text search template %s.%s: server1 server2",
+					 tstemplates1[i].obj.schemaname,
 					 tstemplates1[i].obj.objectname);
 
 			dumpAlterTextSearchTemplate(fpre, &tstemplates1[i], &tstemplates2[j]);
@@ -3275,10 +3290,12 @@ quarrelUserMappings()
 	usermappings2 = getUserMappings(conn2, &nusermappings2);
 
 	for (i = 0; i < nusermappings1; i++)
-		logNoise("server1: user(%s) server(%s)", usermappings1[i].user, usermappings1[i].server);
+		logNoise("server1: user(%s) server(%s)", usermappings1[i].user,
+				 usermappings1[i].server);
 
 	for (i = 0; i < nusermappings2; i++)
-		logNoise("server2: user(%s) server(%s)", usermappings2[i].user, usermappings2[i].server);
+		logNoise("server2: user(%s) server(%s)", usermappings2[i].user,
+				 usermappings2[i].server);
 
 	/*
 	 * We have two sorted lists. Let's figure out which elements are not in the
@@ -3292,7 +3309,8 @@ quarrelUserMappings()
 		/* End of usermappings1 list. Print usermappings2 list until its end. */
 		if (i == nusermappings1)
 		{
-			logDebug("user mapping user(%s) server(%s): server2", usermappings2[j].user, usermappings2[j].server);
+			logDebug("user mapping user(%s) server(%s): server2", usermappings2[j].user,
+					 usermappings2[j].server);
 
 			dumpCreateUserMapping(fpre, &usermappings2[j]);
 
@@ -3302,7 +3320,8 @@ quarrelUserMappings()
 		/* End of usermappings2 list. Print usermappings1 list until its end. */
 		else if (j == nusermappings2)
 		{
-			logDebug("user mapping user(%s) server(%s): server1", usermappings1[i].user, usermappings1[i].server);
+			logDebug("user mapping user(%s) server(%s): server1", usermappings1[i].user,
+					 usermappings1[i].server);
 
 			dumpDropUserMapping(fpost, &usermappings1[i]);
 
@@ -3311,7 +3330,8 @@ quarrelUserMappings()
 		}
 		else if (compareUserMappings(&usermappings1[i], &usermappings2[j]) == 0)
 		{
-			logDebug("user mapping user(%s) server(%s): server1 server2", usermappings1[i].user, usermappings1[i].server);
+			logDebug("user mapping user(%s) server(%s): server1 server2",
+					 usermappings1[i].user, usermappings1[i].server);
 
 			dumpAlterUserMapping(fpre, &usermappings1[i], &usermappings2[j]);
 
@@ -3320,7 +3340,8 @@ quarrelUserMappings()
 		}
 		else if (compareUserMappings(&usermappings1[i], &usermappings2[j]) < 0)
 		{
-			logDebug("user mapping user(%s) server(%s): server1", usermappings1[i].user, usermappings1[i].server);
+			logDebug("user mapping user(%s) server(%s): server1", usermappings1[i].user,
+					 usermappings1[i].server);
 
 			dumpDropUserMapping(fpost, &usermappings1[i]);
 
@@ -3329,7 +3350,8 @@ quarrelUserMappings()
 		}
 		else if (compareUserMappings(&usermappings1[i], &usermappings2[j]) > 0)
 		{
-			logDebug("user mapping user(%s) server(%s): server2", usermappings2[j].user, usermappings2[j].server);
+			logDebug("user mapping user(%s) server(%s): server2", usermappings2[j].user,
+					 usermappings2[j].server);
 
 			dumpCreateUserMapping(fpre, &usermappings2[j]);
 
@@ -3641,7 +3663,8 @@ int main(int argc, char *argv[])
 	options = opts.general;
 
 	/* command-line options take precedence over config options */
-	if (options.verbose && loglevel == PGQ_ERROR)	/* it wasn't defined on command-line so use config value */
+	if (options.verbose &&
+			loglevel == PGQ_ERROR)	/* it wasn't defined on command-line so use config value */
 		loglevel = PGQ_DEBUG;
 	if (options.summary)
 		summary = true;

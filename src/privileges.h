@@ -53,7 +53,8 @@ void dumpGrant(FILE *output, int objecttype, PQLObject *a, char *privs,
 			   char *grantee, char *args, char *cols);
 void dumpRevoke(FILE *output, int objecttype, PQLObject *a, char *privs,
 				char *grantee, char *args, char *cols);
-void dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject *a, PQLObject *b,
+void dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject *a,
+						PQLObject *b,
 						char *acla, char *aclb, char *args, char *cols);
 
 #endif	/* PRIVILEGES_H */

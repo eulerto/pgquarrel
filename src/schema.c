@@ -35,12 +35,12 @@ getSchemas(PGconn *c, int *n)
 	if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
 		res = PQexec(c,
-				 "SELECT n.oid, nspname, obj_description(n.oid, 'pg_namespace') AS description, pg_get_userbyid(nspowner) AS nspowner, nspacl FROM pg_namespace n WHERE nspname !~ '^pg_' AND nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE n.oid = d.objid AND d.deptype = 'e') ORDER BY nspname");
+					 "SELECT n.oid, nspname, obj_description(n.oid, 'pg_namespace') AS description, pg_get_userbyid(nspowner) AS nspowner, nspacl FROM pg_namespace n WHERE nspname !~ '^pg_' AND nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE n.oid = d.objid AND d.deptype = 'e') ORDER BY nspname");
 	}
 	else
 	{
 		res = PQexec(c,
-				 "SELECT n.oid, nspname, obj_description(n.oid, 'pg_namespace') AS description, pg_get_userbyid(nspowner) AS nspowner, nspacl FROM pg_namespace n WHERE nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname");
+					 "SELECT n.oid, nspname, obj_description(n.oid, 'pg_namespace') AS description, pg_get_userbyid(nspowner) AS nspowner, nspacl FROM pg_namespace n WHERE nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname");
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -104,7 +104,9 @@ getSchemaSecurityLabels(PGconn *c, PQLSchema *s)
 		return;
 	}
 
-	snprintf(query, 200, "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_namespace' AND s.objoid = %u ORDER BY provider", s->oid);
+	snprintf(query, 200,
+			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_namespace' AND s.objoid = %u ORDER BY provider",
+			 s->oid);
 
 	res = PQexec(c, query);
 
@@ -123,11 +125,13 @@ getSchemaSecurityLabels(PGconn *c, PQLSchema *s)
 	else
 		s->seclabels = NULL;
 
-	logDebug("number of security labels in schema \"%s\": %d", s->schemaname, s->nseclabels);
+	logDebug("number of security labels in schema \"%s\": %d", s->schemaname,
+			 s->nseclabels);
 
 	for (i = 0; i < s->nseclabels; i++)
 	{
-		s->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res, "provider")));
+		s->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
+										  "provider")));
 		s->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
 	}
 
@@ -374,7 +378,8 @@ dumpAlterSchema(FILE *output, PQLSchema *a, PQLSchema *b)
 		tmpb.objectname = b->schemaname;
 
 		if (a->acl != NULL || b->acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_SCHEMA, &tmpa, &tmpb, a->acl, b->acl, NULL, NULL);
+			dumpGrantAndRevoke(output, PGQ_SCHEMA, &tmpa, &tmpb, a->acl, b->acl, NULL,
+							   NULL);
 	}
 
 	free(schemaname1);

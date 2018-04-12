@@ -67,16 +67,15 @@ formatPrivileges(char *s, char *cols)
 		coltotallen = collen + 3;	/* 3 => space + parentheses */
 	}
 
-	ret = (char *) malloc(((len * MAX_KEYWORD_LEN + (len - 1) * 2) + coltotallen) * sizeof(char));
+	ret = (char *) malloc(((len * MAX_KEYWORD_LEN + (len - 1) * 2) + coltotallen) *
+						  sizeof(char));
 	ret[0] = '\0';
 	ptr = ret;
 
 	for (i = 0; i < len; i++)
 	{
 		if (first_item)
-		{
 			first_item = false;
-		}
 		else
 		{
 			strncpy(ptr, ", ", 2);
@@ -380,9 +379,7 @@ diffPrivileges(char *a, char *b)
 	r[0] = '\0';
 
 	if (b == NULL)
-	{
 		strncpy(r, a, MAX_ACL_LEN);
-	}
 	else if (tmpa != NULL)
 	{
 		while (*tmpa != '\0')
@@ -427,7 +424,8 @@ diffPrivileges(char *a, char *b)
 }
 
 void
-dumpGrant(FILE *output, int objecttype, PQLObject *a, char *privs, char *grantee,
+dumpGrant(FILE *output, int objecttype, PQLObject *a, char *privs,
+		  char *grantee,
 		  char *args, char *cols)
 {
 	char	*schema;

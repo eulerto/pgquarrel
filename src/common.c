@@ -401,7 +401,8 @@ buildStringList(char *options)
  * from 'b' else the list will contain only the options.
  */
 static stringListCell *
-intersectWithSortedLists(stringListCell *a, stringListCell *b, bool withvalue, bool changed)
+intersectWithSortedLists(stringListCell *a, stringListCell *b, bool withvalue,
+						 bool changed)
 {
 	stringListCell	*t;
 	char			*c, *d;
@@ -470,7 +471,8 @@ intersectWithSortedLists(stringListCell *a, stringListCell *b, bool withvalue, b
  * there aren't elements, return NULL.
  */
 static stringListCell *
-setDifferenceWithSortedLists(stringListCell *a, stringListCell *b, bool withvalue)
+setDifferenceWithSortedLists(stringListCell *a, stringListCell *b,
+							 bool withvalue)
 {
 	stringListCell	*t;
 	char			*c, *d;
@@ -486,9 +488,7 @@ setDifferenceWithSortedLists(stringListCell *a, stringListCell *b, bool withvalu
 		t = (stringListCell *) malloc(sizeof(stringListCell));
 
 		if (withvalue)
-		{
 			t->value = strdup(a->value);
-		}
 		else
 		{
 			/* use a temporary variable because strtok() "destroy" the original string */
@@ -570,7 +570,8 @@ setOperationOptions(char *a, char *b, int setop, bool withvalue, bool changed)
 	second = buildStringList(b);
 
 	if (setop == PGQ_INTERSECT)
-		headitem = intersectWithSortedLists(first->head, second->head, withvalue, changed);
+		headitem = intersectWithSortedLists(first->head, second->head, withvalue,
+											changed);
 	else if (setop == PGQ_SETDIFFERENCE)
 		headitem = setDifferenceWithSortedLists(first->head, second->head, withvalue);
 	else
@@ -646,9 +647,7 @@ printOptions(stringList *sl)
 			}
 
 			if (firstitem)
-			{
 				firstitem = false;
-			}
 			else
 			{
 				/*

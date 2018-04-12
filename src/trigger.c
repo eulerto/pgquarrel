@@ -60,7 +60,8 @@ getTriggers(PGconn *c, int *n)
 		else
 			t[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
 
-		logDebug("trigger \"%s\" on \"%s\".\"%s\"", t[i].trgname, t[i].table.schemaname, t[i].table.objectname);
+		logDebug("trigger \"%s\" on \"%s\".\"%s\"", t[i].trgname, t[i].table.schemaname,
+				 t[i].table.objectname);
 	}
 
 	PQclear(res);
@@ -103,7 +104,8 @@ dumpCreateTrigger(FILE *output, PQLTrigger *t)
 	if (options.comment && t->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON TRIGGER %s ON %s.%s IS '%s';", trgname, schema, tabname, t->comment);
+		fprintf(output, "COMMENT ON TRIGGER %s ON %s.%s IS '%s';", trgname, schema,
+				tabname, t->comment);
 	}
 
 	free(trgname);
@@ -144,12 +146,14 @@ dumpAlterTrigger(FILE *output, PQLTrigger *a, PQLTrigger *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TRIGGER %s ON %s.%s IS '%s';", trgname2, schema2, tabname2, b->comment);
+			fprintf(output, "COMMENT ON TRIGGER %s ON %s.%s IS '%s';", trgname2, schema2,
+					tabname2, b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TRIGGER %s ON %s.%s IS NULL;", trgname2, schema2, tabname2);
+			fprintf(output, "COMMENT ON TRIGGER %s ON %s.%s IS NULL;", trgname2, schema2,
+					tabname2);
 		}
 	}
 

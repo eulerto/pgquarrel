@@ -38,12 +38,12 @@ getSequences(PGconn *c, int *n)
 	if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
 		res = PQexec(c,
-				 "SELECT c.oid, n.nspname, c.relname, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'S' AND nspname !~ '^pg_' AND nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, relname");
+					 "SELECT c.oid, n.nspname, c.relname, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'S' AND nspname !~ '^pg_' AND nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, relname");
 	}
 	else
 	{
 		res = PQexec(c,
-				 "SELECT c.oid, n.nspname, c.relname, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'S' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
+					 "SELECT c.oid, n.nspname, c.relname, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'S' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -119,14 +119,14 @@ getSequenceAttributes(PGconn *c, PQLSequence *s)
 	{
 		/* determine how many characters will be written by snprintf */
 		nquery = snprintf(query, nquery,
-					 "SELECT seqincrement, seqstart, seqmax, seqmin, seqcache, seqcycle, format_type(seqtypid, NULL) AS typname FROM pg_sequence WHERE seqrelid = %u",
-					 s->obj.oid);
+						  "SELECT seqincrement, seqstart, seqmax, seqmin, seqcache, seqcycle, format_type(seqtypid, NULL) AS typname FROM pg_sequence WHERE seqrelid = %u",
+						  s->obj.oid);
 
 		nquery++;
 		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
 		snprintf(query, nquery,
-					 "SELECT seqincrement, seqstart, seqmax, seqmin, seqcache, seqcycle, format_type(seqtypid, NULL) AS typname FROM pg_sequence WHERE seqrelid = %u",
-					 s->obj.oid);
+				 "SELECT seqincrement, seqstart, seqmax, seqmin, seqcache, seqcycle, format_type(seqtypid, NULL) AS typname FROM pg_sequence WHERE seqrelid = %u",
+				 s->obj.oid);
 	}
 	else
 	{
@@ -135,14 +135,14 @@ getSequenceAttributes(PGconn *c, PQLSequence *s)
 
 		/* determine how many characters will be written by snprintf */
 		nquery = snprintf(query, nquery,
-					 "SELECT increment_by AS seqincrement, start_value AS seqstart, max_value AS seqmax, min_value AS seqmin, cache_value AS seqcache, is_cycled AS seqcycle FROM %s.%s",
-					 schema, seqname);
+						  "SELECT increment_by AS seqincrement, start_value AS seqstart, max_value AS seqmax, min_value AS seqmin, cache_value AS seqcache, is_cycled AS seqcycle FROM %s.%s",
+						  schema, seqname);
 
 		nquery++;
 		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
 		snprintf(query, nquery,
-					 "SELECT increment_by AS seqincrement, start_value AS seqstart, max_value AS seqmax, min_value AS seqmin, cache_value AS seqcache, is_cycled AS seqcycle FROM %s.%s",
-					 schema, seqname);
+				 "SELECT increment_by AS seqincrement, start_value AS seqstart, max_value AS seqmax, min_value AS seqmin, cache_value AS seqcache, is_cycled AS seqcycle FROM %s.%s",
+				 schema, seqname);
 		free(schema);
 		free(seqname);
 	}
@@ -193,7 +193,9 @@ getSequenceSecurityLabels(PGconn *c, PQLSequence *s)
 		return;
 	}
 
-	snprintf(query, 200, "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_class' AND s.objoid = %u ORDER BY provider", s->obj.oid);
+	snprintf(query, 200,
+			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_class' AND s.objoid = %u ORDER BY provider",
+			 s->obj.oid);
 
 	res = PQexec(c, query);
 
@@ -212,11 +214,13 @@ getSequenceSecurityLabels(PGconn *c, PQLSequence *s)
 	else
 		s->seclabels = NULL;
 
-	logDebug("number of security labels in sequence \"%s\".\"%s\": %d", s->obj.schemaname, s->obj.objectname, s->nseclabels);
+	logDebug("number of security labels in sequence \"%s\".\"%s\": %d",
+			 s->obj.schemaname, s->obj.objectname, s->nseclabels);
 
 	for (i = 0; i < s->nseclabels; i++)
 	{
-		s->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res, "provider")));
+		s->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
+										  "provider")));
 		s->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
 	}
 
@@ -379,7 +383,8 @@ dumpCreateSequence(FILE *output, PQLSequence *s)
 	if (options.comment && s->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON SEQUENCE %s.%s IS '%s';", schema, seqname, s->comment);
+		fprintf(output, "COMMENT ON SEQUENCE %s.%s IS '%s';", schema, seqname,
+				s->comment);
 	}
 
 	/* security labels */
@@ -408,7 +413,8 @@ dumpCreateSequence(FILE *output, PQLSequence *s)
 	/* privileges */
 	/* XXX second s->obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
-		dumpGrantAndRevoke(output, PGQ_SEQUENCE, &s->obj, &s->obj, NULL, s->acl, NULL, NULL);
+		dumpGrantAndRevoke(output, PGQ_SEQUENCE, &s->obj, &s->obj, NULL, s->acl, NULL,
+						   NULL);
 
 	free(schema);
 	free(seqname);
@@ -522,7 +528,8 @@ dumpAlterSequence(FILE *output, PQLSequence *a, PQLSequence *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON SEQUENCE %s.%s IS '%s';", schema2, seqname2, b->comment);
+			fprintf(output, "COMMENT ON SEQUENCE %s.%s IS '%s';", schema2, seqname2,
+					b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
 		{
@@ -630,7 +637,8 @@ dumpAlterSequence(FILE *output, PQLSequence *a, PQLSequence *b)
 		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER SEQUENCE %s.%s OWNER TO %s;", schema2, seqname2, b->owner);
+			fprintf(output, "ALTER SEQUENCE %s.%s OWNER TO %s;", schema2, seqname2,
+					b->owner);
 		}
 	}
 
@@ -638,7 +646,8 @@ dumpAlterSequence(FILE *output, PQLSequence *a, PQLSequence *b)
 	if (options.privileges)
 	{
 		if (a->acl != NULL || b->acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_SEQUENCE, &a->obj, &b->obj, a->acl, b->acl, NULL, NULL);
+			dumpGrantAndRevoke(output, PGQ_SEQUENCE, &a->obj, &b->obj, a->acl, b->acl, NULL,
+							   NULL);
 	}
 
 	free(schema1);

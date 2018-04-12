@@ -123,7 +123,9 @@ getViewSecurityLabels(PGconn *c, PQLView *v)
 		return;
 	}
 
-	snprintf(query, 200, "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_class' AND s.objoid = %u ORDER BY provider", v->obj.oid);
+	snprintf(query, 200,
+			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_class' AND s.objoid = %u ORDER BY provider",
+			 v->obj.oid);
 
 	res = PQexec(c, query);
 
@@ -142,11 +144,13 @@ getViewSecurityLabels(PGconn *c, PQLView *v)
 	else
 		v->seclabels = NULL;
 
-	logDebug("number of security labels in view \"%s\".\"%s\": %d", v->obj.schemaname, v->obj.objectname, v->nseclabels);
+	logDebug("number of security labels in view \"%s\".\"%s\": %d",
+			 v->obj.schemaname, v->obj.objectname, v->nseclabels);
 
 	for (i = 0; i < v->nseclabels; i++)
 	{
-		v->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res, "provider")));
+		v->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
+										  "provider")));
 		v->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
 	}
 
@@ -269,7 +273,8 @@ dumpAlterView(FILE *output, PQLView *a, PQLView *b)
 	if (a->checkoption == NULL && b->checkoption != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER VIEW %s.%s SET (check_option=%s);", schema2, viewname2, b->checkoption);
+		fprintf(output, "ALTER VIEW %s.%s SET (check_option=%s);", schema2, viewname2,
+				b->checkoption);
 	}
 	else if (a->checkoption != NULL && b->checkoption == NULL)
 	{
@@ -280,20 +285,23 @@ dumpAlterView(FILE *output, PQLView *a, PQLView *b)
 			 strcmp(a->checkoption, b->checkoption) != 0)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER VIEW %s.%s SET (check_option=%s);", schema2, viewname2, b->checkoption);
+		fprintf(output, "ALTER VIEW %s.%s SET (check_option=%s);", schema2, viewname2,
+				b->checkoption);
 	}
 
 	/* reloptions */
 	if (a->reloptions == NULL && b->reloptions != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER VIEW %s.%s SET (%s);", schema2, viewname2, b->reloptions);
+		fprintf(output, "ALTER VIEW %s.%s SET (%s);", schema2, viewname2,
+				b->reloptions);
 	}
 	else if (a->reloptions != NULL && b->reloptions == NULL)
 	{
 		stringList	*rlist;
 
-		rlist = setOperationOptions(a->reloptions, b->reloptions, PGQ_SETDIFFERENCE, false, true);
+		rlist = setOperationOptions(a->reloptions, b->reloptions, PGQ_SETDIFFERENCE,
+									false, true);
 		if (rlist)
 		{
 			char	*resetlist;
@@ -311,7 +319,8 @@ dumpAlterView(FILE *output, PQLView *a, PQLView *b)
 	{
 		stringList	*rlist, *ilist, *slist;
 
-		rlist = setOperationOptions(a->reloptions, b->reloptions, PGQ_SETDIFFERENCE, false, true);
+		rlist = setOperationOptions(a->reloptions, b->reloptions, PGQ_SETDIFFERENCE,
+									false, true);
 		if (rlist)
 		{
 			char	*resetlist;
@@ -328,7 +337,8 @@ dumpAlterView(FILE *output, PQLView *a, PQLView *b)
 		 * Include intersection between option sets. However, exclude options
 		 * that don't change.
 		 */
-		ilist = setOperationOptions(a->reloptions, b->reloptions, PGQ_INTERSECT, true, true);
+		ilist = setOperationOptions(a->reloptions, b->reloptions, PGQ_INTERSECT, true,
+									true);
 		if (ilist)
 		{
 			char	*setlist;
@@ -344,7 +354,8 @@ dumpAlterView(FILE *output, PQLView *a, PQLView *b)
 		/*
 		 * Set options that are only presented in the second set.
 		 */
-		slist = setOperationOptions(b->reloptions, a->reloptions, PGQ_SETDIFFERENCE, true, true);
+		slist = setOperationOptions(b->reloptions, a->reloptions, PGQ_SETDIFFERENCE,
+									true, true);
 		if (slist)
 		{
 			char	*setlist;
@@ -366,7 +377,8 @@ dumpAlterView(FILE *output, PQLView *a, PQLView *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON VIEW %s.%s IS '%s';", schema2, viewname2, b->comment);
+			fprintf(output, "COMMENT ON VIEW %s.%s IS '%s';", schema2, viewname2,
+					b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
 		{

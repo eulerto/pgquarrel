@@ -77,7 +77,8 @@ getFunctions(PGconn *c, int *n)
 		f[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		f[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "proname")));
 		f[i].arguments = strdup(PQgetvalue(res, i, PQfnumber(res, "funcargs")));
-		f[i].iarguments = strdup(PQgetvalue(res, i, PQfnumber(res, "funciargs")));	/* don't print defaults */
+		f[i].iarguments = strdup(PQgetvalue(res, i, PQfnumber(res,
+											"funciargs")));	/* don't print defaults */
 		f[i].body = strdup(PQgetvalue(res, i, PQfnumber(res, "prosrc")));
 		f[i].returntype = strdup(PQgetvalue(res, i, PQfnumber(res, "funcresult")));
 		f[i].language = strdup(PQgetvalue(res, i, PQfnumber(res, "lanname")));
@@ -112,7 +113,8 @@ getFunctions(PGconn *c, int *n)
 		f[i].nseclabels = 0;
 		f[i].seclabels = NULL;
 
-		logDebug("function \"%s\".\"%s\"(%s)", f[i].obj.schemaname, f[i].obj.objectname, f[i].arguments);
+		logDebug("function \"%s\".\"%s\"(%s)", f[i].obj.schemaname, f[i].obj.objectname,
+				 f[i].arguments);
 	}
 
 	PQclear(res);
@@ -153,7 +155,9 @@ getFunctionSecurityLabels(PGconn *c, PQLFunction *f)
 		return;
 	}
 
-	snprintf(query, 200, "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_proc' AND s.objoid = %u ORDER BY provider", f->obj.oid);
+	snprintf(query, 200,
+			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_proc' AND s.objoid = %u ORDER BY provider",
+			 f->obj.oid);
 
 	res = PQexec(c, query);
 
@@ -172,11 +176,13 @@ getFunctionSecurityLabels(PGconn *c, PQLFunction *f)
 	else
 		f->seclabels = NULL;
 
-	logDebug("number of security labels in function \"%s\".\"%s\"(%s): %d", f->obj.schemaname, f->obj.objectname, f->arguments, f->nseclabels);
+	logDebug("number of security labels in function \"%s\".\"%s\"(%s): %d",
+			 f->obj.schemaname, f->obj.objectname, f->arguments, f->nseclabels);
 
 	for (i = 0; i < f->nseclabels; i++)
 	{
-		f->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res, "provider")));
+		f->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
+										  "provider")));
 		f->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
 	}
 
@@ -262,7 +268,7 @@ dumpCreateFunction(FILE *output, PQLFunction *f, bool orreplace)
 		fprintf(output, " VOLATILE");
 	else	/* can't happen */
 		logError("unrecognized volatile value for function %s.%s(%s)",
-				schema, funcname, f->arguments);
+				 schema, funcname, f->arguments);
 
 	if (f->isstrict)
 		fprintf(output, " STRICT");
@@ -566,7 +572,8 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 		/*
 		 * Reset options that are only presented in the first set.
 		 */
-		rlist = setOperationOptions(a->configparams, b->configparams, PGQ_SETDIFFERENCE, false, true);
+		rlist = setOperationOptions(a->configparams, b->configparams, PGQ_SETDIFFERENCE,
+									false, true);
 		if (rlist)
 		{
 			stringListCell	*cell;
@@ -581,7 +588,8 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 		 * Include intersection between parameter sets. However, exclude
 		 * options that don't change.
 		 */
-		ilist = setOperationOptions(a->configparams, b->configparams, PGQ_INTERSECT, true, true);
+		ilist = setOperationOptions(a->configparams, b->configparams, PGQ_INTERSECT,
+									true, true);
 		if (ilist)
 		{
 			stringListCell	*cell;
@@ -610,7 +618,8 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 		/*
 		 * Set options that are only presented in the second set.
 		 */
-		slist = setOperationOptions(b->configparams, a->configparams, PGQ_SETDIFFERENCE, true, true);
+		slist = setOperationOptions(b->configparams, a->configparams, PGQ_SETDIFFERENCE,
+									true, true);
 		if (slist)
 		{
 			stringListCell	*cell;

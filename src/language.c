@@ -35,12 +35,12 @@ getLanguages(PGconn *c, int *n)
 	if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
 		res = PQexec(c,
-				 "SELECT l.oid, lanname AS languagename, CASE WHEN tmplname IS NULL THEN false ELSE true END AS pltemplate, lanpltrusted AS trusted, p1.proname AS callhandler, p2.proname AS inlinehandler, p3.proname AS validator, obj_description(l.oid, 'pg_language') AS description, pg_get_userbyid(lanowner) AS lanowner, lanacl FROM pg_language l LEFT JOIN pg_pltemplate t ON (l.lanname = t.tmplname) LEFT JOIN pg_proc p1 ON (p1.oid = lanplcallfoid) LEFT JOIN pg_proc p2 ON (p2.oid = laninline) LEFT JOIN pg_proc p3 ON (p3.oid = lanvalidator) WHERE lanispl AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE l.oid = d.objid AND d.deptype = 'e') ORDER BY lanname");
+					 "SELECT l.oid, lanname AS languagename, CASE WHEN tmplname IS NULL THEN false ELSE true END AS pltemplate, lanpltrusted AS trusted, p1.proname AS callhandler, p2.proname AS inlinehandler, p3.proname AS validator, obj_description(l.oid, 'pg_language') AS description, pg_get_userbyid(lanowner) AS lanowner, lanacl FROM pg_language l LEFT JOIN pg_pltemplate t ON (l.lanname = t.tmplname) LEFT JOIN pg_proc p1 ON (p1.oid = lanplcallfoid) LEFT JOIN pg_proc p2 ON (p2.oid = laninline) LEFT JOIN pg_proc p3 ON (p3.oid = lanvalidator) WHERE lanispl AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE l.oid = d.objid AND d.deptype = 'e') ORDER BY lanname");
 	}
 	else
 	{
 		res = PQexec(c,
-				 "SELECT l.oid, lanname AS languagename, CASE WHEN tmplname IS NULL THEN false ELSE true END AS pltemplate, lanpltrusted AS trusted, p1.proname AS callhandler, p2.proname AS inlinehandler, p3.proname AS validator, obj_description(l.oid, 'pg_language') AS description, pg_get_userbyid(lanowner) AS lanowner, lanacl FROM pg_language l LEFT JOIN pg_pltemplate t ON (l.lanname = t.tmplname) LEFT JOIN pg_proc p1 ON (p1.oid = lanplcallfoid) LEFT JOIN pg_proc p2 ON (p2.oid = laninline) LEFT JOIN pg_proc p3 ON (p3.oid = lanvalidator) WHERE lanispl ORDER BY lanname");
+					 "SELECT l.oid, lanname AS languagename, CASE WHEN tmplname IS NULL THEN false ELSE true END AS pltemplate, lanpltrusted AS trusted, p1.proname AS callhandler, p2.proname AS inlinehandler, p3.proname AS validator, obj_description(l.oid, 'pg_language') AS description, pg_get_userbyid(lanowner) AS lanowner, lanacl FROM pg_language l LEFT JOIN pg_pltemplate t ON (l.lanname = t.tmplname) LEFT JOIN pg_proc p1 ON (p1.oid = lanplcallfoid) LEFT JOIN pg_proc p2 ON (p2.oid = laninline) LEFT JOIN pg_proc p3 ON (p3.oid = lanvalidator) WHERE lanispl ORDER BY lanname");
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -110,7 +110,9 @@ getLanguageSecurityLabels(PGconn *c, PQLLanguage *l)
 		return;
 	}
 
-	snprintf(query, 200, "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_language' AND s.objoid = %u ORDER BY provider", l->oid);
+	snprintf(query, 200,
+			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_language' AND s.objoid = %u ORDER BY provider",
+			 l->oid);
 
 	res = PQexec(c, query);
 
@@ -129,11 +131,13 @@ getLanguageSecurityLabels(PGconn *c, PQLLanguage *l)
 	else
 		l->seclabels = NULL;
 
-	logDebug("number of security labels in language \"%s\": %d", l->languagename, l->nseclabels);
+	logDebug("number of security labels in language \"%s\": %d", l->languagename,
+			 l->nseclabels);
 
 	for (i = 0; i < l->nseclabels; i++)
 	{
-		l->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res, "provider")));
+		l->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
+										  "provider")));
 		l->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
 	}
 
@@ -391,7 +395,8 @@ dumpAlterLanguage(FILE *output, PQLLanguage *a, PQLLanguage *b)
 		tmpb.objectname = b->languagename;
 
 		if (a->acl != NULL || b->acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_LANGUAGE, &tmpa, &tmpb, a->acl, b->acl, NULL, NULL);
+			dumpGrantAndRevoke(output, PGQ_LANGUAGE, &tmpa, &tmpb, a->acl, b->acl, NULL,
+							   NULL);
 	}
 
 	free(langname1);

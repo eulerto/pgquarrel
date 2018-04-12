@@ -57,16 +57,17 @@ getTextSearchConfigs(PGconn *c, int *n)
 
 	/* determine how many characters will be written by snprintf */
 	nquery = snprintf(query, nquery,
-			"SELECT c.oid, n.nspname, c.cfgname, quote_ident(o.nspname) || '.' || quote_ident(p.prsname) AS prsname, quote_ident(q.nspname) || '.' || quote_ident(d.dictname) AS dictname, (SELECT string_agg(alias, ', ') FROM ts_token_type(p.oid) AS t) AS tokentype, obj_description(c.oid, 'pg_ts_config') AS description, pg_get_userbyid(c.cfgowner) AS cfgowner FROM pg_ts_config c INNER JOIN pg_namespace n ON (c.cfgnamespace = n.oid) INNER JOIN pg_ts_parser p ON (c.cfgparser = p.oid) INNER JOIN pg_namespace o ON (p.prsnamespace = o.oid) INNER JOIN pg_ts_config_map m ON (c.oid = m.mapcfg) INNER JOIN pg_ts_dict d ON (m.mapdict = d.oid) INNER JOIN pg_namespace q ON (d.dictnamespace = q.oid) WHERE c.oid >= %u ORDER BY n.nspname, c.cfgname",
-			PGQ_FIRST_USER_OID);
+					  "SELECT c.oid, n.nspname, c.cfgname, quote_ident(o.nspname) || '.' || quote_ident(p.prsname) AS prsname, quote_ident(q.nspname) || '.' || quote_ident(d.dictname) AS dictname, (SELECT string_agg(alias, ', ') FROM ts_token_type(p.oid) AS t) AS tokentype, obj_description(c.oid, 'pg_ts_config') AS description, pg_get_userbyid(c.cfgowner) AS cfgowner FROM pg_ts_config c INNER JOIN pg_namespace n ON (c.cfgnamespace = n.oid) INNER JOIN pg_ts_parser p ON (c.cfgparser = p.oid) INNER JOIN pg_namespace o ON (p.prsnamespace = o.oid) INNER JOIN pg_ts_config_map m ON (c.oid = m.mapcfg) INNER JOIN pg_ts_dict d ON (m.mapdict = d.oid) INNER JOIN pg_namespace q ON (d.dictnamespace = q.oid) WHERE c.oid >= %u ORDER BY n.nspname, c.cfgname",
+					  PGQ_FIRST_USER_OID);
 
 	nquery++;
 	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
 	snprintf(query, nquery,
-			"SELECT c.oid, n.nspname, c.cfgname, quote_ident(o.nspname) || '.' || quote_ident(p.prsname) AS prsname, quote_ident(q.nspname) || '.' || quote_ident(d.dictname) AS dictname, (SELECT string_agg(alias, ', ') FROM ts_token_type(p.oid) AS t) AS tokentype, obj_description(c.oid, 'pg_ts_config') AS description, pg_get_userbyid(c.cfgowner) AS cfgowner FROM pg_ts_config c INNER JOIN pg_namespace n ON (c.cfgnamespace = n.oid) INNER JOIN pg_ts_parser p ON (c.cfgparser = p.oid) INNER JOIN pg_namespace o ON (p.prsnamespace = o.oid) INNER JOIN pg_ts_config_map m ON (c.oid = m.mapcfg) INNER JOIN pg_ts_dict d ON (m.mapdict = d.oid) INNER JOIN pg_namespace q ON (d.dictnamespace = q.oid) WHERE c.oid >= %u ORDER BY n.nspname, c.cfgname",
-			PGQ_FIRST_USER_OID);
+			 "SELECT c.oid, n.nspname, c.cfgname, quote_ident(o.nspname) || '.' || quote_ident(p.prsname) AS prsname, quote_ident(q.nspname) || '.' || quote_ident(d.dictname) AS dictname, (SELECT string_agg(alias, ', ') FROM ts_token_type(p.oid) AS t) AS tokentype, obj_description(c.oid, 'pg_ts_config') AS description, pg_get_userbyid(c.cfgowner) AS cfgowner FROM pg_ts_config c INNER JOIN pg_namespace n ON (c.cfgnamespace = n.oid) INNER JOIN pg_ts_parser p ON (c.cfgparser = p.oid) INNER JOIN pg_namespace o ON (p.prsnamespace = o.oid) INNER JOIN pg_ts_config_map m ON (c.oid = m.mapcfg) INNER JOIN pg_ts_dict d ON (m.mapdict = d.oid) INNER JOIN pg_namespace q ON (d.dictnamespace = q.oid) WHERE c.oid >= %u ORDER BY n.nspname, c.cfgname",
+			 PGQ_FIRST_USER_OID);
 
-	logNoise("text search configuration: query size: %d ; query: %s", nquery, query);
+	logNoise("text search configuration: query size: %d ; query: %s", nquery,
+			 query);
 
 	res = PQexec(c, query);
 
@@ -108,7 +109,8 @@ getTextSearchConfigs(PGconn *c, int *n)
 
 		d[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "cfgowner")));
 
-		logDebug("text search configuration \"%s\".\"%s\"", d[i].obj.schemaname, d[i].obj.objectname);
+		logDebug("text search configuration \"%s\".\"%s\"", d[i].obj.schemaname,
+				 d[i].obj.objectname);
 	}
 
 	PQclear(res);
@@ -129,14 +131,14 @@ getTextSearchDicts(PGconn *c, int *n)
 
 	/* determine how many characters will be written by snprintf */
 	nquery = snprintf(query, nquery,
-			"SELECT d.oid, n.nspname, d.dictname, d.dictinitoption, quote_ident(o.nspname) || '.' || t.tmplname AS tmplname, obj_description(d.oid, 'pg_ts_dict') AS description, pg_get_userbyid(d.dictowner) AS dictowner FROM pg_ts_dict d INNER JOIN pg_namespace n ON (d.dictnamespace = n.oid) INNER JOIN pg_ts_template t ON (d.dicttemplate = t.oid) INNER JOIN pg_namespace o ON (t.tmplnamespace = o.oid) WHERE d.oid >= %u ORDER BY n.nspname, d.dictname",
-			PGQ_FIRST_USER_OID);
+					  "SELECT d.oid, n.nspname, d.dictname, d.dictinitoption, quote_ident(o.nspname) || '.' || t.tmplname AS tmplname, obj_description(d.oid, 'pg_ts_dict') AS description, pg_get_userbyid(d.dictowner) AS dictowner FROM pg_ts_dict d INNER JOIN pg_namespace n ON (d.dictnamespace = n.oid) INNER JOIN pg_ts_template t ON (d.dicttemplate = t.oid) INNER JOIN pg_namespace o ON (t.tmplnamespace = o.oid) WHERE d.oid >= %u ORDER BY n.nspname, d.dictname",
+					  PGQ_FIRST_USER_OID);
 
 	nquery++;
 	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
 	snprintf(query, nquery,
-			"SELECT d.oid, n.nspname, d.dictname, d.dictinitoption, quote_ident(o.nspname) || '.' || t.tmplname AS tmplname, obj_description(d.oid, 'pg_ts_dict') AS description, pg_get_userbyid(d.dictowner) AS dictowner FROM pg_ts_dict d INNER JOIN pg_namespace n ON (d.dictnamespace = n.oid) INNER JOIN pg_ts_template t ON (d.dicttemplate = t.oid) INNER JOIN pg_namespace o ON (t.tmplnamespace = o.oid) WHERE d.oid >= %u ORDER BY n.nspname, d.dictname",
-			PGQ_FIRST_USER_OID);
+			 "SELECT d.oid, n.nspname, d.dictname, d.dictinitoption, quote_ident(o.nspname) || '.' || t.tmplname AS tmplname, obj_description(d.oid, 'pg_ts_dict') AS description, pg_get_userbyid(d.dictowner) AS dictowner FROM pg_ts_dict d INNER JOIN pg_namespace n ON (d.dictnamespace = n.oid) INNER JOIN pg_ts_template t ON (d.dicttemplate = t.oid) INNER JOIN pg_namespace o ON (t.tmplnamespace = o.oid) WHERE d.oid >= %u ORDER BY n.nspname, d.dictname",
+			 PGQ_FIRST_USER_OID);
 
 	logNoise("text search dictionary: query size: %d ; query: %s", nquery, query);
 
@@ -179,7 +181,8 @@ getTextSearchDicts(PGconn *c, int *n)
 
 		d[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "dictowner")));
 
-		logDebug("text search dictionary \"%s\".\"%s\"", d[i].obj.schemaname, d[i].obj.objectname);
+		logDebug("text search dictionary \"%s\".\"%s\"", d[i].obj.schemaname,
+				 d[i].obj.objectname);
 	}
 
 	PQclear(res);
@@ -200,14 +203,14 @@ getTextSearchParsers(PGconn *c, int *n)
 
 	/* determine how many characters will be written by snprintf */
 	nquery = snprintf(query, nquery,
-			"SELECT p.oid, n.nspname, p.prsname, quote_ident(o.nspname) || '.' || quote_ident(a.proname) AS startfunc, quote_ident(q.nspname) || '.' || quote_ident(b.proname) AS tokenfunc, quote_ident(r.nspname) || '.' || quote_ident(a.proname) AS endfunc, quote_ident(s.nspname) || '.' || quote_ident(d.proname) AS lextypefunc, quote_ident(t.nspname) || '.' || quote_ident(e.proname) AS headlinefunc, obj_description(p.oid, 'pg_ts_parser') AS description FROM pg_ts_parser p INNER JOIN pg_namespace n ON (p.prsnamespace = n.oid) INNER JOIN (pg_proc a INNER JOIN pg_namespace o ON (a.pronamespace = o.oid)) ON (p.prsstart = a.oid) INNER JOIN (pg_proc b INNER JOIN pg_namespace q ON (b.pronamespace = q.oid)) ON (p.prstoken = b.oid) INNER JOIN (pg_proc c INNER JOIN pg_namespace r ON (c.pronamespace = r.oid)) ON (p.prsend = c.oid) INNER JOIN (pg_proc d INNER JOIN pg_namespace s ON (d.pronamespace = s.oid)) ON (p.prslextype = d.oid) LEFT JOIN (pg_proc e INNER JOIN pg_namespace t ON (e.pronamespace = t.oid)) ON (p.prsheadline = e.oid) WHERE p.oid >= %u ORDER BY n.nspname, p.prsname",
-			PGQ_FIRST_USER_OID);
+					  "SELECT p.oid, n.nspname, p.prsname, quote_ident(o.nspname) || '.' || quote_ident(a.proname) AS startfunc, quote_ident(q.nspname) || '.' || quote_ident(b.proname) AS tokenfunc, quote_ident(r.nspname) || '.' || quote_ident(a.proname) AS endfunc, quote_ident(s.nspname) || '.' || quote_ident(d.proname) AS lextypefunc, quote_ident(t.nspname) || '.' || quote_ident(e.proname) AS headlinefunc, obj_description(p.oid, 'pg_ts_parser') AS description FROM pg_ts_parser p INNER JOIN pg_namespace n ON (p.prsnamespace = n.oid) INNER JOIN (pg_proc a INNER JOIN pg_namespace o ON (a.pronamespace = o.oid)) ON (p.prsstart = a.oid) INNER JOIN (pg_proc b INNER JOIN pg_namespace q ON (b.pronamespace = q.oid)) ON (p.prstoken = b.oid) INNER JOIN (pg_proc c INNER JOIN pg_namespace r ON (c.pronamespace = r.oid)) ON (p.prsend = c.oid) INNER JOIN (pg_proc d INNER JOIN pg_namespace s ON (d.pronamespace = s.oid)) ON (p.prslextype = d.oid) LEFT JOIN (pg_proc e INNER JOIN pg_namespace t ON (e.pronamespace = t.oid)) ON (p.prsheadline = e.oid) WHERE p.oid >= %u ORDER BY n.nspname, p.prsname",
+					  PGQ_FIRST_USER_OID);
 
 	nquery++;
 	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
 	snprintf(query, nquery,
-			"SELECT p.oid, n.nspname, p.prsname, quote_ident(o.nspname) || '.' || quote_ident(a.proname) AS startfunc, quote_ident(q.nspname) || '.' || quote_ident(b.proname) AS tokenfunc, quote_ident(r.nspname) || '.' || quote_ident(a.proname) AS endfunc, quote_ident(s.nspname) || '.' || quote_ident(d.proname) AS lextypefunc, quote_ident(t.nspname) || '.' || quote_ident(e.proname) AS headlinefunc, obj_description(p.oid, 'pg_ts_parser') AS description FROM pg_ts_parser p INNER JOIN pg_namespace n ON (p.prsnamespace = n.oid) INNER JOIN (pg_proc a INNER JOIN pg_namespace o ON (a.pronamespace = o.oid)) ON (p.prsstart = a.oid) INNER JOIN (pg_proc b INNER JOIN pg_namespace q ON (b.pronamespace = q.oid)) ON (p.prstoken = b.oid) INNER JOIN (pg_proc c INNER JOIN pg_namespace r ON (c.pronamespace = r.oid)) ON (p.prsend = c.oid) INNER JOIN (pg_proc d INNER JOIN pg_namespace s ON (d.pronamespace = s.oid)) ON (p.prslextype = d.oid) LEFT JOIN (pg_proc e INNER JOIN pg_namespace t ON (e.pronamespace = t.oid)) ON (p.prsheadline = e.oid) WHERE p.oid >= %u ORDER BY n.nspname, p.prsname",
-			PGQ_FIRST_USER_OID);
+			 "SELECT p.oid, n.nspname, p.prsname, quote_ident(o.nspname) || '.' || quote_ident(a.proname) AS startfunc, quote_ident(q.nspname) || '.' || quote_ident(b.proname) AS tokenfunc, quote_ident(r.nspname) || '.' || quote_ident(a.proname) AS endfunc, quote_ident(s.nspname) || '.' || quote_ident(d.proname) AS lextypefunc, quote_ident(t.nspname) || '.' || quote_ident(e.proname) AS headlinefunc, obj_description(p.oid, 'pg_ts_parser') AS description FROM pg_ts_parser p INNER JOIN pg_namespace n ON (p.prsnamespace = n.oid) INNER JOIN (pg_proc a INNER JOIN pg_namespace o ON (a.pronamespace = o.oid)) ON (p.prsstart = a.oid) INNER JOIN (pg_proc b INNER JOIN pg_namespace q ON (b.pronamespace = q.oid)) ON (p.prstoken = b.oid) INNER JOIN (pg_proc c INNER JOIN pg_namespace r ON (c.pronamespace = r.oid)) ON (p.prsend = c.oid) INNER JOIN (pg_proc d INNER JOIN pg_namespace s ON (d.pronamespace = s.oid)) ON (p.prslextype = d.oid) LEFT JOIN (pg_proc e INNER JOIN pg_namespace t ON (e.pronamespace = t.oid)) ON (p.prsheadline = e.oid) WHERE p.oid >= %u ORDER BY n.nspname, p.prsname",
+			 PGQ_FIRST_USER_OID);
 
 	logNoise("text search parser: query size: %d ; query: %s", nquery, query);
 
@@ -251,7 +254,8 @@ getTextSearchParsers(PGconn *c, int *n)
 		else
 			p[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
 
-		logDebug("text search parser \"%s\".\"%s\"", p[i].obj.schemaname, p[i].obj.objectname);
+		logDebug("text search parser \"%s\".\"%s\"", p[i].obj.schemaname,
+				 p[i].obj.objectname);
 	}
 
 	PQclear(res);
@@ -271,14 +275,14 @@ getTextSearchTemplates(PGconn *c, int *n)
 	logNoise("text search template: server version: %d", PQserverVersion(c));
 
 	nquery = snprintf(query, nquery,
-			"SELECT t.oid, n.nspname, t.tmplname, quote_ident(o.nspname) || '.' || quote_ident(a.proname) AS tmpllexize, quote_ident(p.nspname) || '.' || quote_ident(b.proname) AS tmplinit, obj_description(t.oid, 'pg_ts_template') AS description FROM pg_ts_template t INNER JOIN pg_namespace n ON (t.tmplnamespace = n.oid) INNER JOIN (pg_proc a INNER JOIN pg_namespace o ON (a.pronamespace = o.oid)) ON (t.tmpllexize = a.oid) LEFT JOIN (pg_proc b INNER JOIN pg_namespace p ON (b.pronamespace = p.oid)) ON (t.tmplinit = b.oid) WHERE t.oid >= %u ORDER BY n.nspname, t.tmplname",
-			PGQ_FIRST_USER_OID);
+					  "SELECT t.oid, n.nspname, t.tmplname, quote_ident(o.nspname) || '.' || quote_ident(a.proname) AS tmpllexize, quote_ident(p.nspname) || '.' || quote_ident(b.proname) AS tmplinit, obj_description(t.oid, 'pg_ts_template') AS description FROM pg_ts_template t INNER JOIN pg_namespace n ON (t.tmplnamespace = n.oid) INNER JOIN (pg_proc a INNER JOIN pg_namespace o ON (a.pronamespace = o.oid)) ON (t.tmpllexize = a.oid) LEFT JOIN (pg_proc b INNER JOIN pg_namespace p ON (b.pronamespace = p.oid)) ON (t.tmplinit = b.oid) WHERE t.oid >= %u ORDER BY n.nspname, t.tmplname",
+					  PGQ_FIRST_USER_OID);
 
 	nquery++;
 	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
 	snprintf(query, nquery,
-			"SELECT t.oid, n.nspname, t.tmplname, quote_ident(o.nspname) || '.' || quote_ident(a.proname) AS tmpllexize, quote_ident(p.nspname) || '.' || quote_ident(b.proname) AS tmplinit, obj_description(t.oid, 'pg_ts_template') AS description FROM pg_ts_template t INNER JOIN pg_namespace n ON (t.tmplnamespace = n.oid) INNER JOIN (pg_proc a INNER JOIN pg_namespace o ON (a.pronamespace = o.oid)) ON (t.tmpllexize = a.oid) LEFT JOIN (pg_proc b INNER JOIN pg_namespace p ON (b.pronamespace = p.oid)) ON (t.tmplinit = b.oid) WHERE t.oid >= %u ORDER BY n.nspname, t.tmplname",
-			PGQ_FIRST_USER_OID);
+			 "SELECT t.oid, n.nspname, t.tmplname, quote_ident(o.nspname) || '.' || quote_ident(a.proname) AS tmpllexize, quote_ident(p.nspname) || '.' || quote_ident(b.proname) AS tmplinit, obj_description(t.oid, 'pg_ts_template') AS description FROM pg_ts_template t INNER JOIN pg_namespace n ON (t.tmplnamespace = n.oid) INNER JOIN (pg_proc a INNER JOIN pg_namespace o ON (a.pronamespace = o.oid)) ON (t.tmpllexize = a.oid) LEFT JOIN (pg_proc b INNER JOIN pg_namespace p ON (b.pronamespace = p.oid)) ON (t.tmplinit = b.oid) WHERE t.oid >= %u ORDER BY n.nspname, t.tmplname",
+			 PGQ_FIRST_USER_OID);
 
 	logNoise("text search template: query size: %d ; query: %s", nquery, query);
 
@@ -319,7 +323,8 @@ getTextSearchTemplates(PGconn *c, int *n)
 		else
 			t[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
 
-		logDebug("text search template \"%s\".\"%s\"", t[i].obj.schemaname, t[i].obj.objectname);
+		logDebug("text search template \"%s\".\"%s\"", t[i].obj.schemaname,
+				 t[i].obj.objectname);
 	}
 
 	PQclear(res);
@@ -550,7 +555,8 @@ dumpCreateTextSearchTemplate(FILE *output, PQLTextSearchTemplate *t)
 
 
 void
-dumpAlterTextSearchConfig(FILE *output, PQLTextSearchConfig *a, PQLTextSearchConfig *b)
+dumpAlterTextSearchConfig(FILE *output, PQLTextSearchConfig *a,
+						  PQLTextSearchConfig *b)
 {
 	char	*schema1 = formatObjectIdentifier(a->obj.schemaname);
 	char	*cfgname1 = formatObjectIdentifier(a->obj.objectname);
@@ -605,7 +611,8 @@ dumpAlterTextSearchConfig(FILE *output, PQLTextSearchConfig *a, PQLTextSearchCon
 	free(cfgname2);
 }
 
-void dumpAlterTextSearchDict(FILE *output, PQLTextSearchDict *a, PQLTextSearchDict *b)
+void dumpAlterTextSearchDict(FILE *output, PQLTextSearchDict *a,
+							 PQLTextSearchDict *b)
 {
 	char	*schema1 = formatObjectIdentifier(a->obj.schemaname);
 	char	*dictname1 = formatObjectIdentifier(a->obj.objectname);
@@ -635,9 +642,7 @@ void dumpAlterTextSearchDict(FILE *output, PQLTextSearchDict *a, PQLTextSearchDi
 				first = false;
 			}
 			else
-			{
 				fprintf(output, ", %s = '%s'", cell->value, str);
-			}
 		}
 		fprintf(output, ");");
 
@@ -665,21 +670,21 @@ void dumpAlterTextSearchDict(FILE *output, PQLTextSearchDict *a, PQLTextSearchDi
 				first = false;
 			}
 			else
-			{
 				fprintf(output, ", %s", cell->value);
-			}
 		}
 		fprintf(output, ");");
 
 		freeStringList(sl);
 	}
-	else if (a->options != NULL && b->options != NULL && strcmp(a->options, b->options) != 0)
+	else if (a->options != NULL && b->options != NULL &&
+			 strcmp(a->options, b->options) != 0)
 	{
 		stringList	*rlist, *ilist, *slist;
 		bool		first = true;
 
 		/* reset options that are only presented in the first set */
-		rlist = setOperationOptions(a->options, b->options, PGQ_SETDIFFERENCE, false, true);
+		rlist = setOperationOptions(a->options, b->options, PGQ_SETDIFFERENCE, false,
+									true);
 		if (rlist)
 		{
 			stringListCell	*cell;
@@ -697,9 +702,7 @@ void dumpAlterTextSearchDict(FILE *output, PQLTextSearchDict *a, PQLTextSearchDi
 					first = false;
 				}
 				else
-				{
 					fprintf(output, ", %s", cell->value);
-				}
 			}
 
 			freeStringList(rlist);
@@ -732,9 +735,7 @@ void dumpAlterTextSearchDict(FILE *output, PQLTextSearchDict *a, PQLTextSearchDi
 					first = false;
 				}
 				else
-				{
 					fprintf(output, ", %s = '%s'", cell->value, str);
-				}
 			}
 
 			freeStringList(ilist);
@@ -743,7 +744,8 @@ void dumpAlterTextSearchDict(FILE *output, PQLTextSearchDict *a, PQLTextSearchDi
 		/*
 		 * Set options that are only presented in the second set.
 		 */
-		slist = setOperationOptions(b->options, a->options, PGQ_SETDIFFERENCE, true, true);
+		slist = setOperationOptions(b->options, a->options, PGQ_SETDIFFERENCE, true,
+									true);
 		if (slist)
 		{
 			stringListCell	*cell;
@@ -767,9 +769,7 @@ void dumpAlterTextSearchDict(FILE *output, PQLTextSearchDict *a, PQLTextSearchDi
 					first = false;
 				}
 				else
-				{
 					fprintf(output, ", %s = '%s'", cell->value, str);
-				}
 			}
 
 			freeStringList(slist);
@@ -817,7 +817,8 @@ void dumpAlterTextSearchDict(FILE *output, PQLTextSearchDict *a, PQLTextSearchDi
 	free(dictname2);
 }
 
-void dumpAlterTextSearchParser(FILE *output, PQLTextSearchParser *a, PQLTextSearchParser *b)
+void dumpAlterTextSearchParser(FILE *output, PQLTextSearchParser *a,
+							   PQLTextSearchParser *b)
 {
 	char	*schema1 = formatObjectIdentifier(a->obj.schemaname);
 	char	*prsname1 = formatObjectIdentifier(a->obj.objectname);
@@ -849,7 +850,8 @@ void dumpAlterTextSearchParser(FILE *output, PQLTextSearchParser *a, PQLTextSear
 	free(prsname2);
 }
 
-void dumpAlterTextSearchTemplate(FILE *output, PQLTextSearchTemplate *a, PQLTextSearchTemplate *b)
+void dumpAlterTextSearchTemplate(FILE *output, PQLTextSearchTemplate *a,
+								 PQLTextSearchTemplate *b)
 {
 	char	*schema1 = formatObjectIdentifier(a->obj.schemaname);
 	char	*tmplname1 = formatObjectIdentifier(a->obj.objectname);

@@ -184,7 +184,8 @@ char *formatObjectIdentifier(char *s);
 void logGeneric(enum PQLLogLevel level, const char *fmt, ...);
 
 stringList *buildStringList(char *options);
-stringList *setOperationOptions(char *a, char *b, int kind, bool withvalue, bool changed);
+stringList *setOperationOptions(char *a, char *b, int kind, bool withvalue,
+								bool changed);
 char *printOptions(stringList *sl);
 
 void appendStringList(stringList *sl, const char *s);
