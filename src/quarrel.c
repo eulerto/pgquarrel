@@ -3663,8 +3663,7 @@ int main(int argc, char *argv[])
 	options = opts.general;
 
 	/* command-line options take precedence over config options */
-	if (options.verbose &&
-			loglevel == PGQ_ERROR)	/* it wasn't defined on command-line so use config value */
+	if (options.verbose && loglevel == PGQ_ERROR)
 		loglevel = PGQ_DEBUG;
 	if (options.summary)
 		summary = true;
