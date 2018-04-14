@@ -1255,6 +1255,7 @@ dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 	char	*tabname2 = formatObjectIdentifier(b->obj.objectname);
 	char	*attname2 = formatObjectIdentifier(b->attributes[j].attname);
 
+	/* same data types? */
 	if (strcmp(a->attributes[i].atttypname, b->attributes[j].atttypname) != 0)
 	{
 		fprintf(output, "\n\n");
@@ -1626,24 +1627,16 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 			}
 			else if (strcmp(a->attributes[i].attname, b->attributes[j].attname) == 0)
 			{
-				/* same column name but different data types */
 				/*
-				 * XXX If we choose to DROP COLUMN follows by ADD COLUMN the data in
-				 * XXX the old column will be discarded and won't have the chance to
-				 * XXX be converted. That way, we try to convert between data types.
-				 * XXX One day, this piece of code will be smarter to warn the OP
-				 * XXX that postgres cannot automagically convert that column.
+				 * Same column name but check other attribute definition
+				 *   - data types
+				 *   - default value
+				 *   - not null
+				 *   - comment
+				 *   - security labels
+				 *   - privileges
 				 */
-				if (strcmp(a->attributes[i].atttypname, b->attributes[j].atttypname) != 0 ||
-						a->attributes[i].attnotnull != b->attributes[j].attnotnull)
-				{
-					logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) altered to (%s)",
-							 a->obj.schemaname, a->obj.objectname,
-							 a->attributes[i].attname, a->attributes[i].atttypname,
-							 b->attributes[j].atttypname);
-
-					dumpAlterColumn(output, a, i, b, j);
-				}
+				dumpAlterColumn(output, a, i, b, j);
 
 				/* do attribute options change? */
 				dumpAlterColumnSetOptions(output, a, i, b, j);
