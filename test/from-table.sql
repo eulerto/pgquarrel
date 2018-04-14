@@ -6,12 +6,16 @@ CREATE TABLE same_table_1 (
 );
 
 ALTER TABLE same_table_1 ALTER COLUMN b SET (n_distinct=7);
+COMMENT ON TABLE same_table_1 IS 'this is comment for table same_table_1';
+COMMENT ON COLUMN same_table_1.b IS 'this is comment for column same_table_1.b';
 
 CREATE TABLE same_table_2 (
 	a integer not null,
 	b text,
 	PRIMARY KEY(a)
 );
+COMMENT ON TABLE same_table_2 IS 'this is comment for table same_table_2';
+COMMENT ON COLUMN same_table_2.b IS 'this is comment for column same_table_2.b';
 
 CREATE TABLE same_table_3 (
 	a integer not null,
