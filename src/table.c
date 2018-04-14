@@ -1255,7 +1255,17 @@ dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 	char	*tabname2 = formatObjectIdentifier(b->obj.objectname);
 	char	*attname2 = formatObjectIdentifier(b->attributes[j].attname);
 
-	/* same data types? */
+	/*
+	 * Although we emit a command to change the type of the column of a table,
+	 * we do not guarantee that that command will succeed. A USING clause must
+	 * be provided to convert from old data type to new. If it is omitted, the
+	 * default conversion is the same as an assignment cast from old data type
+	 * to new (that is the case right now).
+	 *
+	 * FIXME Provide a USING clause for those cases that there is no implicit
+	 * or assignment cast.
+	 * XXX It means that this command could fail miserably to apply.
+	 */
 	if (strcmp(a->attributes[i].atttypname, b->attributes[j].atttypname) != 0)
 	{
 		fprintf(output, "\n\n");
