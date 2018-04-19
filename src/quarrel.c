@@ -239,7 +239,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 		if (tmp != NULL)
 			options->general.output = strdup(tmp);
 		else
-			options->general.output = strdup("quarrel.sql");		/* default */
+			options->general.output = NULL;			/* default */
 
 		tmp = mini_file_get_value(config, "general", "tmpdir");
 		if (tmp != NULL)
@@ -3802,11 +3802,18 @@ int main(int argc, char *argv[])
 				   pgversion1, pgversion2);
 
 	/* open output file */
-	fout = fopen(options.output, "w");
-	if (fout == NULL)
+	if (options.output != NULL && strcmp(options.output, "-") != 0)
 	{
-		logError("could not open output file \"%s\"", options.output);
-		exit(EXIT_FAILURE);
+		fout = fopen(options.output, "w");
+		if (fout == NULL)
+		{
+			logError("could not open output file \"%s\"", options.output);
+			exit(EXIT_FAILURE);
+		}
+	}
+	else
+	{
+		fout = stdout;
 	}
 
 	/* temporary files are used to put commands in the right dependency order */
@@ -3921,7 +3928,10 @@ int main(int argc, char *argv[])
 
 	/* flush and close the output file */
 	fflush(fout);
-	fclose(fout);
+	if (options.output != NULL && strcmp(options.output, "-") != 0)
+		fclose(fout);
+	else
+		fprintf(fout, "\n");	/* new line for stdout */
 
 	return 0;
 }
