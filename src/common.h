@@ -98,8 +98,8 @@ typedef struct QuarrelDatabaseOptions
 typedef struct QuarrelOptions
 {
 	QuarrelGeneralOptions	general;
-	QuarrelDatabaseOptions	from;
-	QuarrelDatabaseOptions	to;
+	QuarrelDatabaseOptions	source;
+	QuarrelDatabaseOptions	target;
 } QuarrelOptions;
 
 typedef struct PQLSecLabel

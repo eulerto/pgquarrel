@@ -198,12 +198,23 @@ help(void)
 	printf("Usage:\n");
 	printf("  %s [OPTION]...\n", PGQ_NAME);
 	printf("\nOptions:\n");
-	printf("  -c, --config=FILENAME      configuration file\n");
-	printf("  -f, --file=FILENAME        receive changes into this file, - for stdout\n");
-	printf("  -s, --summary              print a summary of changes\n");
-	printf("  -v, --verbose              verbose mode\n");
-	printf("  --help                     show this help, then exit\n");
-	printf("  --version                  output version information, then exit\n");
+	printf("  -c, --config=FILENAME       configuration file\n");
+	printf("  -f, --file=FILENAME         receive changes into this file, - for stdout\n");
+	printf("  -s, --summary               print a summary of changes\n");
+	printf("  -v, --verbose               verbose mode\n");
+	printf("\nSource options:\n");
+	printf("      --source-dbname=DBNAME  database name\n");
+	printf("      --source-host=HOSTNAME  server host or socket directory\n");
+	printf("      --source-port=PORT      server port\n");
+	printf("      --source-username=NAME  user name\n");
+	printf("\nTarget options:\n");
+	printf("      --target-dbname=DBNAME  database name\n");
+	printf("      --target-host=HOSTNAME  server host or socket directory\n");
+	printf("      --target-port=PORT      server port\n");
+	printf("      --target-username=NAME  user name\n");
+	printf("\n");
+	printf("  --help                      show this help, then exit\n");
+	printf("  --version                   output version information, then exit\n");
 	printf("\nReport bugs to <euler@timbira.com.br>.\n");
 }
 
@@ -439,68 +450,148 @@ loadConfig(const char *cf, QuarrelOptions *options)
 			options->general.view = parseBoolean("view", mini_file_get_value(config,
 												 "general", "view"));
 
-		/* from options */
-		tmp = mini_file_get_value(config, "from", "host");
+		/* source options */
+		tmp = mini_file_get_value(config, "source", "host");
 		if (tmp != NULL)
-			options->from.host = strdup(tmp);
+		{
+			options->source.host = strdup(tmp);
+		}
 		else
-			options->from.host = NULL;
+		{
+			tmp = mini_file_get_value(config, "to", "host");
+			if (tmp != NULL)
+				options->source.host = strdup(tmp);
+			else
+				options->source.host = NULL;
+		}
 
-		tmp = mini_file_get_value(config, "from", "port");
+		tmp = mini_file_get_value(config, "source", "port");
 		if (tmp != NULL)
-			options->from.port = strdup(tmp);
+		{
+			options->source.port = strdup(tmp);
+		}
 		else
-			options->from.port = NULL;
+		{
+			tmp = mini_file_get_value(config, "to", "port");
+			if (tmp != NULL)
+				options->source.port = strdup(tmp);
+			else
+				options->source.port = NULL;
+		}
 
-		tmp = mini_file_get_value(config, "from", "user");
+		tmp = mini_file_get_value(config, "source", "user");
 		if (tmp != NULL)
-			options->from.username = strdup(tmp);
+		{
+			options->source.username = strdup(tmp);
+		}
 		else
-			options->from.username = NULL;
+		{
+			tmp = mini_file_get_value(config, "to", "user");
+			if (tmp != NULL)
+				options->source.username = strdup(tmp);
+			else
+				options->source.username = NULL;
+		}
 
-		tmp = mini_file_get_value(config, "from", "password");
+		tmp = mini_file_get_value(config, "source", "password");
 		if (tmp != NULL)
-			options->from.password = strdup(tmp);
+		{
+			options->source.password = strdup(tmp);
+		}
 		else
-			options->from.password = NULL;
+		{
+			tmp = mini_file_get_value(config, "to", "password");
+			if (tmp != NULL)
+				options->source.password = strdup(tmp);
+			else
+				options->source.password = NULL;
+		}
 
-		tmp = mini_file_get_value(config, "from", "dbname");
+		tmp = mini_file_get_value(config, "source", "dbname");
 		if (tmp != NULL)
-			options->from.dbname = strdup(tmp);
+		{
+			options->source.dbname = strdup(tmp);
+		}
 		else
-			options->from.dbname = NULL;
+		{
+			tmp = mini_file_get_value(config, "to", "dbname");
+			if (tmp != NULL)
+				options->source.dbname = strdup(tmp);
+			else
+				options->source.dbname = NULL;
+		}
 
 
-		/* to options */
-		tmp = mini_file_get_value(config, "to", "host");
+		/* target options */
+		tmp = mini_file_get_value(config, "target", "host");
 		if (tmp != NULL)
-			options->to.host = strdup(tmp);
+		{
+			options->target.host = strdup(tmp);
+		}
 		else
-			options->to.host = NULL;
+		{
+			tmp = mini_file_get_value(config, "from", "host");
+			if (tmp != NULL)
+				options->target.host = strdup(tmp);
+			else
+				options->target.host = NULL;
+		}
 
-		tmp = mini_file_get_value(config, "to", "port");
+		tmp = mini_file_get_value(config, "target", "port");
 		if (tmp != NULL)
-			options->to.port = strdup(tmp);
+		{
+			options->target.port = strdup(tmp);
+		}
 		else
-			options->to.port = NULL;
+		{
+			tmp = mini_file_get_value(config, "from", "port");
+			if (tmp != NULL)
+				options->target.port = strdup(tmp);
+			else
+				options->target.port = NULL;
+		}
 
-		tmp = mini_file_get_value(config, "to", "user");
+		tmp = mini_file_get_value(config, "target", "user");
 		if (tmp != NULL)
-			options->to.username = strdup(tmp);
+		{
+			options->target.username = strdup(tmp);
+		}
 		else
-			options->to.username = NULL;
+		{
+			tmp = mini_file_get_value(config, "from", "user");
+			if (tmp != NULL)
+				options->target.username = strdup(tmp);
+			else
+				options->target.username = NULL;
+		}
 
-		tmp = mini_file_get_value(config, "to", "password");
+		tmp = mini_file_get_value(config, "target", "password");
 		if (tmp != NULL)
-			options->to.password = strdup(tmp);
+		{
+			options->target.password = strdup(tmp);
+		}
 		else
-			options->to.password = NULL;
+		{
+			tmp = mini_file_get_value(config, "from", "password");
+			if (tmp != NULL)
+				options->target.password = strdup(tmp);
+			else
+				options->target.password = NULL;
+		}
 
-		tmp = mini_file_get_value(config, "to", "dbname");
+		tmp = mini_file_get_value(config, "target", "dbname");
 		if (tmp != NULL)
-			options->to.dbname = strdup(tmp);
+		{
+			options->target.dbname = strdup(tmp);
+		}
 		else
-			options->to.dbname = NULL;
+		{
+			tmp = mini_file_get_value(config, "from", "dbname");
+			if (tmp != NULL)
+				options->target.dbname = strdup(tmp);
+			else
+				options->target.dbname = NULL;
+		}
 	}
 	else
 	{
@@ -559,8 +650,8 @@ connectDatabase(QuarrelDatabaseOptions opt)
 static void
 quarrelAggregates()
 {
-	PQLAggregate	*aggregates1 = NULL;	/* from */
-	PQLAggregate	*aggregates2 = NULL;	/* to */
+	PQLAggregate	*aggregates1 = NULL;	/* target */
+	PQLAggregate	*aggregates2 = NULL;	/* source */
 	int				naggregates1 = 0;		/* # of aggregates */
 	int				naggregates2 = 0;
 	int				i, j;
@@ -658,8 +749,8 @@ quarrelAggregates()
 static void
 quarrelCasts()
 {
-	PQLCast		*casts1 = NULL;		/* from */
-	PQLCast		*casts2 = NULL;		/* to */
+	PQLCast		*casts1 = NULL;		/* target */
+	PQLCast		*casts2 = NULL;		/* source */
 	int			ncasts1 = 0;		/* # of casts */
 	int			ncasts2 = 0;
 	int			i, j;
@@ -739,8 +830,8 @@ quarrelCasts()
 static void
 quarrelCollations()
 {
-	PQLCollation	*collations1 = NULL;	/* from */
-	PQLCollation	*collations2 = NULL;	/* to */
+	PQLCollation	*collations1 = NULL;	/* target */
+	PQLCollation	*collations2 = NULL;	/* source */
 	int			ncollations1 = 0;			/* # of collations */
 	int			ncollations2 = 0;
 	int			i, j;
@@ -827,8 +918,8 @@ quarrelCollations()
 static void
 quarrelConversions()
 {
-	PQLConversion	*conversions1 = NULL;	/* from */
-	PQLConversion	*conversions2 = NULL;	/* to */
+	PQLConversion	*conversions1 = NULL;	/* target */
+	PQLConversion	*conversions2 = NULL;	/* source */
 	int				nconversions1 = 0;		/* # of conversions */
 	int				nconversions2 = 0;
 	int				i, j;
@@ -914,8 +1005,8 @@ quarrelConversions()
 static void
 quarrelDomains()
 {
-	PQLDomain	*domains1 = NULL;	/* from */
-	PQLDomain	*domains2 = NULL;	/* to */
+	PQLDomain	*domains1 = NULL;	/* target */
+	PQLDomain	*domains2 = NULL;	/* source */
 	int			ndomains1 = 0;		/* # of domains */
 	int			ndomains2 = 0;
 	int			i, j;
@@ -1018,8 +1109,8 @@ quarrelDomains()
 static void
 quarrelEventTriggers()
 {
-	PQLEventTrigger		*evttrgs1 = NULL;		/* from */
-	PQLEventTrigger		*evttrgs2 = NULL;		/* to */
+	PQLEventTrigger		*evttrgs1 = NULL;		/* target */
+	PQLEventTrigger		*evttrgs2 = NULL;		/* source */
 	int			nevttrgs1 = 0;		/* # of evttrgs */
 	int			nevttrgs2 = 0;
 	int			i, j;
@@ -1110,8 +1201,8 @@ quarrelEventTriggers()
 static void
 quarrelExtensions()
 {
-	PQLExtension		*extensions1 = NULL;		/* from */
-	PQLExtension		*extensions2 = NULL;		/* to */
+	PQLExtension		*extensions1 = NULL;		/* target */
+	PQLExtension		*extensions2 = NULL;		/* source */
 	int			nextensions1 = 0;		/* # of extensions */
 	int			nextensions2 = 0;
 	int			i, j;
@@ -1191,8 +1282,8 @@ quarrelExtensions()
 static void
 quarrelForeignDataWrappers()
 {
-	PQLForeignDataWrapper		*fdws1 = NULL;		/* from */
-	PQLForeignDataWrapper		*fdws2 = NULL;		/* to */
+	PQLForeignDataWrapper		*fdws1 = NULL;		/* target */
+	PQLForeignDataWrapper		*fdws2 = NULL;		/* source */
 	int			nfdws1 = 0;		/* # of fdws */
 	int			nfdws2 = 0;
 	int			i, j;
@@ -1272,8 +1363,8 @@ quarrelForeignDataWrappers()
 static void
 quarrelForeignServers()
 {
-	PQLForeignServer	*servers1 = NULL;		/* from */
-	PQLForeignServer	*servers2 = NULL;		/* to */
+	PQLForeignServer	*servers1 = NULL;		/* target */
+	PQLForeignServer	*servers2 = NULL;		/* source */
 	int			nservers1 = 0;		/* # of servers */
 	int			nservers2 = 0;
 	int			i, j;
@@ -1353,8 +1444,8 @@ quarrelForeignServers()
 static void
 quarrelFunctions()
 {
-	PQLFunction	*functions1 = NULL;	/* from */
-	PQLFunction	*functions2 = NULL;	/* to */
+	PQLFunction	*functions1 = NULL;	/* target */
+	PQLFunction	*functions2 = NULL;	/* source */
 	int			nfunctions1 = 0;		/* # of functions */
 	int			nfunctions2 = 0;
 	int			i, j;
@@ -1464,8 +1555,8 @@ quarrelFunctions()
 static void
 quarrelIndexes()
 {
-	PQLIndex	*indexes1 = NULL;	/* from */
-	PQLIndex	*indexes2 = NULL;	/* to */
+	PQLIndex	*indexes1 = NULL;	/* target */
+	PQLIndex	*indexes2 = NULL;	/* source */
 	int			nindexes1 = 0;		/* # of indexes */
 	int			nindexes2 = 0;
 	int			i, j;
@@ -1551,8 +1642,8 @@ quarrelIndexes()
 static void
 quarrelLanguages()
 {
-	PQLLanguage		*languages1 = NULL;		/* from */
-	PQLLanguage		*languages2 = NULL;		/* to */
+	PQLLanguage		*languages1 = NULL;		/* target */
+	PQLLanguage		*languages2 = NULL;		/* source */
 	int			nlanguages1 = 0;		/* # of languages */
 	int			nlanguages2 = 0;
 	int			i, j;
@@ -1643,8 +1734,8 @@ quarrelLanguages()
 static void
 quarrelMaterializedViews()
 {
-	PQLMaterializedView	*matviews1 = NULL;	/* from */
-	PQLMaterializedView	*matviews2 = NULL;	/* to */
+	PQLMaterializedView	*matviews1 = NULL;	/* target */
+	PQLMaterializedView	*matviews2 = NULL;	/* source */
 	int			nmatviews1 = 0;		/* # of matviews */
 	int			nmatviews2 = 0;
 	int			i, j;
@@ -1747,8 +1838,8 @@ quarrelMaterializedViews()
 static void
 quarrelOperators()
 {
-	PQLOperator	*operators1 = NULL;		/* from */
-	PQLOperator	*operators2 = NULL;		/* to */
+	PQLOperator	*operators1 = NULL;		/* target */
+	PQLOperator	*operators2 = NULL;		/* source */
 	int			noperators1 = 0;		/* # of operators */
 	int			noperators2 = 0;
 	int			i, j;
@@ -1834,8 +1925,8 @@ quarrelOperators()
 static void
 quarrelOperatorFamilies()
 {
-	PQLOperatorFamily	*opfamilies1 = NULL;		/* from */
-	PQLOperatorFamily	*opfamilies2 = NULL;		/* to */
+	PQLOperatorFamily	*opfamilies1 = NULL;		/* target */
+	PQLOperatorFamily	*opfamilies2 = NULL;		/* source */
 	int			nopfamilies1 = 0;					/* # of opfamilies */
 	int			nopfamilies2 = 0;
 	int			i, j;
@@ -1922,8 +2013,8 @@ quarrelOperatorFamilies()
 static void
 quarrelOperatorClasses()
 {
-	PQLOperatorClass	*opclasses1 = NULL;		/* from */
-	PQLOperatorClass	*opclasses2 = NULL;		/* to */
+	PQLOperatorClass	*opclasses1 = NULL;		/* target */
+	PQLOperatorClass	*opclasses2 = NULL;		/* source */
 	int			nopclasses1 = 0;					/* # of opclasses */
 	int			nopclasses2 = 0;
 	int			i, j;
@@ -2009,8 +2100,8 @@ quarrelOperatorClasses()
 static void
 quarrelRules()
 {
-	PQLRule	*rules1 = NULL;	/* from */
-	PQLRule	*rules2 = NULL;	/* to */
+	PQLRule	*rules1 = NULL;	/* target */
+	PQLRule	*rules2 = NULL;	/* source */
 	int			nrules1 = 0;		/* # of rules */
 	int			nrules2 = 0;
 	int			i, j;
@@ -2099,8 +2190,8 @@ quarrelRules()
 static void
 quarrelSchemas()
 {
-	PQLSchema		*schemas1 = NULL;		/* from */
-	PQLSchema		*schemas2 = NULL;		/* to */
+	PQLSchema		*schemas1 = NULL;		/* target */
+	PQLSchema		*schemas2 = NULL;		/* source */
 	int			nschemas1 = 0;		/* # of schemas */
 	int			nschemas2 = 0;
 	int			i, j;
@@ -2191,8 +2282,8 @@ quarrelSchemas()
 static void
 quarrelSequences()
 {
-	PQLSequence	*sequences1 = NULL;	/* from */
-	PQLSequence	*sequences2 = NULL;	/* to */
+	PQLSequence	*sequences1 = NULL;	/* target */
+	PQLSequence	*sequences2 = NULL;	/* source */
 	int			nsequences1 = 0;	/* # of sequences */
 	int			nsequences2 = 0;
 	int			i, j;
@@ -2294,8 +2385,8 @@ quarrelSequences()
 static void
 quarrelStatistics()
 {
-	PQLStatistics	*statistics1 = NULL;	/* from */
-	PQLStatistics	*statistics2 = NULL;	/* to */
+	PQLStatistics	*statistics1 = NULL;	/* target */
+	PQLStatistics	*statistics2 = NULL;	/* source */
 	int				nstatistics1 = 0;		/* # of statistics */
 	int				nstatistics2 = 0;
 	int				i, j;
@@ -2381,8 +2472,8 @@ quarrelStatistics()
 static void
 quarrelTables()
 {
-	PQLTable	*tables1 = NULL;	/* from */
-	PQLTable	*tables2 = NULL;	/* to */
+	PQLTable	*tables1 = NULL;	/* target */
+	PQLTable	*tables2 = NULL;	/* source */
 	int			ntables1 = 0;		/* # of tables */
 	int			ntables2 = 0;
 	int			i, j;
@@ -2495,8 +2586,8 @@ quarrelTables()
 static void
 quarrelTextSearchConfigs()
 {
-	PQLTextSearchConfig	*tsconfigs1 = NULL;	/* from */
-	PQLTextSearchConfig	*tsconfigs2 = NULL;	/* to */
+	PQLTextSearchConfig	*tsconfigs1 = NULL;	/* target */
+	PQLTextSearchConfig	*tsconfigs2 = NULL;	/* source */
 	int			ntsconfigs1 = 0;			/* # of text search configuration */
 	int			ntsconfigs2 = 0;
 	int			i, j;
@@ -2584,8 +2675,8 @@ quarrelTextSearchConfigs()
 static void
 quarrelTextSearchDicts()
 {
-	PQLTextSearchDict	*tsdicts1 = NULL;	/* from */
-	PQLTextSearchDict	*tsdicts2 = NULL;	/* to */
+	PQLTextSearchDict	*tsdicts1 = NULL;	/* target */
+	PQLTextSearchDict	*tsdicts2 = NULL;	/* source */
 	int			ntsdicts1 = 0;				/* # of text search dictionary */
 	int			ntsdicts2 = 0;
 	int			i, j;
@@ -2673,8 +2764,8 @@ quarrelTextSearchDicts()
 static void
 quarrelTextSearchParsers()
 {
-	PQLTextSearchParser	*tsparsers1 = NULL;	/* from */
-	PQLTextSearchParser	*tsparsers2 = NULL;	/* to */
+	PQLTextSearchParser	*tsparsers1 = NULL;	/* target */
+	PQLTextSearchParser	*tsparsers2 = NULL;	/* source */
 	int			ntsparsers1 = 0;			/* # of text search parser */
 	int			ntsparsers2 = 0;
 	int			i, j;
@@ -2762,8 +2853,8 @@ quarrelTextSearchParsers()
 static void
 quarrelTextSearchTemplates()
 {
-	PQLTextSearchTemplate	*tstemplates1 = NULL;	/* from */
-	PQLTextSearchTemplate	*tstemplates2 = NULL;	/* to */
+	PQLTextSearchTemplate	*tstemplates1 = NULL;	/* target */
+	PQLTextSearchTemplate	*tstemplates2 = NULL;	/* source */
 	int			ntstemplates1 = 0;					/* # of text search template */
 	int			ntstemplates2 = 0;
 	int			i, j;
@@ -2851,8 +2942,8 @@ quarrelTextSearchTemplates()
 static void
 quarrelTriggers()
 {
-	PQLTrigger	*triggers1 = NULL;	/* from */
-	PQLTrigger	*triggers2 = NULL;	/* to */
+	PQLTrigger	*triggers1 = NULL;	/* target */
+	PQLTrigger	*triggers2 = NULL;	/* source */
 	int			ntriggers1 = 0;		/* # of triggers */
 	int			ntriggers2 = 0;
 	int			i, j;
@@ -2941,8 +3032,8 @@ quarrelTriggers()
 static void
 quarrelBaseTypes()
 {
-	PQLBaseType	*types1 = NULL;	/* from */
-	PQLBaseType	*types2 = NULL;	/* to */
+	PQLBaseType	*types1 = NULL;	/* target */
+	PQLBaseType	*types2 = NULL;	/* source */
 	int			ntypes1 = 0;		/* # of types */
 	int			ntypes2 = 0;
 	int			i, j;
@@ -3040,8 +3131,8 @@ quarrelBaseTypes()
 static void
 quarrelCompositeTypes()
 {
-	PQLCompositeType	*types1 = NULL;	/* from */
-	PQLCompositeType	*types2 = NULL;	/* to */
+	PQLCompositeType	*types1 = NULL;	/* target */
+	PQLCompositeType	*types2 = NULL;	/* source */
 	int			ntypes1 = 0;		/* # of types */
 	int			ntypes2 = 0;
 	int			i, j;
@@ -3139,8 +3230,8 @@ quarrelCompositeTypes()
 static void
 quarrelEnumTypes()
 {
-	PQLEnumType	*types1 = NULL;	/* from */
-	PQLEnumType	*types2 = NULL;	/* to */
+	PQLEnumType	*types1 = NULL;	/* target */
+	PQLEnumType	*types2 = NULL;	/* source */
 	int			ntypes1 = 0;		/* # of types */
 	int			ntypes2 = 0;
 	int			i, j;
@@ -3238,8 +3329,8 @@ quarrelEnumTypes()
 static void
 quarrelRangeTypes()
 {
-	PQLRangeType	*types1 = NULL;	/* from */
-	PQLRangeType	*types2 = NULL;	/* to */
+	PQLRangeType	*types1 = NULL;	/* target */
+	PQLRangeType	*types2 = NULL;	/* source */
 	int			ntypes1 = 0;		/* # of types */
 	int			ntypes2 = 0;
 	int			i, j;
@@ -3346,8 +3437,8 @@ quarrelTypes()
 static void
 quarrelUserMappings()
 {
-	PQLUserMapping		*usermappings1 = NULL;		/* from */
-	PQLUserMapping		*usermappings2 = NULL;		/* to */
+	PQLUserMapping		*usermappings1 = NULL;		/* target */
+	PQLUserMapping		*usermappings2 = NULL;		/* source */
 	int			nusermappings1 = 0;		/* # of user mappings */
 	int			nusermappings2 = 0;
 	int			i, j;
@@ -3433,8 +3524,8 @@ quarrelUserMappings()
 static void
 quarrelViews()
 {
-	PQLView	*views1 = NULL;	/* from */
-	PQLView	*views2 = NULL;	/* to */
+	PQLView	*views1 = NULL;	/* target */
+	PQLView	*views2 = NULL;	/* source */
 	int			nviews1 = 0;		/* # of views */
 	int			nviews2 = 0;
 	int			i, j;
@@ -3662,6 +3753,9 @@ printSummary(void)
 
 int main(int argc, char *argv[])
 {
+	static QuarrelDatabaseOptions	sopts;
+	static QuarrelDatabaseOptions	topts;
+
 	static struct option long_options[] =
 	{
 		{"config", required_argument, NULL, 'c'},
@@ -3669,6 +3763,15 @@ int main(int argc, char *argv[])
 		{"ignore-version", no_argument, NULL, 'i'},
 		{"summary", no_argument, NULL, 's'},
 		{"verbose", no_argument, NULL, 'v'},
+		/* the following options does not have an equivalent short letter */
+		{"source-dbname", required_argument, NULL, 2},
+		{"source-host", required_argument, NULL, 3},
+		{"source-port", required_argument, NULL, 4},
+		{"source-username", required_argument, NULL, 5},
+		{"target-dbname", required_argument, NULL, 6},
+		{"target-host", required_argument, NULL, 7},
+		{"target-port", required_argument, NULL, 8},
+		{"target-username", required_argument, NULL, 9},
 		{NULL, 0, NULL, 0}
 	};
 
@@ -3723,6 +3826,33 @@ int main(int argc, char *argv[])
 				else if (loglevel == PGQ_DEBUG)
 					loglevel = PGQ_NOISE;
 				break;
+			case 0:
+				/* this cover the long options */
+				break;
+			case 2:
+				sopts.dbname = strdup(optarg);		/* source.dbname */
+				break;
+			case 3:
+				sopts.host = strdup(optarg);		/* source.host */
+				break;
+			case 4:
+				sopts.port = strdup(optarg);		/* source.port */
+				break;
+			case 5:
+				sopts.username = strdup(optarg);	/* source.username */
+				break;
+			case 6:
+				topts.dbname = strdup(optarg);		/* target.dbname */
+				break;
+			case 7:
+				topts.host = strdup(optarg);		/* target.host */
+				break;
+			case 8:
+				topts.port = strdup(optarg);		/* target.port */
+				break;
+			case 9:
+				topts.username = strdup(optarg);	/* target.username */
+				break;
 			default:
 				fprintf(stderr, "Try \"%s --help\" for more information.\n", PGQ_NAME);
 				exit(EXIT_FAILURE);
@@ -3738,18 +3868,37 @@ int main(int argc, char *argv[])
 	/* expose only general options */
 	options = opts.general;
 
-	/* command-line options take precedence over config options */
+	/*
+	 * command-line options take precedence over config options
+	 */
 	if (outfile != NULL)
 		options.output = outfile;
 
-	/* command-line options take precedence over config options */
 	if (options.verbose && loglevel == PGQ_ERROR)
 		loglevel = PGQ_DEBUG;
 	if (options.summary)
 		summary = true;
 
+	if (sopts.dbname)
+		opts.source.dbname = sopts.dbname;
+	if (sopts.host)
+		opts.source.host = sopts.host;
+	if (sopts.port)
+		opts.source.port = sopts.port;
+	if (sopts.username)
+		opts.source.username = sopts.username;
+
+	if (topts.dbname)
+		opts.target.dbname = topts.dbname;
+	if (topts.host)
+		opts.target.host = topts.host;
+	if (topts.port)
+		opts.target.port = topts.port;
+	if (topts.username)
+		opts.target.username = topts.username;
+
 	/* connecting to server1 ... */
-	conn1 = connectDatabase(opts.from);
+	conn1 = connectDatabase(opts.target);
 	logDebug("connected to server1");
 
 	/* is it a supported postgresql version? */
@@ -3766,7 +3915,7 @@ int main(int argc, char *argv[])
 	logDebug("server1 version: %s", PQparameterStatus(conn1, "server_version"));
 
 	/* connecting to server2 ... */
-	conn2 = connectDatabase(opts.to);
+	conn2 = connectDatabase(opts.source);
 	logDebug("connected to server2");
 
 	/* is it a supported postgresql version? */
