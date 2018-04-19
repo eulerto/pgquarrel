@@ -199,6 +199,7 @@ help(void)
 	printf("  %s [OPTION]...\n", PGQ_NAME);
 	printf("\nOptions:\n");
 	printf("  -c, --config=FILENAME      configuration file\n");
+	printf("  -f, --file=FILENAME        receive changes into this file, - for stdout\n");
 	printf("  -s, --summary              print a summary of changes\n");
 	printf("  -v, --verbose              verbose mode\n");
 	printf("  --help                     show this help, then exit\n");
@@ -3664,6 +3665,7 @@ int main(int argc, char *argv[])
 	static struct option long_options[] =
 	{
 		{"config", required_argument, NULL, 'c'},
+		{"file", required_argument, NULL, 'f'},
 		{"ignore-version", no_argument, NULL, 'i'},
 		{"summary", no_argument, NULL, 's'},
 		{"verbose", no_argument, NULL, 'v'},
@@ -3674,6 +3676,7 @@ int main(int argc, char *argv[])
 	int			c;
 
 	char		*configfile = NULL;
+	char		*outfile = NULL;
 	bool		summary = false;
 	int			ignoreversion = false;
 
@@ -3696,12 +3699,15 @@ int main(int argc, char *argv[])
 	}
 
 	/* process command-line options */
-	while ((c = getopt_long(argc, argv, "c:isv", long_options, &optindex)) != -1)
+	while ((c = getopt_long(argc, argv, "c:f:isv", long_options, &optindex)) != -1)
 	{
 		switch (c)
 		{
 			case 'c':
 				configfile = strdup(optarg);
+				break;
+			case 'f':
+				outfile = strdup(optarg);
 				break;
 			case 'i':
 				ignoreversion = true;
@@ -3731,6 +3737,10 @@ int main(int argc, char *argv[])
 
 	/* expose only general options */
 	options = opts.general;
+
+	/* command-line options take precedence over config options */
+	if (outfile != NULL)
+		options.output = outfile;
 
 	/* command-line options take precedence over config options */
 	if (options.verbose && loglevel == PGQ_ERROR)
