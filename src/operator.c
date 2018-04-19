@@ -104,22 +104,22 @@ getOperators(PGconn *c, int *n)
 		else
 			o[i].righttype  = strdup(PQgetvalue(res, i, PQfnumber(res, "oprright")));
 
-		if (PQgetisnull(res, i, PQfnumber(res, "oprcom")))
+		if (strcmp(PQgetvalue(res, i, PQfnumber(res, "oprcom")), "0") == 0)
 			o[i].commutator = NULL;
 		else
 			o[i].commutator  = strdup(PQgetvalue(res, i, PQfnumber(res, "oprcom")));
 
-		if (PQgetisnull(res, i, PQfnumber(res, "oprnegate")))
+		if (strcmp(PQgetvalue(res, i, PQfnumber(res, "oprnegate")), "0") == 0)
 			o[i].negator = NULL;
 		else
 			o[i].negator  = strdup(PQgetvalue(res, i, PQfnumber(res, "oprnegate")));
 
-		if (PQgetisnull(res, i, PQfnumber(res, "oprrest")))
+		if (strcmp(PQgetvalue(res, i, PQfnumber(res, "oprrest")), "-") == 0)
 			o[i].restriction = NULL;
 		else
 			o[i].restriction  = strdup(PQgetvalue(res, i, PQfnumber(res, "oprrest")));
 
-		if (PQgetisnull(res, i, PQfnumber(res, "oprjoin")))
+		if (strcmp(PQgetvalue(res, i, PQfnumber(res, "oprjoin")), "-") == 0)
 			o[i].join = NULL;
 		else
 			o[i].join  = strdup(PQgetvalue(res, i, PQfnumber(res, "oprjoin")));
@@ -135,13 +135,13 @@ getOperators(PGconn *c, int *n)
 		o[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "oprowner")));
 
 		if (o[i].lefttype != NULL && o[i].righttype != NULL)
-			logDebug("operator \"%s\".\"%s\"(%s, %s)", o[i].obj.schemaname,
+			logDebug("operator \"%s\".%s(%s, %s)", o[i].obj.schemaname,
 					 o[i].obj.objectname, o[i].lefttype, o[i].righttype);
 		else if (o[i].lefttype != NULL)
-			logDebug("operator \"%s\".\"%s\"(%s, NONE)", o[i].obj.schemaname,
+			logDebug("operator \"%s\".%s(%s, NONE)", o[i].obj.schemaname,
 					 o[i].obj.objectname, o[i].lefttype);
 		else if (o[i].righttype != NULL)
-			logDebug("operator \"%s\".\"%s\"(NONE, %s)", o[i].obj.schemaname,
+			logDebug("operator \"%s\".%s(NONE, %s)", o[i].obj.schemaname,
 					 o[i].obj.objectname, o[i].righttype);
 	}
 
@@ -457,8 +457,8 @@ compareOperators(PQLOperator *a, PQLOperator *b)
 		c = strcmp(a->obj.objectname, b->obj.objectname);
 		/* compare operands iif objectname are equal */
 		if (c == 0)
-			c = ((strcmp(a->lefttype, b->lefttype) == 0) &&
-				 (strcmp(a->righttype, b->righttype) == 0));
+			c = (strcmp(a->lefttype, b->lefttype) ||
+				 strcmp(a->righttype, b->righttype));
 	}
 
 	return c;
@@ -584,7 +584,7 @@ void
 dumpDropOperator(FILE *output, PQLOperator *o)
 {
 	char	*schema = formatObjectIdentifier(o->obj.schemaname);
-	char	*oprname = formatObjectIdentifier(o->obj.objectname);
+	char	*oprname = o->obj.objectname;
 
 	fprintf(output, "\n\n");
 	fprintf(output, "DROP OPERATOR %s.%s(%s,%s);",
@@ -593,7 +593,6 @@ dumpDropOperator(FILE *output, PQLOperator *o)
 			(o->righttype) ? o->righttype : "NONE");
 
 	free(schema);
-	free(oprname);
 }
 
 void
@@ -628,7 +627,7 @@ void
 dumpCreateOperator(FILE *output, PQLOperator *o)
 {
 	char	*schema = formatObjectIdentifier(o->obj.schemaname);
-	char	*oprname = formatObjectIdentifier(o->obj.objectname);
+	char	*oprname = o->obj.objectname;
 
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE OPERATOR %s.%s (", schema, oprname);
@@ -677,7 +676,6 @@ dumpCreateOperator(FILE *output, PQLOperator *o)
 	}
 
 	free(schema);
-	free(oprname);
 }
 
 void
@@ -819,10 +817,8 @@ dumpCreateOperatorFamily(FILE *output, PQLOperatorFamily *f)
 void
 dumpAlterOperator(FILE *output, PQLOperator *a, PQLOperator *b)
 {
-	char	*schema1 = formatObjectIdentifier(a->obj.schemaname);
-	char	*oprname1 = formatObjectIdentifier(a->obj.objectname);
 	char	*schema2 = formatObjectIdentifier(b->obj.schemaname);
-	char	*oprname2 = formatObjectIdentifier(b->obj.objectname);
+	char	*oprname2 = b->obj.objectname;
 	char	*r = NULL;
 	char	*j = NULL;
 
@@ -905,10 +901,7 @@ dumpAlterOperator(FILE *output, PQLOperator *a, PQLOperator *b)
 		}
 	}
 
-	free(schema1);
-	free(oprname1);
 	free(schema2);
-	free(oprname2);
 }
 
 static void
