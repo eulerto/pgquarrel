@@ -300,7 +300,6 @@ dumpAlterForeignServer(FILE *output, PQLForeignServer *a, PQLForeignServer *b)
 			 strcmp(a->options, b->options) != 0)
 	{
 		stringList	*rlist, *ilist, *slist;
-		bool		first = true;
 
 		/* reset options that are only presented in the first set */
 		rlist = setOperationOptions(a->options, b->options, PGQ_SETDIFFERENCE, false,
@@ -308,6 +307,7 @@ dumpAlterForeignServer(FILE *output, PQLForeignServer *a, PQLForeignServer *b)
 		if (rlist)
 		{
 			stringListCell	*cell;
+			bool			first = true;
 
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER SERVER %s OPTIONS (", srvname2);
@@ -334,6 +334,7 @@ dumpAlterForeignServer(FILE *output, PQLForeignServer *a, PQLForeignServer *b)
 		if (ilist)
 		{
 			stringListCell	*cell;
+			bool			first = true;
 
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER SERVER %s OPTIONS (", srvname2);
