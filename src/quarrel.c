@@ -201,6 +201,7 @@ help(void)
 	printf("  -c, --config=FILENAME       configuration file\n");
 	printf("  -f, --file=FILENAME         receive changes into this file, - for stdout\n");
 	printf("  -s, --summary               print a summary of changes\n");
+	printf("  -t, --single-transaction    execute as a single transaction\n");
 	printf("  -v, --verbose               verbose mode\n");
 	printf("\nSource options:\n");
 	printf("      --source-dbname=DBNAME  database name\n");
@@ -3762,6 +3763,7 @@ int main(int argc, char *argv[])
 		{"file", required_argument, NULL, 'f'},
 		{"ignore-version", no_argument, NULL, 'i'},
 		{"summary", no_argument, NULL, 's'},
+		{"single-transaction", no_argument, NULL, 't'},
 		{"verbose", no_argument, NULL, 'v'},
 		/* the following options does not have an equivalent short letter */
 		{"source-dbname", required_argument, NULL, 2},
@@ -3781,6 +3783,7 @@ int main(int argc, char *argv[])
 	char		*configfile = NULL;
 	char		*outfile = NULL;
 	bool		summary = false;
+	bool		singletxn = false;
 	int			ignoreversion = false;
 
 	/* general and connection options */
@@ -3802,7 +3805,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* process command-line options */
-	while ((c = getopt_long(argc, argv, "c:f:isv", long_options, &optindex)) != -1)
+	while ((c = getopt_long(argc, argv, "c:f:istv", long_options, &optindex)) != -1)
 	{
 		switch (c)
 		{
@@ -3817,6 +3820,9 @@ int main(int argc, char *argv[])
 				break;
 			case 's':
 				summary = true;
+				break;
+			case 't':
+				singletxn = true;
 				break;
 			case 'v':
 				if (loglevel == PGQ_ERROR)
@@ -4067,9 +4073,16 @@ int main(int argc, char *argv[])
 		fprintf(fout, "--");
 	}
 
+	/* execute as a single transaction */
+	if (singletxn)
+		fprintf(fout, "\n\nBEGIN;");
+
 	/* dump the quarrel in the right order */
 	mergeTempFiles(fpre, fpost, fout);
 
+	/* close single transaction */
+	if (singletxn)
+		fprintf(fout, "\n\nCOMMIT;");
 
 	/* close and remove temporary files */
 	closeTempFile(fpre, prepath);
