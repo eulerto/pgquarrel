@@ -158,6 +158,7 @@ dumpAlterIndex(FILE *output, PQLIndex *a, PQLIndex *b)
 	 * If the new tablespace is NULL, it means it is in the default tablespace
 	 * (pg_default) so move it.
 	 */
+#ifdef _NOT_USED
 	if (a->tbspcname != NULL && b->tbspcname == NULL)
 	{
 		fprintf(output, "\n\n");
@@ -172,6 +173,7 @@ dumpAlterIndex(FILE *output, PQLIndex *a, PQLIndex *b)
 		fprintf(output, "ALTER INDEX %s.%s SET TABLESPACE %s;",
 				schema1, idxname1, b->tbspcname);
 	}
+#endif
 
 	/* reloptions */
 	if (a->reloptions == NULL && b->reloptions != NULL)
