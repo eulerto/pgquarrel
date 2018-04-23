@@ -869,57 +869,15 @@ dumpCreateTable(FILE *output, PQLTable *t)
 	char	*typename;
 
 	int		i;
+	bool	hasatts = false;
 
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE %sTABLE %s.%s ", t->unlogged ? "UNLOGGED " : "", schema,
 			tabname);
 
-	/* regular table */
-	if (t->reloftype.oid == InvalidOid)
+	/* typed table */
+	if (t->reloftype.oid != InvalidOid)
 	{
-		fprintf(output, "(");
-
-		/* print attributes */
-		for (i = 0; i < t->nattributes; i++)
-		{
-			if (i == 0)
-				fprintf(output, "\n");
-			else
-				fprintf(output, ",\n");
-
-			/* attribute name and type */
-			fprintf(output, "%s %s", t->attributes[i].attname, t->attributes[i].atttypname);
-
-			/* collate */
-			/* XXX schema-qualified? */
-			if (t->attributes[i].attcollation != NULL)
-				fprintf(output, " COLLATE \"%s\"", t->attributes[i].attcollation);
-
-			/* default value? */
-			if (t->attributes[i].attdefexpr != NULL)
-				fprintf(output, " DEFAULT %s", t->attributes[i].attdefexpr);
-
-			/* not null? */
-			if (t->attributes[i].attnotnull)
-				fprintf(output, " NOT NULL");
-		}
-
-		/* print check constraints */
-		for (i = 0; i < t->ncheck; i++)
-		{
-			fprintf(output, ",\n");
-			fprintf(output, "CONSTRAINT %s %s", t->check[i].conname, t->check[i].condef);
-		}
-
-		fprintf(output, "\n)");
-
-		/* reloptions */
-		if (t->reloptions != NULL)
-			fprintf(output, "\nWITH (%s)", t->reloptions);
-	}
-	else
-	{
-		/* typed table */
 		typeschema = formatObjectIdentifier(t->reloftype.schemaname);
 		typename = formatObjectIdentifier(t->reloftype.objectname);
 
@@ -928,6 +886,62 @@ dumpCreateTable(FILE *output, PQLTable *t)
 		free(typeschema);
 		free(typename);
 	}
+
+	/* print attributes */
+	for (i = 0; i < t->nattributes; i++)
+	{
+		/*
+		 * Skip column if it is a typed table because its definition is already
+		 * there.
+		 */
+		if (t->reloftype.oid != InvalidOid)
+			continue;
+
+		/* first attribute */
+		if (hasatts)
+			fprintf(output, ",\n");
+		else
+			fprintf(output, "(\n");
+		hasatts = true;
+
+		/* attribute name and type */
+		fprintf(output, "%s %s", t->attributes[i].attname, t->attributes[i].atttypname);
+
+		/* collate */
+		/* XXX schema-qualified? */
+		if (t->attributes[i].attcollation != NULL)
+			fprintf(output, " COLLATE \"%s\"", t->attributes[i].attcollation);
+
+		/* default value? */
+		if (t->attributes[i].attdefexpr != NULL)
+			fprintf(output, " DEFAULT %s", t->attributes[i].attdefexpr);
+
+		/* not null? */
+		if (t->attributes[i].attnotnull)
+			fprintf(output, " NOT NULL");
+	}
+
+	/* print check constraints */
+	for (i = 0; i < t->ncheck; i++)
+	{
+		/* first attribute */
+		if (hasatts)
+			fprintf(output, ",\n");
+		else
+			fprintf(output, "(\n");
+		hasatts = true;
+
+		fprintf(output, "CONSTRAINT %s %s", t->check[i].conname, t->check[i].condef);
+	}
+
+	if (hasatts)
+		fprintf(output, "\n)");
+	else if (t[i].reloftype.oid == InvalidOid)
+		fprintf(output, "(\n)");
+
+	/* reloptions */
+	if (t->reloptions != NULL)
+		fprintf(output, "\nWITH (%s)", t->reloptions);
 
 	fprintf(output, ";");
 

@@ -80,6 +80,9 @@ CREATE TABLE same_table_6 OF same_type_1;
 
 CREATE TABLE to_table_4 OF same_type_1;
 
+-- empty table
+CREATE TABLE to_table_5 ();
+
 -- reloptions
 ALTER TABLE same_table_1 SET (autovacuum_enabled = off, autovacuum_vacuum_cost_delay = 13);
 ALTER TABLE same_table_2 SET (autovacuum_vacuum_scale_factor = 0.44, autovacuum_analyze_scale_factor = 0.22);
