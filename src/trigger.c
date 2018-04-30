@@ -29,7 +29,7 @@ getTriggers(PGconn *c, int *n)
 	logNoise("trigger: server version: %d", PQserverVersion(c));
 
 	res = PQexec(c,
-				 "SELECT t.oid, t.tgname AS trgname, n.nspname AS nspname, c.relname AS relname, pg_get_triggerdef(t.oid, false) AS trgdef, obj_description(t.oid, 'pg_rewrite') AS description FROM pg_trigger t INNER JOIN pg_class c ON (t.tgrelid = c.oid) INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE NOT tgisinternal");
+				 "SELECT t.oid, t.tgname AS trgname, n.nspname AS nspname, c.relname AS relname, pg_get_triggerdef(t.oid, false) AS trgdef, obj_description(t.oid, 'pg_rewrite') AS description FROM pg_trigger t INNER JOIN pg_class c ON (t.tgrelid = c.oid) INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE NOT tgisinternal ORDER BY nspname, relname, trgname");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
