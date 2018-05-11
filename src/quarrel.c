@@ -414,7 +414,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 										"general", "sequence"));
 
 		if (mini_file_get_value(config, "general", "statistics") == NULL)
-			options->general.statistics = true;		/* default */
+			options->general.statistics = false;	/* default */
 		else
 			options->general.statistics = parseBoolean("statistics",
 										  mini_file_get_value(config,
