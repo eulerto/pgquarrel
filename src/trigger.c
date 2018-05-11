@@ -136,8 +136,6 @@ dumpAlterTrigger(FILE *output, PQLTrigger *a, PQLTrigger *b)
 	char	*schema2 = formatObjectIdentifier(b->table.schemaname);
 	char	*tabname2 = formatObjectIdentifier(b->table.objectname);
 
-	fprintf(output, "\n\n");
-
 	/* comment */
 	if (options.comment)
 	{
