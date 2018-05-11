@@ -476,7 +476,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 		else if (b->parallel == 'u')
 			fprintf(output, " PARALLEL UNSAFE");
 		else
-			logError("parallel cannot be '%s'", b->parallel);
+			logError("parallel cannot be '%c'", b->parallel);
 	}
 
 	if (strcmp(a->cost, b->cost) != 0)
