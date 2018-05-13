@@ -5,8 +5,7 @@ compiler:
   - gcc
 # - clang
 env:
-  - PGVERSION1=10
-  - PGVERSION2=10
+  - PGVERSION1=10 PGVERSION2=10
 
 addons:
 #  postgresql: "10"
