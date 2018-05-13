@@ -8,8 +8,8 @@ PGPORT2=9902
 PGDB1=quarrel1
 PGDB2=quarrel2
 
-PGPATH1=/usr/pgsql-$1/bin
-PGPATH2=/usr/pgsql-$2/bin
+PGPATH1=/usr/lib/postgresql/$1/bin
+PGPATH2=/usr/lib/postgresql/$2/bin
 PGDATA1=$HOME/data1
 PGDATA2=$HOME/data2
 mkdir $PGDATA1

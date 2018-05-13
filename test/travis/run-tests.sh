@@ -5,9 +5,9 @@ PGV=$1
 if [ $2 -gt $1 ]; then
 	PGV=$2
 fi
-PGPATH=/usr/pgsql-$PGV/bin
-PGPATH1=/usr/pgsql-$1/bin
-PGPATH2=/usr/pgsql-$2/bin
+PGPATH=/usr/lib/postgresql/$PGV/bin
+PGPATH1=/usr/lib/postgresql/$1/bin
+PGPATH2=/usr/lib/postgresql/$2/bin
 # if you change those env variables, don't forget to change it in setup-pg.sh
 PGUSER1=quarrel
 PGUSER2=quarrel
