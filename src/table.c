@@ -1883,7 +1883,7 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 		else
 		{
 			/* TODO check if it is safe to change the type of a typed table */
-			logWarning("typed table \"%s\".\"%s\" changed its type", schema2, tabname2);
+			logWarning("typed table %s.%s changed its type", schema2, tabname2);
 		}
 	}
 
