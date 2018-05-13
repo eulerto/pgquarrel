@@ -8,7 +8,6 @@ env:
   - PGVERSION1=10 PGVERSION2=10
 
 addons:
-#  postgresql: "10"
   apt:
     packages:
       - postgresql-10
@@ -16,17 +15,6 @@ addons:
       - postgresql-contrib-10
       - postgresql-server-dev-10
       - postgresql-plperl-10
-
-# install PostgreSQL
-# if PGVERSION1 != PGVERSION2, install both versions
-before_install:
-#  - curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
-#  - echo "deb http://apt.postgresql.org/pub/repos/apt/ trusty-pgdg main" | sudo tee -a /etc/apt/sources.list
-#  - sudo apt-get update -qq
-  - sudo dpkg -l | grep postgres
-#  - sudo apt-get purge postgresql-9.2 postgresql-server-dev-9.2 postgresql-client-9.2 postgresql-plperl-9.2 -y
-#  - sudo apt-get install postgresql-$PGVERSION1 postgresql-server-dev-$PGVERSION1 postgresql-client-$PGVERSION1 postgresql-plperl-$PGVERSION1 -y
-#  - sudo apt-get install postgresql-$PGVERSION2 postgresql-server-dev-$PGVERSION2 postgresql-client-$PGVERSION2 postgresql-plperl-$PGVERSION2 -y
 
 # install pgquarrel
 install:
@@ -36,5 +24,6 @@ install:
 before_script:
   - test/travis/setup-pg.sh $PGVERSION1 $PGVERSION2
 
+# run tests
 script:
   - test/travis/run-tests.sh $PGVERSION1 $PGVERSION2
