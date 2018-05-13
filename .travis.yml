@@ -19,6 +19,8 @@ before_install:
   - curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
   - echo "deb http://apt.postgresql.org/pub/repos/apt/ trusty-pgdg main" | sudo tee -a /etc/apt/sources.list
   - sudo apt-get update -qq
+  - sudo dpkg -l | grep postgres
+  - sudo apt-get purge postgresql-9.2 postgresql-server-dev-9.2 postgresql-client-9.2 postgresql-plperl-9.2 -y
   - sudo apt-get install postgresql-$PGVERSION1 postgresql-server-dev-$PGVERSION1 postgresql-client-$PGVERSION1 postgresql-plperl-$PGVERSION1 -y
   - sudo apt-get install postgresql-$PGVERSION2 postgresql-server-dev-$PGVERSION2 postgresql-client-$PGVERSION2 postgresql-plperl-$PGVERSION2 -y
 
