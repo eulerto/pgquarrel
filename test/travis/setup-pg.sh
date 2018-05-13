@@ -7,6 +7,8 @@ PGPORT1=9901
 PGPORT2=9902
 PGDB1=quarrel1
 PGDB2=quarrel2
+PGHOST1=/tmp
+PGHOST2=/tmp
 
 PGPATH1=/usr/lib/postgresql/$1/bin
 PGPATH2=/usr/lib/postgresql/$2/bin
@@ -22,7 +24,7 @@ echo "port = $PGPORT2" >> $PGDATA2/postgresql.conf
 echo "unix_socket_directories = '/tmp'" >> $PGDATA2/postgresql.conf
 $PGPATH1/pg_ctl -w start -D $PGDATA1
 $PGPATH2/pg_ctl -w start -D $PGDATA2
-$PGPATH1/psql -p $PGPORT1 -c "CREATE ROLE $PGUSER1 SUPERUSER LOGIN" postgres
-$PGPATH2/psql -p $PGPORT2 -c "CREATE ROLE $PGUSER2 SUPERUSER LOGIN" postgres
-$PGPATH1/psql -p $PGPORT1 -c "CREATE DATABASE $PGDB1 OWNER $PGUSER1" postgres
-$PGPATH2/psql -p $PGPORT2 -c "CREATE DATABASE $PGDB2 OWNER $PGUSER2" postgres
+$PGPATH1/psql -h $PGHOST1 -p $PGPORT1 -c "CREATE ROLE $PGUSER1 SUPERUSER LOGIN" postgres
+$PGPATH2/psql -h $PGHOST2 -p $PGPORT2 -c "CREATE ROLE $PGUSER2 SUPERUSER LOGIN" postgres
+$PGPATH1/psql -h $PGHOST1 -p $PGPORT1 -c "CREATE DATABASE $PGDB1 OWNER $PGUSER1" postgres
+$PGPATH2/psql -h $PGHOST2 -p $PGPORT2 -c "CREATE DATABASE $PGDB2 OWNER $PGUSER2" postgres

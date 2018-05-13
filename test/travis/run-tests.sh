@@ -15,20 +15,22 @@ PGPORT1=9901
 PGPORT2=9902
 PGDB1=quarrel1
 PGDB2=quarrel2
+PGHOST1=/tmp
+PGHOST2=/tmp
 
 # test needs a relative path
 cd pgquarrel/test
 # loading quarrel data
-$PGPATH1/psql -U $PGUSER1 -p $PGPORT1 -X -f test-server1.sql postgres
-$PGPATH2/psql -U $PGUSER2 -p $PGPORT2 -X -f test-server2.sql postgres
+$PGPATH1/psql -h $PGHOST1 -U $PGUSER1 -p $PGPORT1 -X -f test-server1.sql postgres
+$PGPATH2/psql -h $PGHOST2 -U $PGUSER2 -p $PGPORT2 -X -f test-server2.sql postgres
 # run pgquarrel
 LD_LIBRARY_PATH=$HOME/pgquarrel/lib:$LD_LIBRARY_PATH $HOME/pgquarrel/bin/pgquarrel -c test.ini
 # apply differences
-$PGPATH1/psql -U $PGUSER1 -p $PGPORT1 -X -f /tmp/test.sql $PGDB1
+$PGPATH1/psql -h $PGHOST1 -U $PGUSER1 -p $PGPORT1 -X -f /tmp/test.sql $PGDB1
 # test again
 LD_LIBRARY_PATH=$HOME/pgquarrel/lib:$LD_LIBRARY_PATH $HOME/pgquarrel/bin/pgquarrel -c test2.ini
 # comparing dumps
 # use same pg_dump version here to avoid diff problems
-$PGPATH/pg_dump -s -U $PGUSER1 -p $PGPORT1 -f /tmp/q1.sql $PGDB1
-$PGPATH/pg_dump -s -U $PGUSER2 -p $PGPORT2 -f /tmp/q2.sql $PGDB2
+$PGPATH/pg_dump -s -h $PGHOST1 -U $PGUSER1 -p $PGPORT1 -f /tmp/q1.sql $PGDB1
+$PGPATH/pg_dump -s -h $PGHOST2 -U $PGUSER2 -p $PGPORT2 -f /tmp/q2.sql $PGDB2
 diff -u /tmp/q1.sql /tmp/q2.sql
