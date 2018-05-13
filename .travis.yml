@@ -9,10 +9,14 @@ env:
   - PGVERSION2=10
 
 addons:
-  postgresql: "10"
-#  apt:
-#    packages:
-#      - libperl-dev
+#  postgresql: "10"
+  apt:
+    packages:
+      - postgresql-10
+      - postgresql-client-10
+      - postgresql-contrib-10
+      - postgresql-server-dev-10
+      - postgresql-plperl-10
 
 # install PostgreSQL
 # if PGVERSION1 != PGVERSION2, install both versions
