@@ -73,15 +73,16 @@ GRANT SELECT, INSERT, UPDATE ON TABLE same_table_1 TO same_role_1;
 GRANT SELECT(a, b), INSERT (a, b), UPDATE (a, b) ON TABLE same_table_3 TO same_role_2;
 
 -- partition
-CREATE TABLE same_table_7 (
-a serial,
-b varchar(20) NOT NULL
-) PARTITION BY RANGE (a);
+-- XXX test unsupported feature (regular <-> partitioned)
+--CREATE TABLE same_table_7 (
+--a serial,
+--b varchar(20) NOT NULL
+--) PARTITION BY RANGE (a);
 
-CREATE TABLE same_table_8 (
-a serial,
-b varchar(20) NOT NULL
-);
+--CREATE TABLE same_table_8 (
+--a serial,
+--b varchar(20) NOT NULL
+--);
 
 CREATE TABLE same_cities (
 id serial,
