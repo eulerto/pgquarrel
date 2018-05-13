@@ -2517,7 +2517,7 @@ quarrelTables()
 			if (options.securitylabels)
 				getTableSecurityLabels(conn2, &tables2[j]);
 
-			dumpCreateTable(fpre, &tables2[j]);
+			dumpCreateTable(fpre, fpost, &tables2[j]);
 
 			j++;
 			qstat.tableadded++;
@@ -2573,7 +2573,7 @@ quarrelTables()
 			if (options.securitylabels)
 				getTableSecurityLabels(conn2, &tables2[j]);
 
-			dumpCreateTable(fpre, &tables2[j]);
+			dumpCreateTable(fpre, fpost, &tables2[j]);
 
 			j++;
 			qstat.tableadded++;

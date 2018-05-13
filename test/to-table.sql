@@ -103,3 +103,42 @@ GRANT SELECT, DELETE ON TABLE same_table_1 TO same_role_1;
 GRANT SELECT (a, b), INSERT (b) ON TABLE same_table_3 TO same_role_2;
 GRANT SELECT ON TABLE to_table_1 TO same_role_1;
 GRANT INSERT, UPDATE (b, c) ON TABLE to_table_2 TO same_role_2;
+
+-- partition
+CREATE TABLE same_table_7 (
+a serial,
+b varchar(20) NOT NULL
+);
+
+CREATE TABLE same_table_8 (
+a serial,
+b varchar(20) NOT NULL
+) PARTITION BY RANGE (a);
+
+CREATE TABLE same_cities (
+id serial,
+description varchar(80) not null,
+abbrev char(2) not null
+) PARTITION BY LIST (abbrev);
+
+CREATE TABLE same_cities_north PARTITION OF same_cities FOR VALUES IN ('AC', 'AM', 'AP', 'PA', 'RO', 'RR', 'TO') PARTITION BY LIST (abbrev);
+
+CREATE TABLE same_cities_northeast PARTITION OF same_cities FOR VALUES IN ('AL', 'BA', 'CE', 'MA', 'PI', 'PB', 'PE', 'RN', 'SE') PARTITION BY LIST (abbrev);
+
+CREATE TABLE same_cities_midwestern PARTITION OF same_cities FOR VALUES IN ('DF', 'GO', 'MT', 'MS') PARTITION BY LIST (abbrev);
+
+CREATE TABLE same_cities_southest PARTITION OF same_cities FOR VALUES IN ('ES', 'MG', 'RJ', 'SP') PARTITION BY LIST (abbrev);
+
+CREATE TABLE same_cities_south PARTITION OF same_cities FOR VALUES IN ('PR', 'RS', 'SC') PARTITION BY LIST (abbrev);
+
+CREATE TABLE same_cities_df PARTITION OF same_cities_midwestern (primary key(id)) FOR VALUES IN ('DF');
+CREATE TABLE same_cities_go PARTITION OF same_cities_midwestern (primary key(id)) FOR VALUES IN ('GO');
+CREATE TABLE same_cities_mt PARTITION OF same_cities_midwestern (primary key(id)) FOR VALUES IN ('MT');
+CREATE TABLE same_cities_ms PARTITION OF same_cities_midwestern (primary key(id)) FOR VALUES IN ('MS');
+
+CREATE TABLE same_cities_pr PARTITION OF same_cities_south (primary key(id)) FOR VALUES IN ('PR');
+CREATE TABLE same_cities_rs PARTITION OF same_cities_south (primary key(id)) FOR VALUES IN ('RS');
+CREATE TABLE same_cities_sc PARTITION OF same_cities_south (primary key(id)) FOR VALUES IN ('SC');
+
+CREATE TABLE same_cities_to PARTITION OF same_cities_north (primary key(id)) FOR VALUES IN ('TO');
+ALTER TABLE same_cities_north DETACH PARTITION same_cities_to;

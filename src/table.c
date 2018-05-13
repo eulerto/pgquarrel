@@ -19,8 +19,6 @@
  * CREATE TABLE ... TABLESPACE
  * CREATE TABLE ... EXCLUDE
  * CREATE TABLE ... GENERATED ... AS IDENTITY
- * CREATE TABLE ... PARTITION BY
- * CREATE TABLE ... PARTITION OF
  *
  * ALTER TABLE ... RENAME COLUMN ... TO
  * ALTER TABLE ... RENAME CONSTRAINT ... TO
@@ -36,8 +34,6 @@
  * ALTER TABLE ... NOINHERIT parent_table
  * ALTER TABLE ... OF type_name
  * ALTER TABLE ... SET TABLESPACE
- * ALTER TABLE ... ATTACH PARTITION
- * ALTER TABLE ... DETACH PARTITION
  * ALTER TABLE ... ALTER COLUMN ... ADD GENERATED
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
@@ -48,6 +44,7 @@
 #include "table.h"
 
 
+static void getParentTables(PGconn *c, PQLTable *t);
 static void dumpAddColumn(FILE *output, PQLTable *t, int i);
 static void dumpRemoveColumn(FILE *output, PQLTable *t, int i);
 static void dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b,
@@ -58,6 +55,8 @@ static void dumpAlterColumnSetStorage(FILE *output, PQLTable *a, int i,
 									  bool force);
 static void dumpAlterColumnSetOptions(FILE *output, PQLTable *a, int i,
 									  PQLTable *b, int j);
+static void dumpAttachPartition(FILE *output, PQLTable *a);
+static void dumpDetachPartition(FILE *output, PQLTable *a);
 
 PQLTable *
 getTables(PGconn *c, int *n)
@@ -72,20 +71,25 @@ getTables(PGconn *c, int *n)
 	/*
 	 * XXX Using 'v' (void) to represent unsupported replica identity
 	 */
-	if (PQserverVersion(c) >= 90400)
+	if (PQserverVersion(c) >= 100000)
 	{
 		res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, relreplident, reloftype, o.nspname AS typnspname, y.typname FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
+					 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, relreplident, reloftype, o.nspname AS typnspname, y.typname, c.relispartition, pg_get_partkeydef(c.oid) AS partitionkeydef, pg_get_expr(c.relpartbound, c.oid) AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind IN ('r', 'p') AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
+	}
+	else if (PQserverVersion(c) >= 90400)
+	{
+		res = PQexec(c,
+					 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, relreplident, reloftype, o.nspname AS typnspname, y.typname, false AS relispartition, NULL AS partitionkeydef, NULL AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
 	}
 	else if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
 		res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, 'v' AS relreplident, reloftype, o.nspname AS typnspname, y.typname FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
+					 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, 'v' AS relreplident, reloftype, o.nspname AS typnspname, y.typname, false AS relispartition, NULL AS partitionkeydef, NULL AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
 	}
 	else
 	{
 		res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, 'p' AS relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, 'v' AS relreplident, 0 AS reloftype, NULL AS typnspname, NULL AS typname FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, relname");
+					 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, 'p' AS relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, 'v' AS relreplident, 0 AS reloftype, NULL AS typnspname, NULL AS typname, false AS relispartition, NULL AS partitionkeydef, NULL AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, relname");
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -169,6 +173,25 @@ getTables(PGconn *c, int *n)
 											   "typname")));
 		}
 
+		t[i].partitioned = (PQgetvalue(res, i, PQfnumber(res, "relkind"))[0] == 'p');
+		if (t[i].partitioned)
+			t[i].partitionkey = strdup(PQgetvalue(res, i, PQfnumber(res, "partitionkeydef")));
+		else
+			t[i].partitionkey = NULL;
+
+		t[i].partition = (PQgetvalue(res, i, PQfnumber(res, "relispartition"))[0] == 't');
+		if (t[i].partition)
+		{
+			t[i].partitionbound = strdup(PQgetvalue(res, i, PQfnumber(res, "partitionbound")));
+			getParentTables(c, &t[i]);
+		}
+		else
+		{
+			t[i].partitionbound = NULL;
+			t[i].nparent = 0;
+			t[i].parent = NULL;
+		}
+
 		/*
 		 * Security labels are not assigned here (see getTableSecurityLabels),
 		 * but default values are essential to avoid having trouble in
@@ -183,6 +206,69 @@ getTables(PGconn *c, int *n)
 	PQclear(res);
 
 	return t;
+}
+
+static void
+getParentTables(PGconn *c, PQLTable *t)
+{
+	char		*query;
+	int			nquery;
+	PGresult	*res;
+	int			j;
+
+	query = NULL;
+	nquery = 0;
+	/* determine how many characters will be written by snprintf */
+	nquery = snprintf(query, nquery,
+					  "SELECT c.oid, n.nspname, c.relname FROM pg_inherits i INNER JOIN pg_class c ON (c.oid = i.inhparent) INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE inhrelid = %u ORDER BY nspname, relname",
+					  t->obj.oid);
+
+	nquery++;
+	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
+	snprintf(query, nquery,
+			 "SELECT c.oid, n.nspname, c.relname FROM pg_inherits i INNER JOIN pg_class c ON (c.oid = i.inhparent) INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE inhrelid = %u ORDER BY nspname, relname",
+			 t->obj.oid);
+
+	logNoise("table: query size: %d ; query: %s", nquery, query);
+
+	res = PQexec(c, query);
+
+	free(query);
+
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+	{
+		logError("query failed: %s", PQresultErrorMessage(res));
+		PQclear(res);
+		PQfinish(c);
+		/* XXX leak another connection? */
+		exit(EXIT_FAILURE);
+	}
+
+	t->nparent = PQntuples(res);
+	if (t->nparent > 0)
+		t->parent = (PQLObject *) malloc(t->nparent * sizeof(PQLObject));
+	else
+		t->parent = NULL;
+
+	if (t->partition && t->nparent > 1)
+	{
+		logError("partition cannot have more than one parent table");
+		PQclear(res);
+		PQfinish(c);
+		/* XXX leak another connection? */
+		exit(EXIT_FAILURE);
+	}
+
+	logDebug("number of parents from table \"%s\".\"%s\": %d",
+			 t->obj.schemaname, t->obj.objectname, t->nparent);
+	for (j = 0; j < t->nparent; j++)
+	{
+		t->parent[j].oid = strtoul(PQgetvalue(res, j, PQfnumber(res, "oid")), NULL, 10);
+		t->parent[j].schemaname = strdup(PQgetvalue(res, j, PQfnumber(res, "nspname")));
+		t->parent[j].objectname = strdup(PQgetvalue(res, j, PQfnumber(res, "relname")));
+	}
+
+	PQclear(res);
 }
 
 void
@@ -686,6 +772,10 @@ freeTables(PQLTable *t, int n)
 				free(t[i].reloftype.schemaname);
 			if (t[i].reloftype.objectname)
 				free(t[i].reloftype.objectname);
+			if (t[i].partitionkey)
+				free(t[i].partitionkey);
+			if (t[i].partitionbound)
+				free(t[i].partitionbound);
 			if (t[i].comment)
 				free(t[i].comment);
 			if (t[i].acl)
@@ -732,6 +822,13 @@ freeTables(PQLTable *t, int n)
 					free(t[i].attributes[j].seclabels);
 			}
 
+			/* parent tables */
+			for (j = 0; j < t[i].nparent; j++)
+			{
+				free(t[i].parent[j].schemaname);
+				free(t[i].parent[j].objectname);
+			}
+
 			/* check constraints */
 			for (j = 0; j < t[i].ncheck; j++)
 			{
@@ -768,6 +865,8 @@ freeTables(PQLTable *t, int n)
 
 			if (t[i].attributes)
 				free(t[i].attributes);
+			if (t[i].parent)
+				free(t[i].parent);
 			if (t[i].check)
 				free(t[i].check);
 			if (t[i].fk)
@@ -860,7 +959,7 @@ dumpDropTable(FILE *output, PQLTable *t)
 }
 
 void
-dumpCreateTable(FILE *output, PQLTable *t)
+dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 {
 	char	*schema = formatObjectIdentifier(t->obj.schemaname);
 	char	*tabname = formatObjectIdentifier(t->obj.objectname);
@@ -939,11 +1038,19 @@ dumpCreateTable(FILE *output, PQLTable *t)
 	else if (t[i].reloftype.oid == InvalidOid)
 		fprintf(output, "(\n)");
 
+	/* partitioned table */
+	if (t->partitioned)
+		fprintf(output, "\nPARTITION BY %s", t->partitionkey);
+
 	/* reloptions */
 	if (t->reloptions != NULL)
 		fprintf(output, "\nWITH (%s)", t->reloptions);
 
 	fprintf(output, ";");
+
+	/* partition */
+	if (t->partition)
+		dumpAttachPartition(output2, t);
 
 	/* replica identity */
 	if (t->relreplident != 'v')		/* 'v' (void) means < 9.4 */
@@ -1603,6 +1710,40 @@ dumpAlterColumnSetOptions(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 	free(attname2);
 }
 
+static void
+dumpAttachPartition(FILE *output, PQLTable *a)
+{
+	char	*schema = formatObjectIdentifier(a->obj.schemaname);
+	char	*tabname = formatObjectIdentifier(a->obj.objectname);
+	char	*parentschema = formatObjectIdentifier(a->parent[0].schemaname);
+	char	*parentname = formatObjectIdentifier(a->parent[0].objectname);
+
+	fprintf(output, "\n\n");
+	fprintf(output, "ALTER TABLE %s.%s ATTACH PARTITION %s.%s %s;", parentschema, parentname, schema, tabname, a->partitionbound);
+
+	free(schema);
+	free(tabname);
+	free(parentschema);
+	free(parentname);
+}
+
+static void
+dumpDetachPartition(FILE *output, PQLTable *a)
+{
+	char	*schema = formatObjectIdentifier(a->obj.schemaname);
+	char	*tabname = formatObjectIdentifier(a->obj.objectname);
+	char	*parentschema = formatObjectIdentifier(a->parent[0].schemaname);
+	char	*parentname = formatObjectIdentifier(a->parent[0].objectname);
+
+	fprintf(output, "\n\n");
+	fprintf(output, "ALTER TABLE %s.%s DETACH PARTITION %s.%s;", parentschema, parentname, schema, tabname);
+
+	free(schema);
+	free(tabname);
+	free(parentschema);
+	free(parentname);
+}
+
 void
 dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 {
@@ -1745,6 +1886,18 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 			logWarning("typed table \"%s\".\"%s\" changed its type", schema2, tabname2);
 		}
 	}
+
+	/* partitioned table cannot be converted to regular table and vice-versa */
+	if (a->partitioned && !b->partitioned)
+		logWarning("regular table %s.%s cannot be converted to partitioned table", schema2, tabname2);
+	else if (!a->partitioned && b->partitioned)
+		logWarning("partitioned table %s.%s cannot be converted to regular table", schema2, tabname2);
+
+	/* partition */
+	if (!a->partition && b->partition)
+		dumpAttachPartition(output, b);
+	else if (a->partition && !b->partition)
+		dumpDetachPartition(output, a);
 
 	/* reloptions */
 	if (a->reloptions == NULL && b->reloptions != NULL)

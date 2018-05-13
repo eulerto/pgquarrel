@@ -42,6 +42,15 @@ typedef struct PQLTable
 	/* typed table? */
 	PQLObject		reloftype;
 
+	/* partitioning */
+	bool			partitioned;		/* partitioned table? */
+	bool			partition;			/* partition? */
+	char			*partitionkey;		/* partitioned table has */
+	char			*partitionbound;	/* partition has */
+
+	PQLObject		*parent;
+	int				nparent;
+
 	char			*comment;
 	char			*owner;
 	char			*acl;
@@ -60,7 +69,7 @@ void getPKConstraints(PGconn *c, PQLTable *t, int n);
 void getTableSecurityLabels(PGconn *c, PQLTable *t);
 
 void dumpDropTable(FILE *output, PQLTable *t);
-void dumpCreateTable(FILE *output, PQLTable *t);
+void dumpCreateTable(FILE *output, FILE *output2, PQLTable *t);
 void dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b);
 
 void freeTables(PQLTable *t, int n);

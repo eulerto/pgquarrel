@@ -71,3 +71,32 @@ ALTER TABLE same_table_2 REPLICA IDENTITY NOTHING;
 -- privileges
 GRANT SELECT, INSERT, UPDATE ON TABLE same_table_1 TO same_role_1;
 GRANT SELECT(a, b), INSERT (a, b), UPDATE (a, b) ON TABLE same_table_3 TO same_role_2;
+
+-- partition
+CREATE TABLE same_table_7 (
+a serial,
+b varchar(20) NOT NULL
+) PARTITION BY RANGE (a);
+
+CREATE TABLE same_table_8 (
+a serial,
+b varchar(20) NOT NULL
+);
+
+CREATE TABLE same_cities (
+id serial,
+description varchar(80) not null,
+abbrev char(2) not null
+) PARTITION BY LIST (abbrev);
+
+CREATE TABLE same_cities_north PARTITION OF same_cities FOR VALUES IN ('AC', 'AM', 'AP', 'PA', 'RO', 'RR', 'TO') PARTITION BY LIST (abbrev);
+
+CREATE TABLE same_cities_southest PARTITION OF same_cities FOR VALUES IN ('ES', 'MG', 'RJ', 'SP') PARTITION BY LIST (abbrev);
+
+CREATE TABLE same_cities_south PARTITION OF same_cities FOR VALUES IN ('PR', 'RS', 'SC') PARTITION BY LIST (abbrev);
+
+CREATE TABLE same_cities_pr PARTITION OF same_cities_south (primary key(id)) FOR VALUES IN ('PR');
+CREATE TABLE same_cities_rs PARTITION OF same_cities_south (primary key(id)) FOR VALUES IN ('RS');
+CREATE TABLE same_cities_sc PARTITION OF same_cities_south (primary key(id)) FOR VALUES IN ('SC');
+
+CREATE TABLE same_cities_to PARTITION OF same_cities_north (primary key(id)) FOR VALUES IN ('TO');
