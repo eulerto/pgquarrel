@@ -17,7 +17,9 @@ mkdir $PGDATA2
 $PGPATH1/initdb $PGDATA1
 $PGPATH2/initdb $PGDATA2
 echo "port = $PGPORT1" >> $PGDATA1/postgresql.conf
+echo "unix_socket_directories = '/tmp'" >> $PGDATA1/postgresql.conf
 echo "port = $PGPORT2" >> $PGDATA2/postgresql.conf
+echo "unix_socket_directories = '/tmp'" >> $PGDATA2/postgresql.conf
 $PGPATH1/pg_ctl -w start -D $PGDATA1
 $PGPATH2/pg_ctl -w start -D $PGDATA2
 $PGPATH1/psql -p $PGPORT1 -c "CREATE ROLE $PGUSER1 SUPERUSER LOGIN" postgres
