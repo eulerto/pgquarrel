@@ -260,6 +260,82 @@ Although **pgquarrel** does not support all PostgreSQL objects, it covers many o
 * inheritance;
 * roles.
 
+Usage
+=====
+
+```
+$ pgquarrel [OPTION]... -c config.ini
+```
+
+The following command-line options control what will be output.
+
+* `config (-c)`: configuration file that contains source and target connection information and type of objects that will be compared.
+* `file (-f)`: send output to file (or |pipe).
+* `summary (-s)`: print a summary of changes.
+* `single-transaction (-s)`: output changes as a single transaction.
+* `verbose (-v)`: verbose mode.
+* `source-dbname`: source database name.
+* `source-host`: source host name.
+* `source-port`: source port.
+* `source-username`: source user name.
+* `target-dbname`: target database name.
+* `target-host`: target host name.
+* `target-port`: target port.
+* `target-username`: target user name.
+* `help`: print help.
+* `version`: print version.
+
+The configuration file contains the following structure:
+
+```
+[general]
+output = /tmp/diff.sql
+tmpdir = /tmp
+verbose = false
+summary = false
+comment = false
+security-labels = false
+owner = false
+privileges = false
+
+aggregate = false
+cast = false
+collation = false
+conversion = false
+domain = true
+event-trigger = false
+extension = true
+fdw = false
+function = true
+index = true
+language = false
+materialized-view = true
+operator = false
+rule = false
+schema = true
+sequence = true
+statistics = false
+table = true
+text-search = false
+trigger = true
+type = true
+view = true
+
+[target]
+host = 10.27.0.8
+port = 5432
+dbname = quarrel1
+user = bob
+
+[source]
+host = 10.8.0.10
+port = 5432
+dbname = quarrel2
+user = alice
+```
+
+The _general_ section specifies which class of objects will be output. The _target_ and _source_ section options can be override by command-line options.
+
 Tests
 =====
 
