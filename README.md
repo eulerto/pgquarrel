@@ -264,7 +264,7 @@ Usage
 =====
 
 ```
-$ pgquarrel [OPTION]... -c config.ini
+$ pgquarrel [OPTION]...
 ```
 
 The following command-line options control what will be output.

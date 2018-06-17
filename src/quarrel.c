@@ -224,11 +224,54 @@ loadConfig(const char *cf, QuarrelOptions *options)
 {
 	MiniFile	*config;
 
+	/* default options */
+	options->general.output = NULL;				/* general - output */
+	options->general.tmpdir = strdup("/tmp");	/* general - tmpdir */
+	options->general.verbose = false;			/* general - verbose */
+	options->general.summary = false;			/* general - summary */
+	options->general.comment = false;			/* general - comment */
+	options->general.securitylabels = false;	/* general - security-labels */
+	options->general.owner = false;				/* general - owner */
+	options->general.privileges = false;		/* general - privileges */
+
+	options->general.aggregate = false;			/* general - aggregate */
+	options->general.cast = false;				/* general - cast */
+	options->general.collation = false;			/* general - collation */
+	options->general.conversion = false;		/* general - conversion */
+	options->general.domain = true;				/* general - domain */
+	options->general.eventtrigger = false;		/* general - event-trigger */
+	options->general.extension = true;			/* general - extension */
+	options->general.fdw = false;				/* general - fdw */
+	options->general.function = true;			/* general - function */
+	options->general.index = true;				/* general - index */
+	options->general.language = false;			/* general - language */
+	options->general.matview = true;			/* general - materialized-view */
+	options->general.operator = false;			/* general - operator */
+	options->general.rule = false;				/* general - rule */
+	options->general.schema = true;				/* general - schema */
+	options->general.sequence = true;			/* general - sequence */
+	options->general.statistics = false;		/* general - statistics */
+	options->general.table = true;				/* general - table */
+	options->general.textsearch = false;		/* general - text-search */
+	options->general.trigger = true;			/* general - trigger */
+	options->general.type = true;				/* general - type */
+	options->general.view = true;				/* general - view */
+
+	options->source.host = NULL;				/* source - host */
+	options->source.port = NULL;				/* source - port */
+	options->source.username = NULL;			/* source - user */
+	options->source.password = NULL;			/* source - password */
+	options->source.dbname = NULL;				/* source - dbname */
+
+	options->target.host = NULL;				/* target - host */
+	options->target.port = NULL;				/* target - port */
+	options->target.username = NULL;			/* target - user */
+	options->target.password = NULL;			/* target - password */
+	options->target.dbname = NULL;				/* target - dbname */
+
+	/* if there is no config file, bail out */
 	if (cf == NULL)
-	{
-		logError("config file is required");
-		exit(EXIT_FAILURE);
-	}
+		return;
 
 	config = mini_parse_file(cf);
 	if (config != NULL)
@@ -251,8 +294,6 @@ loadConfig(const char *cf, QuarrelOptions *options)
 		tmp = mini_file_get_value(config, "general", "output");
 		if (tmp != NULL)
 			options->general.output = strdup(tmp);
-		else
-			options->general.output = NULL;			/* default */
 
 		tmp = mini_file_get_value(config, "general", "tmpdir");
 		if (tmp != NULL)
@@ -263,47 +304,33 @@ loadConfig(const char *cf, QuarrelOptions *options)
 				logError("tmpdir is too long (max: 256)");
 				exit(EXIT_FAILURE);
 			}
+			if (options->general.tmpdir)
+				free(options->general.tmpdir);
 			options->general.tmpdir = strdup(tmp);
 		}
-		else
-		{
-			options->general.tmpdir = strdup("/tmp");				/* default */
-		}
 
-		if (mini_file_get_value(config, "general", "verbose") == NULL)
-			options->general.verbose = false;	/* default */
-		else
+		if (mini_file_get_value(config, "general", "verbose") != NULL)
 			options->general.verbose = parseBoolean("verbose", mini_file_get_value(config,
 													"general", "verbose"));
 
-		if (mini_file_get_value(config, "general", "summary") == NULL)
-			options->general.summary = false;	/* default */
-		else
+		if (mini_file_get_value(config, "general", "summary") != NULL)
 			options->general.summary = parseBoolean("summary", mini_file_get_value(config,
 													"general", "summary"));
 
-		if (mini_file_get_value(config, "general", "comment") == NULL)
-			options->general.comment = false;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "comment") != NULL)
 			options->general.comment = parseBoolean("comment", mini_file_get_value(config,
 													"general", "comment"));
 
-		if (mini_file_get_value(config, "general", "security-labels") == NULL)
-			options->general.securitylabels = false;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "security-labels") != NULL)
 			options->general.securitylabels = parseBoolean("security-labels",
 											  mini_file_get_value(config,
 													  "general", "security-labels"));
 
-		if (mini_file_get_value(config, "general", "owner") == NULL)
-			options->general.owner = false;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "owner") != NULL)
 			options->general.owner = parseBoolean("owner", mini_file_get_value(config,
 												  "general", "owner"));
 
-		if (mini_file_get_value(config, "general", "privileges") == NULL)
-			options->general.privileges = false;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "privileges") != NULL)
 			options->general.privileges = parseBoolean("privileges",
 										  mini_file_get_value(config,
 												  "general", "privileges"));
@@ -311,143 +338,99 @@ loadConfig(const char *cf, QuarrelOptions *options)
 		/*
 		 * select objects that will be compared
 		 */
-		if (mini_file_get_value(config, "general", "aggregate") == NULL)
-			options->general.aggregate = false;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "aggregate") != NULL)
 			options->general.aggregate = parseBoolean("aggregate",
 										 mini_file_get_value(config,
 												 "general", "aggregate"));
 
-		if (mini_file_get_value(config, "general", "cast") == NULL)
-			options->general.cast = false;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "cast") != NULL)
 			options->general.cast = parseBoolean("cast", mini_file_get_value(config,
 												 "general", "cast"));
 
-		if (mini_file_get_value(config, "general", "collation") == NULL)
-			options->general.collation = false;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "collation") != NULL)
 			options->general.collation = parseBoolean("collation",
 										 mini_file_get_value(config,
 												 "general", "collation"));
 
-		if (mini_file_get_value(config, "general", "conversion") == NULL)
-			options->general.conversion = false;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "conversion") != NULL)
 			options->general.conversion = parseBoolean("conversion",
 										  mini_file_get_value(config,
 												  "general", "conversion"));
 
-		if (mini_file_get_value(config, "general", "domain") == NULL)
-			options->general.domain = true;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "domain") != NULL)
 			options->general.domain = parseBoolean("domain", mini_file_get_value(config,
 												   "general", "domain"));
 
-		if (mini_file_get_value(config, "general", "event-trigger") == NULL)
-			options->general.eventtrigger = false;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "event-trigger") != NULL)
 			options->general.eventtrigger = parseBoolean("event-trigger",
 											mini_file_get_value(config,
 													"general", "event-trigger"));
 
-		if (mini_file_get_value(config, "general", "extension") == NULL)
-			options->general.extension = true;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "extension") != NULL)
 			options->general.extension = parseBoolean("extension",
 										 mini_file_get_value(config,
 												 "general", "extension"));
 
-		if (mini_file_get_value(config, "general", "fdw") == NULL)
-			options->general.fdw = false;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "fdw") != NULL)
 			options->general.fdw = parseBoolean("fdw", mini_file_get_value(config,
 												"general", "fdw"));
 
-		if (mini_file_get_value(config, "general", "function") == NULL)
-			options->general.function = true;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "function") != NULL)
 			options->general.function = parseBoolean("function", mini_file_get_value(config,
 										"general", "function"));
 
-		if (mini_file_get_value(config, "general", "index") == NULL)
-			options->general.index = true;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "index") != NULL)
 			options->general.index = parseBoolean("index", mini_file_get_value(config,
 												  "general", "index"));
 
-		if (mini_file_get_value(config, "general", "language") == NULL)
-			options->general.language = false;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "language") != NULL)
 			options->general.language = parseBoolean("language", mini_file_get_value(config,
 										"general", "language"));
 
-		if (mini_file_get_value(config, "general", "materialized-view") == NULL)
-			options->general.matview = true;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "materialized-view") != NULL)
 			options->general.matview = parseBoolean("materialized-view",
 													mini_file_get_value(config,
 															"general", "materialized-view"));
 
-		if (mini_file_get_value(config, "general", "operator") == NULL)
-			options->general.operator = false;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "operator") != NULL)
 			options->general.operator = parseBoolean("operator", mini_file_get_value(config,
 										"general", "operator"));
 
-		if (mini_file_get_value(config, "general", "rule") == NULL)
-			options->general.rule = false;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "rule") != NULL)
 			options->general.rule = parseBoolean("rule", mini_file_get_value(config,
 												 "general", "rule"));
 
-		if (mini_file_get_value(config, "general", "schema") == NULL)
-			options->general.schema = true;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "schema") != NULL)
 			options->general.schema = parseBoolean("schema", mini_file_get_value(config,
 												   "general", "schema"));
 
-		if (mini_file_get_value(config, "general", "sequence") == NULL)
-			options->general.sequence = true;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "sequence") != NULL)
 			options->general.sequence = parseBoolean("sequence", mini_file_get_value(config,
 										"general", "sequence"));
 
-		if (mini_file_get_value(config, "general", "statistics") == NULL)
-			options->general.statistics = false;	/* default */
-		else
+		if (mini_file_get_value(config, "general", "statistics") != NULL)
 			options->general.statistics = parseBoolean("statistics",
 										  mini_file_get_value(config,
 												  "general", "statistics"));
 
-		if (mini_file_get_value(config, "general", "table") == NULL)
-			options->general.table = true;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "table") != NULL)
 			options->general.table = parseBoolean("table", mini_file_get_value(config,
 												  "general", "table"));
 
-		if (mini_file_get_value(config, "general", "text-search") == NULL)
-			options->general.textsearch = false;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "text-search") != NULL)
 			options->general.textsearch = parseBoolean("text-search",
 										  mini_file_get_value(config,
 												  "general", "text-search"));
 
-		if (mini_file_get_value(config, "general", "trigger") == NULL)
-			options->general.trigger = true;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "trigger") != NULL)
 			options->general.trigger = parseBoolean("trigger", mini_file_get_value(config,
 													"general", "trigger"));
 
-		if (mini_file_get_value(config, "general", "type") == NULL)
-			options->general.type = true;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "type") != NULL)
 			options->general.type = parseBoolean("type", mini_file_get_value(config,
 												 "general", "type"));
 
-		if (mini_file_get_value(config, "general", "view") == NULL)
-			options->general.view = true;		/* default */
-		else
+		if (mini_file_get_value(config, "general", "view") != NULL)
 			options->general.view = parseBoolean("view", mini_file_get_value(config,
 												 "general", "view"));
 
@@ -462,8 +445,6 @@ loadConfig(const char *cf, QuarrelOptions *options)
 			tmp = mini_file_get_value(config, "to", "host");
 			if (tmp != NULL)
 				options->source.host = strdup(tmp);
-			else
-				options->source.host = NULL;
 		}
 
 		tmp = mini_file_get_value(config, "source", "port");
@@ -476,8 +457,6 @@ loadConfig(const char *cf, QuarrelOptions *options)
 			tmp = mini_file_get_value(config, "to", "port");
 			if (tmp != NULL)
 				options->source.port = strdup(tmp);
-			else
-				options->source.port = NULL;
 		}
 
 		tmp = mini_file_get_value(config, "source", "user");
@@ -490,8 +469,6 @@ loadConfig(const char *cf, QuarrelOptions *options)
 			tmp = mini_file_get_value(config, "to", "user");
 			if (tmp != NULL)
 				options->source.username = strdup(tmp);
-			else
-				options->source.username = NULL;
 		}
 
 		tmp = mini_file_get_value(config, "source", "password");
@@ -504,8 +481,6 @@ loadConfig(const char *cf, QuarrelOptions *options)
 			tmp = mini_file_get_value(config, "to", "password");
 			if (tmp != NULL)
 				options->source.password = strdup(tmp);
-			else
-				options->source.password = NULL;
 		}
 
 		tmp = mini_file_get_value(config, "source", "dbname");
@@ -518,8 +493,6 @@ loadConfig(const char *cf, QuarrelOptions *options)
 			tmp = mini_file_get_value(config, "to", "dbname");
 			if (tmp != NULL)
 				options->source.dbname = strdup(tmp);
-			else
-				options->source.dbname = NULL;
 		}
 
 
@@ -534,8 +507,6 @@ loadConfig(const char *cf, QuarrelOptions *options)
 			tmp = mini_file_get_value(config, "from", "host");
 			if (tmp != NULL)
 				options->target.host = strdup(tmp);
-			else
-				options->target.host = NULL;
 		}
 
 		tmp = mini_file_get_value(config, "target", "port");
@@ -548,8 +519,6 @@ loadConfig(const char *cf, QuarrelOptions *options)
 			tmp = mini_file_get_value(config, "from", "port");
 			if (tmp != NULL)
 				options->target.port = strdup(tmp);
-			else
-				options->target.port = NULL;
 		}
 
 		tmp = mini_file_get_value(config, "target", "user");
@@ -562,8 +531,6 @@ loadConfig(const char *cf, QuarrelOptions *options)
 			tmp = mini_file_get_value(config, "from", "user");
 			if (tmp != NULL)
 				options->target.username = strdup(tmp);
-			else
-				options->target.username = NULL;
 		}
 
 		tmp = mini_file_get_value(config, "target", "password");
@@ -576,8 +543,6 @@ loadConfig(const char *cf, QuarrelOptions *options)
 			tmp = mini_file_get_value(config, "from", "password");
 			if (tmp != NULL)
 				options->target.password = strdup(tmp);
-			else
-				options->target.password = NULL;
 		}
 
 		tmp = mini_file_get_value(config, "target", "dbname");
@@ -590,8 +555,6 @@ loadConfig(const char *cf, QuarrelOptions *options)
 			tmp = mini_file_get_value(config, "from", "dbname");
 			if (tmp != NULL)
 				options->target.dbname = strdup(tmp);
-			else
-				options->target.dbname = NULL;
 		}
 	}
 	else
@@ -3869,7 +3832,8 @@ int main(int argc, char *argv[])
 	loadConfig(configfile, &opts);
 
 	/* config filename was not used anymore; free it */
-	free(configfile);
+	if (configfile)
+		free(configfile);
 
 	/* expose only general options */
 	options = opts.general;
