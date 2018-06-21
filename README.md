@@ -267,9 +267,11 @@ Usage
 $ pgquarrel [OPTION]...
 ```
 
-The following command-line options control what will be output.
+By default, the changes will be output to stdout and only some kind of objects will be compared (those whose default is true).
 
-* `config (-c)`: configuration file that contains source and target connection information and type of objects that will be compared.
+The following command-line options are provided (all are optional):
+
+* `config (-c)`: configuration file that contains source and target connection information and kind of objects that will be compared.
 * `file (-f)`: send output to file, - for stdout (default: stdout).
 * `ignore-version: ignore version check. pgquarrel uses the reserved keywords provided by the postgres version that it was compiled in. Server version greater than the compiled one could not properly quote some keywords used as identifiers.
 * `summary (-s)`: print a summary of changes.
@@ -313,7 +315,7 @@ The following command-line options control what will be output.
 * `type`: type comparision (default: true).
 * `view`: view comparision (default: true).
 
-The configuration file contains the following structure:
+You can use a configuration file to store the desired options. The _general_ section specifies which kind of objects will be output. The _target_ and _source_ section options specifies connection options to both servers. Have in mind that any command-line option can override the configuration file option. The configuration file contains the following structure:
 
 ```
 [general]
@@ -364,10 +366,8 @@ dbname = quarrel2
 user = alice
 ```
 
-The _general_ section specifies which class of objects will be output. The _target_ and _source_ section options specifies connection options to both servers. All options can be override by command-line options.
-
-Tests
-=====
+Regression Tests
+================
 
 ```
 $ # adjust test/run-test.sh
