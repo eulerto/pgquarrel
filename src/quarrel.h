@@ -9,9 +9,7 @@
 #ifndef PG_QUARREL_H
 #define PG_QUARREL_H
 
-#include <stdio.h>
 #include <errno.h>
-#include <string.h>
 #include "getopt_long.h"
 #include <sys/types.h>
 #include <sys/stat.h>
