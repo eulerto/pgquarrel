@@ -54,12 +54,14 @@ typedef struct QuarrelGeneralOptions
 {
 	char			*output;
 	char			*tmpdir;
+	bool			ignoreversion;
 	bool			verbose;
 	bool			summary;
 	bool			comment;
 	bool			owner;
 	bool			privileges;
 	bool			securitylabels;
+	bool			singletxn;
 
 	/* select objects */
 	bool			aggregate;

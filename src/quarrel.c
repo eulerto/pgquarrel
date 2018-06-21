@@ -194,28 +194,61 @@ parseBoolean(const char *key, const char *s)
 static void
 help(void)
 {
+	QuarrelOptions	opts;
+
+	loadConfig(NULL, &opts);
+
 	printf("%s shows changes between database schemas.\n\n", PGQ_NAME);
 	printf("Usage:\n");
 	printf("  %s [OPTION]...\n", PGQ_NAME);
 	printf("\nOptions:\n");
-	printf("  -c, --config=FILENAME       configuration file\n");
-	printf("  -f, --file=FILENAME         receive changes into this file, - for stdout\n");
-	printf("  -s, --summary               print a summary of changes\n");
-	printf("  -t, --single-transaction    execute as a single transaction\n");
-	printf("  -v, --verbose               verbose mode\n");
+	printf("  -c, --config=FILENAME         configuration file\n");
+	printf("  -f, --file=FILENAME           receive changes into this file, - for stdout (default: stdout)\n");
+	printf("      --ignore-version          ignore version check\n");
+	printf("  -s, --summary                 print a summary of changes\n");
+	printf("  -t, --single-transaction      execute as a single transaction\n");
+	printf("      --temp-directory=DIR      use as temporary file area (default: \"%s\")\n", (opts.general.tmpdir) ? opts.general.tmpdir : "");
+	printf("  -v, --verbose                 verbose mode\n");
+	printf("\nObject options:\n");
+	printf("      --aggregate=BOOL          aggregate (default: %s)\n", (opts.general.aggregate) ? "true" : "false");
+	printf("      --cast=BOOL               cast (default: %s)\n", (opts.general.cast) ? "true" : "false");
+	printf("      --collation=BOOL          collation (default: %s)\n", (opts.general.collation) ? "true" : "false");
+	printf("      --comment=BOOL            comment (default: %s)\n", (opts.general.comment) ? "true" : "false");
+	printf("      --conversion=BOOL         conversion (default: %s)\n", (opts.general.conversion) ? "true" : "false");
+	printf("      --domain=BOOL             domain (default: %s)\n", (opts.general.domain) ? "true" : "false");
+	printf("      --event-trigger=BOOL      event trigger (default: %s)\n", (opts.general.eventtrigger) ? "true" : "false");
+	printf("      --extension=BOOL          extension (default: %s)\n", (opts.general.extension) ? "true" : "false");
+	printf("      --fdw=BOOL                foreign data wrapper (default: %s)\n", (opts.general.fdw) ? "true" : "false");
+	printf("      --function=BOOL           function (default: %s)\n", (opts.general.function) ? "true" : "false");
+	printf("      --index=BOOL              index (default: %s)\n", (opts.general.index) ? "true" : "false");
+	printf("      --language=BOOL           language (default: %s)\n", (opts.general.language) ? "true" : "false");
+	printf("      --materialized-view=BOOL  materialized view (default: %s)\n", (opts.general.matview) ? "true" : "false");
+	printf("      --operator=BOOL           operator (default: %s)\n", (opts.general.operator) ? "true" : "false");
+	printf("      --owner=BOOL              owner (default: %s)\n", (opts.general.owner) ? "true" : "false");
+	printf("      --privileges=BOOL         privileges (default: %s)\n", (opts.general.privileges) ? "true" : "false");
+	printf("      --rule=BOOL               rule (default: %s)\n", (opts.general.rule) ? "true" : "false");
+	printf("      --schema=BOOL             schema (default: %s)\n", (opts.general.schema) ? "true" : "false");
+	printf("      --security-labels=BOOL    security labels (default: %s)\n", (opts.general.securitylabels) ? "true" : "false");
+	printf("      --sequence=BOOL           sequence (default: %s)\n", (opts.general.sequence) ? "true" : "false");
+	printf("      --statistics=BOOL         statistics (default: %s)\n", (opts.general.statistics) ? "true" : "false");
+	printf("      --table=BOOL              table (default: %s)\n", (opts.general.table) ? "true" : "false");
+	printf("      --text-search=BOOL        text search (default: %s)\n", (opts.general.textsearch) ? "true" : "false");
+	printf("      --trigger=BOOL            trigger (default: %s)\n", (opts.general.trigger) ? "true" : "false");
+	printf("      --type=BOOL               type (default: %s)\n", (opts.general.type) ? "true" : "false");
+	printf("      --view=BOOL               view (default: %s)\n", (opts.general.view) ? "true" : "false");
 	printf("\nSource options:\n");
-	printf("      --source-dbname=DBNAME  database name\n");
-	printf("      --source-host=HOSTNAME  server host or socket directory\n");
-	printf("      --source-port=PORT      server port\n");
-	printf("      --source-username=NAME  user name\n");
+	printf("      --source-dbname=DBNAME    database name\n");
+	printf("      --source-host=HOSTNAME    server host or socket directory\n");
+	printf("      --source-port=PORT        server port\n");
+	printf("      --source-username=NAME    user name\n");
 	printf("\nTarget options:\n");
-	printf("      --target-dbname=DBNAME  database name\n");
-	printf("      --target-host=HOSTNAME  server host or socket directory\n");
-	printf("      --target-port=PORT      server port\n");
-	printf("      --target-username=NAME  user name\n");
+	printf("      --target-dbname=DBNAME    database name\n");
+	printf("      --target-host=HOSTNAME    server host or socket directory\n");
+	printf("      --target-port=PORT        server port\n");
+	printf("      --target-username=NAME    user name\n");
 	printf("\n");
-	printf("  --help                      show this help, then exit\n");
-	printf("  --version                   output version information, then exit\n");
+	printf("  --help                        show this help, then exit\n");
+	printf("  --version                     output version information, then exit\n");
 	printf("\nReport bugs to <euler@timbira.com.br>.\n");
 }
 
@@ -226,13 +259,15 @@ loadConfig(const char *cf, QuarrelOptions *options)
 
 	/* default options */
 	options->general.output = NULL;				/* general - output */
-	options->general.tmpdir = strdup("/tmp");	/* general - tmpdir */
+	options->general.tmpdir = strdup("/tmp");	/* general - temp-directory */
+	options->general.ignoreversion = false;		/* general - ignore-version */
 	options->general.verbose = false;			/* general - verbose */
 	options->general.summary = false;			/* general - summary */
 	options->general.comment = false;			/* general - comment */
 	options->general.securitylabels = false;	/* general - security-labels */
 	options->general.owner = false;				/* general - owner */
 	options->general.privileges = false;		/* general - privileges */
+	options->general.singletxn = false;			/* general - single-transaction */
 
 	options->general.aggregate = false;			/* general - aggregate */
 	options->general.cast = false;				/* general - cast */
@@ -295,18 +330,35 @@ loadConfig(const char *cf, QuarrelOptions *options)
 		if (tmp != NULL)
 			options->general.output = strdup(tmp);
 
-		tmp = mini_file_get_value(config, "general", "tmpdir");
+		tmp = mini_file_get_value(config, "general", "temp-directory");
 		if (tmp != NULL)
 		{
 			/* TODO improve some day... */
 			if (strlen(tmp) > 256)
 			{
-				logError("tmpdir is too long (max: 256)");
+				logError("temp directory path is too long (max: 256)");
 				exit(EXIT_FAILURE);
 			}
 			if (options->general.tmpdir)
 				free(options->general.tmpdir);
 			options->general.tmpdir = strdup(tmp);
+		}
+		else
+		{
+			/* TODO backward compatibility */
+			tmp = mini_file_get_value(config, "general", "tmpdir");
+			if (tmp != NULL)
+			{
+				/* TODO improve some day... */
+				if (strlen(tmp) > 256)
+				{
+					logError("temp directory path is too long (max: 256)");
+					exit(EXIT_FAILURE);
+				}
+				if (options->general.tmpdir)
+					free(options->general.tmpdir);
+				options->general.tmpdir = strdup(tmp);
+			}
 		}
 
 		if (mini_file_get_value(config, "general", "verbose") != NULL)
@@ -334,6 +386,14 @@ loadConfig(const char *cf, QuarrelOptions *options)
 			options->general.privileges = parseBoolean("privileges",
 										  mini_file_get_value(config,
 												  "general", "privileges"));
+
+		if (mini_file_get_value(config, "general", "ignore-version") != NULL)
+			options->general.ignoreversion = parseBoolean("ignore-version", mini_file_get_value(config,
+													"general", "ignore-version"));
+
+		if (mini_file_get_value(config, "general", "single-transaction") != NULL)
+			options->general.singletxn = parseBoolean("single-transaction", mini_file_get_value(config,
+													"general", "single-transaction"));
 
 		/*
 		 * select objects that will be compared
@@ -3717,14 +3777,10 @@ printSummary(void)
 
 int main(int argc, char *argv[])
 {
-	static QuarrelDatabaseOptions	sopts;
-	static QuarrelDatabaseOptions	topts;
-
 	static struct option long_options[] =
 	{
 		{"config", required_argument, NULL, 'c'},
 		{"file", required_argument, NULL, 'f'},
-		{"ignore-version", no_argument, NULL, 'i'},
 		{"summary", no_argument, NULL, 's'},
 		{"single-transaction", no_argument, NULL, 't'},
 		{"verbose", no_argument, NULL, 'v'},
@@ -3737,6 +3793,34 @@ int main(int argc, char *argv[])
 		{"target-host", required_argument, NULL, 7},
 		{"target-port", required_argument, NULL, 8},
 		{"target-username", required_argument, NULL, 9},
+		{"aggregate", required_argument, NULL, 10},
+		{"cast", required_argument, NULL, 11},
+		{"collation", required_argument, NULL, 12},
+		{"comment", required_argument, NULL, 13},
+		{"conversion", required_argument, NULL, 14},
+		{"domain", required_argument, NULL, 15},
+		{"event-trigger", required_argument, NULL, 16},
+		{"extension", required_argument, NULL, 17},
+		{"fdw", required_argument, NULL, 18},
+		{"function", required_argument, NULL, 19},
+		{"index", required_argument, NULL, 20},
+		{"language", required_argument, NULL, 21},
+		{"materialized-view", required_argument, NULL, 22},
+		{"operator", required_argument, NULL, 23},
+		{"owner", required_argument, NULL, 24},
+		{"privileges", required_argument, NULL, 25},
+		{"rule", required_argument, NULL, 26},
+		{"schema", required_argument, NULL, 27},
+		{"security-labels", required_argument, NULL, 28},
+		{"sequence", required_argument, NULL, 29},
+		{"statistics", required_argument, NULL, 30},
+		{"table", required_argument, NULL, 31},
+		{"text-search", required_argument, NULL, 32},
+		{"trigger", required_argument, NULL, 33},
+		{"type", required_argument, NULL, 34},
+		{"view", required_argument, NULL, 35},
+		{"ignore-version", no_argument, NULL, 36},
+		{"tmp-directory", required_argument, NULL, 37},
 		{NULL, 0, NULL, 0}
 	};
 
@@ -3744,14 +3828,18 @@ int main(int argc, char *argv[])
 	int			c;
 
 	char		*configfile = NULL;
-	char		*outfile = NULL;
-	bool		summary = false;
-	bool		singletxn = false;
-	int			ignoreversion = false;
+
+	bool		output_given = false;
+	bool		tmpdir_given = false;
 
 	/* general and connection options */
 	QuarrelOptions	opts;
 
+	/* command-line options */
+	QuarrelGeneralOptions	gopts_given;	/* command-line informed? */
+	QuarrelGeneralOptions	gopts;
+	QuarrelDatabaseOptions	sopts;
+	QuarrelDatabaseOptions	topts;
 
 	if (argc > 1)
 	{
@@ -3767,8 +3855,14 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	/* no command-line options have been informed yet */
+	memset(&gopts_given, 0, sizeof(QuarrelGeneralOptions));
+	memset(&gopts, 0, sizeof(QuarrelGeneralOptions));
+	memset(&sopts, 0, sizeof(QuarrelDatabaseOptions));
+	memset(&topts, 0, sizeof(QuarrelDatabaseOptions));
+
 	/* process command-line options */
-	while ((c = getopt_long(argc, argv, "c:f:istv", long_options, &optindex)) != -1)
+	while ((c = getopt_long(argc, argv, "c:f:stv", long_options, &optindex)) != -1)
 	{
 		switch (c)
 		{
@@ -3776,16 +3870,16 @@ int main(int argc, char *argv[])
 				configfile = strdup(optarg);
 				break;
 			case 'f':
-				outfile = strdup(optarg);
-				break;
-			case 'i':
-				ignoreversion = true;
+				gopts.output = strdup(optarg);
+				output_given = true;
 				break;
 			case 's':
-				summary = true;
+				gopts.summary = true;
+				gopts_given.summary = true;
 				break;
 			case 't':
-				singletxn = true;
+				gopts.singletxn = true;
+				gopts_given.singletxn = true;
 				break;
 			case 'v':
 				if (loglevel == PGQ_ERROR)
@@ -3822,6 +3916,118 @@ int main(int argc, char *argv[])
 			case 9:
 				topts.username = strdup(optarg);	/* target.username */
 				break;
+			case 10:
+				gopts.aggregate = parseBoolean("aggregate", optarg);
+				gopts_given.aggregate = true;
+				break;
+			case 11:
+				gopts.cast = parseBoolean("cast", optarg);
+				gopts_given.cast = true;
+				break;
+			case 12:
+				gopts.collation = parseBoolean("collation", optarg);
+				gopts_given.collation = true;
+				break;
+			case 13:
+				gopts.comment = parseBoolean("comment", optarg);
+				gopts_given.comment = true;
+				break;
+			case 14:
+				gopts.conversion = parseBoolean("conversion", optarg);
+				gopts_given.conversion = true;
+				break;
+			case 15:
+				gopts.domain = parseBoolean("domain", optarg);
+				gopts_given.domain = true;
+				break;
+			case 16:
+				gopts.eventtrigger = parseBoolean("event-trigger", optarg);
+				gopts_given.eventtrigger = true;
+				break;
+			case 17:
+				gopts.extension = parseBoolean("extension", optarg);
+				gopts_given.extension = true;
+				break;
+			case 18:
+				gopts.fdw = parseBoolean("fdw", optarg);
+				gopts_given.fdw = true;
+				break;
+			case 19:
+				gopts.function = parseBoolean("function", optarg);
+				gopts_given.function = true;
+				break;
+			case 20:
+				gopts.index = parseBoolean("index", optarg);
+				gopts_given.index = true;
+				break;
+			case 21:
+				gopts.language = parseBoolean("language", optarg);
+				gopts_given.language = true;
+				break;
+			case 22:
+				gopts.matview = parseBoolean("materialized-view", optarg);
+				gopts_given.matview = true;
+				break;
+			case 23:
+				gopts.operator = parseBoolean("operator", optarg);
+				gopts_given.operator = true;
+				break;
+			case 24:
+				gopts.owner = parseBoolean("owner", optarg);
+				gopts_given.owner = true;
+				break;
+			case 25:
+				gopts.privileges = parseBoolean("privileges", optarg);
+				gopts_given.privileges = true;
+				break;
+			case 26:
+				gopts.rule = parseBoolean("rule", optarg);
+				gopts_given.rule = true;
+				break;
+			case 27:
+				gopts.schema = parseBoolean("schema", optarg);
+				gopts_given.schema = true;
+				break;
+			case 28:
+				gopts.securitylabels = parseBoolean("security-labels", optarg);
+				gopts_given.securitylabels = true;
+				break;
+			case 29:
+				gopts.sequence = parseBoolean("sequence", optarg);
+				gopts_given.sequence = true;
+				break;
+			case 30:
+				gopts.statistics = parseBoolean("statistics", optarg);
+				gopts_given.statistics = true;
+				break;
+			case 31:
+				gopts.table = parseBoolean("table", optarg);
+				gopts_given.table = true;
+				break;
+			case 32:
+				gopts.textsearch = parseBoolean("text-search", optarg);
+				gopts_given.textsearch = true;
+				break;
+			case 33:
+				gopts.trigger = parseBoolean("trigger", optarg);
+				gopts_given.trigger = true;
+				break;
+			case 34:
+				gopts.type = parseBoolean("type", optarg);
+				gopts_given.type = true;
+				break;
+			case 35:
+				gopts.view = parseBoolean("view", optarg);
+				gopts_given.view = true;
+				break;
+			case 36:
+				gopts.ignoreversion = true;
+				gopts_given.ignoreversion = true;
+				break;
+			case 37:
+				gopts.tmpdir = strdup(optarg);
+				tmpdir_given = true;
+				break;
 			default:
 				fprintf(stderr, "Try \"%s --help\" for more information.\n", PGQ_NAME);
 				exit(EXIT_FAILURE);
@@ -3841,13 +4047,72 @@ int main(int argc, char *argv[])
 	/*
 	 * command-line options take precedence over config options
 	 */
-	if (outfile != NULL)
-		options.output = outfile;
+	if (output_given)
+		options.output = gopts.output;
+	if (tmpdir_given)
+		options.tmpdir = gopts.tmpdir;
 
 	if (options.verbose && loglevel == PGQ_ERROR)
 		loglevel = PGQ_DEBUG;
-	if (options.summary)
-		summary = true;
+	if (gopts_given.ignoreversion)
+		options.ignoreversion = gopts.ignoreversion;
+	if (gopts_given.summary)
+		options.summary = gopts.summary;
+	if (gopts_given.singletxn)
+		options.singletxn = gopts.singletxn;
+
+	if (gopts_given.aggregate)
+		options.aggregate = gopts.aggregate;
+	if (gopts_given.cast)
+		options.cast = gopts.cast;
+	if (gopts_given.collation)
+		options.collation = gopts.collation;
+	if (gopts_given.comment)
+		options.comment = gopts.comment;
+	if (gopts_given.conversion)
+		options.conversion = gopts.conversion;
+	if (gopts_given.domain)
+		options.domain = gopts.domain;
+	if (gopts_given.eventtrigger)
+		options.eventtrigger = gopts.eventtrigger;
+	if (gopts_given.extension)
+		options.extension = gopts.extension;
+	if (gopts_given.fdw)
+		options.fdw = gopts.fdw;
+	if (gopts_given.function)
+		options.function = gopts.function;
+	if (gopts_given.index)
+		options.index = gopts.index;
+	if (gopts_given.language)
+		options.language = gopts.language;
+	if (gopts_given.matview)
+		options.matview = gopts.matview;
+	if (gopts_given.operator)
+		options.operator = gopts.operator;
+	if (gopts_given.owner)
+		options.owner = gopts.owner;
+	if (gopts_given.privileges)
+		options.privileges = gopts.privileges;
+	if (gopts_given.rule)
+		options.rule = gopts.rule;
+	if (gopts_given.schema)
+		options.schema = gopts.schema;
+	if (gopts_given.securitylabels)
+		options.securitylabels = gopts.securitylabels;
+	if (gopts_given.sequence)
+		options.sequence = gopts.sequence;
+	if (gopts_given.statistics)
+		options.statistics = gopts.statistics;
+	if (gopts_given.table)
+		options.table = gopts.table;
+	if (gopts_given.textsearch)
+		options.textsearch = gopts.textsearch;
+	if (gopts_given.trigger)
+		options.trigger = gopts.trigger;
+	if (gopts_given.type)
+		options.type = gopts.type;
+	if (gopts_given.view)
+		options.view = gopts.view;
 
 	if (sopts.dbname)
 		opts.source.dbname = sopts.dbname;
@@ -3910,7 +4175,7 @@ int main(int argc, char *argv[])
 	 * old pgquarrel version or a to-be-released postgres version.  If you know
 	 * what you are doing, use --ignore-version option.
 	 */
-	if (!ignoreversion && ((compareMajorVersion(pgversion1, PG_VERSION_NUM) > 0) ||
+	if (!options.ignoreversion && ((compareMajorVersion(pgversion1, PG_VERSION_NUM) > 0) ||
 						   (compareMajorVersion(pgversion2, PG_VERSION_NUM) > 0)))
 	{
 		logError("cannot connect to server whose version (%s) is greater than postgres version (%s) used to compile pgquarrel",
@@ -4038,14 +4303,14 @@ int main(int argc, char *argv[])
 	}
 
 	/* execute as a single transaction */
-	if (singletxn)
+	if (options.singletxn)
 		fprintf(fout, "\n\nBEGIN;");
 
 	/* dump the quarrel in the right order */
 	mergeTempFiles(fpre, fpost, fout);
 
 	/* close single transaction */
-	if (singletxn)
+	if (options.singletxn)
 		fprintf(fout, "\n\nCOMMIT;");
 
 	/* close and remove temporary files */
@@ -4059,7 +4324,7 @@ int main(int argc, char *argv[])
 	logDebug("server1 connection is closed");
 	logDebug("server2 connection is closed");
 
-	if (summary)
+	if (options.summary)
 		printSummary();
 
 	/* flush and close the output file */

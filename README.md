@@ -270,9 +270,11 @@ $ pgquarrel [OPTION]...
 The following command-line options control what will be output.
 
 * `config (-c)`: configuration file that contains source and target connection information and type of objects that will be compared.
-* `file (-f)`: send output to file (or |pipe).
+* `file (-f)`: send output to file, - for stdout (default: stdout).
+* `ignore-version: ignore version check. pgquarrel uses the reserved keywords provided by the postgres version that it was compiled in. Server version greater than the compiled one could not properly quote some keywords used as identifiers.
 * `summary (-s)`: print a summary of changes.
 * `single-transaction (-s)`: output changes as a single transaction.
+* `temp-directory: use this directory as a temporary area ( default: /tmp).
 * `verbose (-v)`: verbose mode.
 * `source-dbname`: source database name.
 * `source-host`: source host name.
@@ -284,19 +286,47 @@ The following command-line options control what will be output.
 * `target-username`: target user name.
 * `help`: print help.
 * `version`: print version.
+* `aggregate`: aggregate comparision (default: false).
+* `cast`: cast comparision (default: false).
+* `collation`: collation comparision (default: false).
+* `comment`: comment comparision (default: false).
+* `conversion`: conversion comparision (default: false).
+* `domain`: domain comparision (default: true).
+* `event-trigger`: event trigger comparision (default: false).
+* `extension`: extension comparision (default: true).
+* `fdw`: foreign data wrapper comparision (default: false).
+* `function`: function comparision (default: true).
+* `index`: index comparision (default: true).
+* `language`: language comparision (default: false).
+* `materialized-view`: materialized view comparision (default: true).
+* `operator`: operator comparision (default: false).
+* `owner`: owner comparision (default: false).
+* `privileges`: privileges comparision (default: false).
+* `rule`: rule comparision (default: false).
+* `schema`: schema comparision (default: true).
+* `security-labels`: security labels comparision (default: false).
+* `sequence`: sequence comparision (default: true).
+* `statistics`: statistics comparision (default: false).
+* `table`: table comparision (default: true).
+* `text-search`: text search comparision (default: false).
+* `trigger`: trigger comparision (default: true).
+* `type`: type comparision (default: true).
+* `view`: view comparision (default: true).
 
 The configuration file contains the following structure:
 
 ```
 [general]
 output = /tmp/diff.sql
-tmpdir = /tmp
+temp-directory = /tmp
 verbose = false
 summary = false
 comment = false
 security-labels = false
 owner = false
 privileges = false
+ignore-version = false
+single-transaction = false
 
 aggregate = false
 cast = false
@@ -334,7 +364,7 @@ dbname = quarrel2
 user = alice
 ```
 
-The _general_ section specifies which class of objects will be output. The _target_ and _source_ section options can be override by command-line options.
+The _general_ section specifies which class of objects will be output. The _target_ and _source_ section options specifies connection options to both servers. All options can be override by command-line options.
 
 Tests
 =====
