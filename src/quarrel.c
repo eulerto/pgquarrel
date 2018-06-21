@@ -275,7 +275,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 	options->general.conversion = false;		/* general - conversion */
 	options->general.domain = true;				/* general - domain */
 	options->general.eventtrigger = false;		/* general - event-trigger */
-	options->general.extension = true;			/* general - extension */
+	options->general.extension = false;			/* general - extension */
 	options->general.fdw = false;				/* general - fdw */
 	options->general.function = true;			/* general - function */
 	options->general.index = true;				/* general - index */

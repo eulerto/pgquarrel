@@ -293,7 +293,7 @@ The following command-line options control what will be output.
 * `conversion`: conversion comparision (default: false).
 * `domain`: domain comparision (default: true).
 * `event-trigger`: event trigger comparision (default: false).
-* `extension`: extension comparision (default: true).
+* `extension`: extension comparision (default: false).
 * `fdw`: foreign data wrapper comparision (default: false).
 * `function`: function comparision (default: true).
 * `index`: index comparision (default: true).
@@ -334,7 +334,7 @@ collation = false
 conversion = false
 domain = true
 event-trigger = false
-extension = true
+extension = false
 fdw = false
 function = true
 index = true
