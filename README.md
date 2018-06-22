@@ -273,10 +273,10 @@ The following command-line options are provided (all are optional):
 
 * `config (-c)`: configuration file that contains source and target connection information and kind of objects that will be compared.
 * `file (-f)`: send output to file, - for stdout (default: stdout).
-* `ignore-version: ignore version check. pgquarrel uses the reserved keywords provided by the postgres version that it was compiled in. Server version greater than the compiled one could not properly quote some keywords used as identifiers.
+* `ignore-version`: ignore version check. pgquarrel uses the reserved keywords provided by the postgres version that it was compiled in. Server version greater than the compiled one could not properly quote some keywords used as identifiers.
 * `summary (-s)`: print a summary of changes.
 * `single-transaction (-s)`: output changes as a single transaction.
-* `temp-directory: use this directory as a temporary area ( default: /tmp).
+* `temp-directory`: use this directory as a temporary area ( default: /tmp).
 * `verbose (-v)`: verbose mode.
 * `source-dbname`: source database name.
 * `source-host`: source host name.
