@@ -5,12 +5,13 @@ Introduction
 
 **pgquarrel** is a program that compares [PostgreSQL](http://www.postgresql.org/) database schemas (DDL).
 
-Given two database connections, it output a file that represent the difference between schemas. It means that if you run the output file into the *from* database, it'll have the same schema as the *to* database. The main use case is to deploy database changes into testing, staging or production environment.
+Given two database connections, it output a file that represent the difference between schemas. It means that if you run the output file into the *target* database, it'll have the same schema as the *source* database. The main use case is to deploy database changes into testing, staging or production environment.
 
-**pgquarrel** does not rely on another tool (such as **pg\_dump**) instead it connects directly to PostgreSQL server, obtain meta data from catalog, compare objects and output the commands necessary to turn *from* database into *to* database.
+**pgquarrel** does not rely on another tool (such as **pg\_dump**) instead it connects directly to PostgreSQL server, obtain meta data from catalog, compare objects and output the commands necessary to turn *target* database into *source* database.
 
-It could work with different PostgreSQL versions. The generated file could not work as expected if the *to* PostgreSQL version is greater than *from* PostgreSQL version. That's because the tool could generate commands that does not exist in a prior PostgreSQL version.
+It could work with different PostgreSQL versions. The generated file could not work as expected if the *source* PostgreSQL version is greater than *target* PostgreSQL version. That's because the tool could generate commands that does not exist in a prior PostgreSQL version.
 
+**pgquarrel** does not manipulate data (i.e. INSERT, UPDATE, DELETE, COPY, etc).
 
 It works with different operating systems. It was tested on Linux, FreeBSD, and Windows.
 
@@ -45,7 +46,7 @@ You should have CMake 2.8.11+ installed and MS Visual Studio (tested with 2017).
 Features
 ========
 
-**pgquarrel** does not support all of the PostgreSQL objects. Also, **pgquarrel** does not manipulate data (i.e. DML).
+**pgquarrel** does not support all of the PostgreSQL objects.
 
 <table>
 	<tr>
