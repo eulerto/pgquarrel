@@ -207,35 +207,62 @@ help(void)
 	printf("      --ignore-version          ignore version check\n");
 	printf("  -s, --summary                 print a summary of changes\n");
 	printf("  -t, --single-transaction      execute as a single transaction\n");
-	printf("      --temp-directory=DIR      use as temporary file area (default: \"%s\")\n", (opts.general.tmpdir) ? opts.general.tmpdir : "");
+	printf("      --temp-directory=DIR      use as temporary file area (default: \"%s\")\n",
+		   (opts.general.tmpdir) ? opts.general.tmpdir : "");
 	printf("  -v, --verbose                 verbose mode\n");
 	printf("\nObject options:\n");
-	printf("      --aggregate=BOOL          aggregate (default: %s)\n", (opts.general.aggregate) ? "true" : "false");
-	printf("      --cast=BOOL               cast (default: %s)\n", (opts.general.cast) ? "true" : "false");
-	printf("      --collation=BOOL          collation (default: %s)\n", (opts.general.collation) ? "true" : "false");
-	printf("      --comment=BOOL            comment (default: %s)\n", (opts.general.comment) ? "true" : "false");
-	printf("      --conversion=BOOL         conversion (default: %s)\n", (opts.general.conversion) ? "true" : "false");
-	printf("      --domain=BOOL             domain (default: %s)\n", (opts.general.domain) ? "true" : "false");
-	printf("      --event-trigger=BOOL      event trigger (default: %s)\n", (opts.general.eventtrigger) ? "true" : "false");
-	printf("      --extension=BOOL          extension (default: %s)\n", (opts.general.extension) ? "true" : "false");
-	printf("      --fdw=BOOL                foreign data wrapper (default: %s)\n", (opts.general.fdw) ? "true" : "false");
-	printf("      --function=BOOL           function (default: %s)\n", (opts.general.function) ? "true" : "false");
-	printf("      --index=BOOL              index (default: %s)\n", (opts.general.index) ? "true" : "false");
-	printf("      --language=BOOL           language (default: %s)\n", (opts.general.language) ? "true" : "false");
-	printf("      --materialized-view=BOOL  materialized view (default: %s)\n", (opts.general.matview) ? "true" : "false");
-	printf("      --operator=BOOL           operator (default: %s)\n", (opts.general.operator) ? "true" : "false");
-	printf("      --owner=BOOL              owner (default: %s)\n", (opts.general.owner) ? "true" : "false");
-	printf("      --privileges=BOOL         privileges (default: %s)\n", (opts.general.privileges) ? "true" : "false");
-	printf("      --rule=BOOL               rule (default: %s)\n", (opts.general.rule) ? "true" : "false");
-	printf("      --schema=BOOL             schema (default: %s)\n", (opts.general.schema) ? "true" : "false");
-	printf("      --security-labels=BOOL    security labels (default: %s)\n", (opts.general.securitylabels) ? "true" : "false");
-	printf("      --sequence=BOOL           sequence (default: %s)\n", (opts.general.sequence) ? "true" : "false");
-	printf("      --statistics=BOOL         statistics (default: %s)\n", (opts.general.statistics) ? "true" : "false");
-	printf("      --table=BOOL              table (default: %s)\n", (opts.general.table) ? "true" : "false");
-	printf("      --text-search=BOOL        text search (default: %s)\n", (opts.general.textsearch) ? "true" : "false");
-	printf("      --trigger=BOOL            trigger (default: %s)\n", (opts.general.trigger) ? "true" : "false");
-	printf("      --type=BOOL               type (default: %s)\n", (opts.general.type) ? "true" : "false");
-	printf("      --view=BOOL               view (default: %s)\n", (opts.general.view) ? "true" : "false");
+	printf("      --aggregate=BOOL          aggregate (default: %s)\n",
+		   (opts.general.aggregate) ? "true" : "false");
+	printf("      --cast=BOOL               cast (default: %s)\n",
+		   (opts.general.cast) ? "true" : "false");
+	printf("      --collation=BOOL          collation (default: %s)\n",
+		   (opts.general.collation) ? "true" : "false");
+	printf("      --comment=BOOL            comment (default: %s)\n",
+		   (opts.general.comment) ? "true" : "false");
+	printf("      --conversion=BOOL         conversion (default: %s)\n",
+		   (opts.general.conversion) ? "true" : "false");
+	printf("      --domain=BOOL             domain (default: %s)\n",
+		   (opts.general.domain) ? "true" : "false");
+	printf("      --event-trigger=BOOL      event trigger (default: %s)\n",
+		   (opts.general.eventtrigger) ? "true" : "false");
+	printf("      --extension=BOOL          extension (default: %s)\n",
+		   (opts.general.extension) ? "true" : "false");
+	printf("      --fdw=BOOL                foreign data wrapper (default: %s)\n",
+		   (opts.general.fdw) ? "true" : "false");
+	printf("      --function=BOOL           function (default: %s)\n",
+		   (opts.general.function) ? "true" : "false");
+	printf("      --index=BOOL              index (default: %s)\n",
+		   (opts.general.index) ? "true" : "false");
+	printf("      --language=BOOL           language (default: %s)\n",
+		   (opts.general.language) ? "true" : "false");
+	printf("      --materialized-view=BOOL  materialized view (default: %s)\n",
+		   (opts.general.matview) ? "true" : "false");
+	printf("      --operator=BOOL           operator (default: %s)\n",
+		   (opts.general.operator) ? "true" : "false");
+	printf("      --owner=BOOL              owner (default: %s)\n",
+		   (opts.general.owner) ? "true" : "false");
+	printf("      --privileges=BOOL         privileges (default: %s)\n",
+		   (opts.general.privileges) ? "true" : "false");
+	printf("      --rule=BOOL               rule (default: %s)\n",
+		   (opts.general.rule) ? "true" : "false");
+	printf("      --schema=BOOL             schema (default: %s)\n",
+		   (opts.general.schema) ? "true" : "false");
+	printf("      --security-labels=BOOL    security labels (default: %s)\n",
+		   (opts.general.securitylabels) ? "true" : "false");
+	printf("      --sequence=BOOL           sequence (default: %s)\n",
+		   (opts.general.sequence) ? "true" : "false");
+	printf("      --statistics=BOOL         statistics (default: %s)\n",
+		   (opts.general.statistics) ? "true" : "false");
+	printf("      --table=BOOL              table (default: %s)\n",
+		   (opts.general.table) ? "true" : "false");
+	printf("      --text-search=BOOL        text search (default: %s)\n",
+		   (opts.general.textsearch) ? "true" : "false");
+	printf("      --trigger=BOOL            trigger (default: %s)\n",
+		   (opts.general.trigger) ? "true" : "false");
+	printf("      --type=BOOL               type (default: %s)\n",
+		   (opts.general.type) ? "true" : "false");
+	printf("      --view=BOOL               view (default: %s)\n",
+		   (opts.general.view) ? "true" : "false");
 	printf("\nSource options:\n");
 	printf("      --source-dbname=DBNAME    database name\n");
 	printf("      --source-host=HOSTNAME    server host or socket directory\n");
@@ -392,12 +419,14 @@ loadConfig(const char *cf, QuarrelOptions *options)
 												  "general", "privileges"));
 
 		if (mini_file_get_value(config, "general", "ignore-version") != NULL)
-			options->general.ignoreversion = parseBoolean("ignore-version", mini_file_get_value(config,
-													"general", "ignore-version"));
+			options->general.ignoreversion = parseBoolean("ignore-version",
+											 mini_file_get_value(config,
+													 "general", "ignore-version"));
 
 		if (mini_file_get_value(config, "general", "single-transaction") != NULL)
-			options->general.singletxn = parseBoolean("single-transaction", mini_file_get_value(config,
-													"general", "single-transaction"));
+			options->general.singletxn = parseBoolean("single-transaction",
+										 mini_file_get_value(config,
+												 "general", "single-transaction"));
 
 		/*
 		 * select objects that will be compared
@@ -501,9 +530,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 		/* source options */
 		tmp = mini_file_get_value(config, "source", "host");
 		if (tmp != NULL)
-		{
 			options->source.host = strdup(tmp);
-		}
 		else
 		{
 			tmp = mini_file_get_value(config, "to", "host");
@@ -513,9 +540,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 
 		tmp = mini_file_get_value(config, "source", "port");
 		if (tmp != NULL)
-		{
 			options->source.port = strdup(tmp);
-		}
 		else
 		{
 			tmp = mini_file_get_value(config, "to", "port");
@@ -525,9 +550,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 
 		tmp = mini_file_get_value(config, "source", "user");
 		if (tmp != NULL)
-		{
 			options->source.username = strdup(tmp);
-		}
 		else
 		{
 			tmp = mini_file_get_value(config, "to", "user");
@@ -537,9 +560,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 
 		tmp = mini_file_get_value(config, "source", "password");
 		if (tmp != NULL)
-		{
 			options->source.password = strdup(tmp);
-		}
 		else
 		{
 			tmp = mini_file_get_value(config, "to", "password");
@@ -549,9 +570,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 
 		tmp = mini_file_get_value(config, "source", "dbname");
 		if (tmp != NULL)
-		{
 			options->source.dbname = strdup(tmp);
-		}
 		else
 		{
 			tmp = mini_file_get_value(config, "to", "dbname");
@@ -563,9 +582,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 		/* target options */
 		tmp = mini_file_get_value(config, "target", "host");
 		if (tmp != NULL)
-		{
 			options->target.host = strdup(tmp);
-		}
 		else
 		{
 			tmp = mini_file_get_value(config, "from", "host");
@@ -575,9 +592,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 
 		tmp = mini_file_get_value(config, "target", "port");
 		if (tmp != NULL)
-		{
 			options->target.port = strdup(tmp);
-		}
 		else
 		{
 			tmp = mini_file_get_value(config, "from", "port");
@@ -587,9 +602,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 
 		tmp = mini_file_get_value(config, "target", "user");
 		if (tmp != NULL)
-		{
 			options->target.username = strdup(tmp);
-		}
 		else
 		{
 			tmp = mini_file_get_value(config, "from", "user");
@@ -599,9 +612,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 
 		tmp = mini_file_get_value(config, "target", "password");
 		if (tmp != NULL)
-		{
 			options->target.password = strdup(tmp);
-		}
 		else
 		{
 			tmp = mini_file_get_value(config, "from", "password");
@@ -611,9 +622,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 
 		tmp = mini_file_get_value(config, "target", "dbname");
 		if (tmp != NULL)
-		{
 			options->target.dbname = strdup(tmp);
-		}
 		else
 		{
 			tmp = mini_file_get_value(config, "from", "dbname");
@@ -4179,8 +4188,9 @@ int main(int argc, char *argv[])
 	 * old pgquarrel version or a to-be-released postgres version.  If you know
 	 * what you are doing, use --ignore-version option.
 	 */
-	if (!options.ignoreversion && ((compareMajorVersion(pgversion1, PG_VERSION_NUM) > 0) ||
-						   (compareMajorVersion(pgversion2, PG_VERSION_NUM) > 0)))
+	if (!options.ignoreversion &&
+			((compareMajorVersion(pgversion1, PG_VERSION_NUM) > 0) ||
+			 (compareMajorVersion(pgversion2, PG_VERSION_NUM) > 0)))
 	{
 		logError("cannot connect to server whose version (%s) is greater than postgres version (%s) used to compile pgquarrel",
 				 (pgversion1 > pgversion2) ? PQparameterStatus(conn1,
@@ -4210,9 +4220,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	else
-	{
 		fout = stdout;
-	}
 
 	/* temporary files are used to put commands in the right dependency order */
 	snprintf(prepath, PGQMAXPATH, "%s/quarrel.%d.pre", options.tmpdir, getpid());

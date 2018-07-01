@@ -175,14 +175,17 @@ getTables(PGconn *c, int *n)
 
 		t[i].partitioned = (PQgetvalue(res, i, PQfnumber(res, "relkind"))[0] == 'p');
 		if (t[i].partitioned)
-			t[i].partitionkey = strdup(PQgetvalue(res, i, PQfnumber(res, "partitionkeydef")));
+			t[i].partitionkey = strdup(PQgetvalue(res, i, PQfnumber(res,
+												  "partitionkeydef")));
 		else
 			t[i].partitionkey = NULL;
 
-		t[i].partition = (PQgetvalue(res, i, PQfnumber(res, "relispartition"))[0] == 't');
+		t[i].partition = (PQgetvalue(res, i, PQfnumber(res,
+									 "relispartition"))[0] == 't');
 		if (t[i].partition)
 		{
-			t[i].partitionbound = strdup(PQgetvalue(res, i, PQfnumber(res, "partitionbound")));
+			t[i].partitionbound = strdup(PQgetvalue(res, i, PQfnumber(res,
+													"partitionbound")));
 			getParentTables(c, &t[i]);
 		}
 		else
@@ -1719,7 +1722,8 @@ dumpAttachPartition(FILE *output, PQLTable *a)
 	char	*parentname = formatObjectIdentifier(a->parent[0].objectname);
 
 	fprintf(output, "\n\n");
-	fprintf(output, "ALTER TABLE %s.%s ATTACH PARTITION %s.%s %s;", parentschema, parentname, schema, tabname, a->partitionbound);
+	fprintf(output, "ALTER TABLE %s.%s ATTACH PARTITION %s.%s %s;", parentschema,
+			parentname, schema, tabname, a->partitionbound);
 
 	free(schema);
 	free(tabname);
@@ -1736,7 +1740,8 @@ dumpDetachPartition(FILE *output, PQLTable *a)
 	char	*parentname = formatObjectIdentifier(a->parent[0].objectname);
 
 	fprintf(output, "\n\n");
-	fprintf(output, "ALTER TABLE %s.%s DETACH PARTITION %s.%s;", parentschema, parentname, schema, tabname);
+	fprintf(output, "ALTER TABLE %s.%s DETACH PARTITION %s.%s;", parentschema,
+			parentname, schema, tabname);
 
 	free(schema);
 	free(tabname);
@@ -1889,9 +1894,11 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 
 	/* partitioned table cannot be converted to regular table and vice-versa */
 	if (a->partitioned && !b->partitioned)
-		logWarning("regular table %s.%s cannot be converted to partitioned table", schema2, tabname2);
+		logWarning("regular table %s.%s cannot be converted to partitioned table",
+				   schema2, tabname2);
 	else if (!a->partitioned && b->partitioned)
-		logWarning("partitioned table %s.%s cannot be converted to regular table", schema2, tabname2);
+		logWarning("partitioned table %s.%s cannot be converted to regular table",
+				   schema2, tabname2);
 
 	/* partition */
 	if (!a->partition && b->partition)
