@@ -51,9 +51,9 @@ formatPrivileges(char *s, char *cols)
 #define	MAX_KEYWORD_LEN		10	/* maximum keyword length */
 
 	char	*ret, *ptr;
-	int		len;
-	int		collen = 0;
-	int		coltotallen = 0;
+	size_t	len;
+	size_t	collen = 0;
+	size_t	coltotallen = 0;
 	bool	first_item = true;
 	int		i;
 
@@ -159,7 +159,7 @@ splitACLItem(char *a)
 
 	char	*ptr;
 	char	*nextptr;
-	int		len;
+	size_t	len;
 
 	/* protect against null input */
 	if (a == NULL)
@@ -230,7 +230,7 @@ buildACL(char *acl)
 
 	char	*item;
 	char	*nextitem;
-	int		len;
+	size_t	len;
 
 	if (acl == NULL)
 	{

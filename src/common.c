@@ -98,8 +98,8 @@ ScanKeywordLookup(const char *text,
 				  const ScanKeyword *keywords,
 				  int num_keywords)
 {
-	int			len,
-				i;
+	size_t		len;
+	int			i;
 	char		word[NAMEDATALEN];
 	const ScanKeyword *low;
 	const ScanKeyword *high;
@@ -616,8 +616,8 @@ printOptions(stringList *sl)
 
 	if (sl)
 	{
-		int		listlen;
-		int		n = 0;
+		size_t	listlen;
+		size_t	n = 0;
 
 		/* allocate memory for at list one parameter (based on autovac parameters) */
 		listlen = 40;
@@ -626,7 +626,7 @@ printOptions(stringList *sl)
 		/* build a list like 'a=10, b=20, c=30' or 'a, b, c' */
 		for (p = sl->head; p; p = p->next)
 		{
-			int	newlen;
+			size_t	newlen;
 
 			/*
 			 * String space including new option and separator. Don't forget
