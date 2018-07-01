@@ -58,6 +58,11 @@ add_executable(pgquarrel
 	src/view.h
 )
 
+# ignore Windows warnings
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+	add_definitions(/wd4005 /D_CRT_SECURE_NO_WARNINGS /D_CRT_SECURE_NO_DEPRECATE /D_CRT_NONSTDC_NO_DEPRECATE)
+endif()
+
 add_subdirectory(mini)
 
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
