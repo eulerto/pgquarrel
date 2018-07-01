@@ -3854,7 +3854,7 @@ int main(int argc, char *argv[])
 		}
 		if (strcmp(argv[1], "--version") == 0)
 		{
-			printf(PGQ_NAME "" PGQ_VERSION "\n");
+			printf(PGQ_NAME " " PGQ_VERSION "\n");
 			exit(EXIT_SUCCESS);
 		}
 	}
