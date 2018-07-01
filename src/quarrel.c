@@ -259,7 +259,11 @@ loadConfig(const char *cf, QuarrelOptions *options)
 
 	/* default options */
 	options->general.output = NULL;				/* general - output */
-	options->general.tmpdir = strdup("/tmp");	/* general - temp-directory */
+#if defined(_WINDOWS)
+	options->general.tmpdir = strdup("c:/temp");	/* general - temp-directory */
+#else
+	options->general.tmpdir = strdup("/tmp");
+#endif
 	options->general.ignoreversion = false;		/* general - ignore-version */
 	options->general.verbose = false;			/* general - verbose */
 	options->general.summary = false;			/* general - summary */
