@@ -3820,7 +3820,7 @@ int main(int argc, char *argv[])
 		{"type", required_argument, NULL, 34},
 		{"view", required_argument, NULL, 35},
 		{"ignore-version", no_argument, NULL, 36},
-		{"tmp-directory", required_argument, NULL, 37},
+		{"temp-directory", required_argument, NULL, 37},
 		{NULL, 0, NULL, 0}
 	};
 
