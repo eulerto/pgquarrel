@@ -90,6 +90,8 @@ set(LIBS ${LIBS} ${PostgreSQL_LIBRARIES})
 # CMake does not include libpgport by default for Windows
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	set(LIBS ${LIBS} ${PostgreSQL_LIBRARY_DIRS}/libpgport.lib)
+else()
+	set(LIBS ${LIBS} ${PostgreSQL_LIBRARY_DIRS}/libpgport.a)
 endif()
 
 include_directories(mini)

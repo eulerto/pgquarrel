@@ -643,7 +643,8 @@ loadConfig(const char *cf, QuarrelOptions *options)
 static PGconn *
 connectDatabase(QuarrelDatabaseOptions opt)
 {
-	PGconn	*conn;
+	PGconn		*conn;
+	char		prompt_password[100];
 
 #define NUMBER_OF_PARAMS	7
 	const char **keywords = malloc(NUMBER_OF_PARAMS * sizeof(*keywords));
@@ -665,18 +666,39 @@ connectDatabase(QuarrelDatabaseOptions opt)
 
 	conn = PQconnectdbParams(keywords, values, 1);
 
-	free(keywords);
-	free(values);
-
 	if (conn == NULL)
 	{
 		logError("out of memory");
 		exit(EXIT_FAILURE);
 	}
 
+	/*
+	 * Connection was not established. If the connection authentication method
+	 * requires a password, asks one.
+	 */
+	if (PQstatus(conn) == CONNECTION_BAD && PQconnectionNeedsPassword(conn))
+	{
+		PQfinish(conn);
+		if (opt.istarget)
+			simple_prompt("Target password: ", prompt_password, sizeof(prompt_password), false);
+		else
+			simple_prompt("Source password: ", prompt_password, sizeof(prompt_password), false);
+		values[3] = prompt_password;
+
+		/* try again with informed password */
+		conn = PQconnectdbParams(keywords, values, 1);
+	}
+
+	free(keywords);
+	free(values);
+
+	/* failed connection attempt */
 	if (PQstatus(conn) == CONNECTION_BAD)
 	{
-		logError("connection to database failed: %s", PQerrorMessage(conn));
+		if (opt.istarget)
+			logError("connection to target database \"%s\" failed: %s", opt.dbname, PQerrorMessage(conn));
+		else
+			logError("connection to source database \"%s\" failed: %s", opt.dbname, PQerrorMessage(conn));
 		PQfinish(conn);
 		exit(EXIT_FAILURE);
 	}
@@ -3873,6 +3895,10 @@ int main(int argc, char *argv[])
 	memset(&gopts, 0, sizeof(QuarrelGeneralOptions));
 	memset(&sopts, 0, sizeof(QuarrelDatabaseOptions));
 	memset(&topts, 0, sizeof(QuarrelDatabaseOptions));
+
+	/* source or target? */
+	opts.source.istarget = false;
+	opts.target.istarget = true;
 
 	/* process command-line options */
 	while ((c = getopt_long(argc, argv, "c:f:stv", long_options, &optindex)) != -1)

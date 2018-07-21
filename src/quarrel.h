@@ -19,6 +19,8 @@
 
 #include "common.h"
 
+#include <port.h>				/* simple_prompt */
+
 #define PGQ_NAME			"pgquarrel"
 #define PGQ_VERSION			"0.4.0"
 #define PGQ_SUPPORTED		90000	/* first supported version */

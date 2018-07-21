@@ -95,6 +95,7 @@ typedef struct QuarrelDatabaseOptions
 	char			*username;
 	char			*password;
 	char			*dbname;
+	bool			istarget;
 } QuarrelDatabaseOptions;
 
 typedef struct QuarrelOptions
