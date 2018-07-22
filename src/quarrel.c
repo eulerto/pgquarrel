@@ -268,11 +268,13 @@ help(void)
 	printf("      --source-host=HOSTNAME    server host or socket directory\n");
 	printf("      --source-port=PORT        server port\n");
 	printf("      --source-username=NAME    user name\n");
+	printf("      --source-no-password		never prompt for password\n");
 	printf("\nTarget options:\n");
 	printf("      --target-dbname=DBNAME    database name\n");
 	printf("      --target-host=HOSTNAME    server host or socket directory\n");
 	printf("      --target-port=PORT        server port\n");
 	printf("      --target-username=NAME    user name\n");
+	printf("      --target-no-password		never prompt for password\n");
 	printf("\n");
 	printf("  --help                        show this help, then exit\n");
 	printf("  --version                     output version information, then exit\n");
@@ -328,12 +330,14 @@ loadConfig(const char *cf, QuarrelOptions *options)
 	options->source.username = NULL;			/* source - user */
 	options->source.password = NULL;			/* source - password */
 	options->source.dbname = NULL;				/* source - dbname */
+	options->source.promptpassword = true;		/* source - prompt for password */
 
 	options->target.host = NULL;				/* target - host */
 	options->target.port = NULL;				/* target - port */
 	options->target.username = NULL;			/* target - user */
 	options->target.password = NULL;			/* target - password */
 	options->target.dbname = NULL;				/* target - dbname */
+	options->target.promptpassword = true;		/* source - prompt for password */
 
 	/* if there is no config file, bail out */
 	if (cf == NULL)
@@ -578,6 +582,10 @@ loadConfig(const char *cf, QuarrelOptions *options)
 				options->source.dbname = strdup(tmp);
 		}
 
+		tmp = mini_file_get_value(config, "source", "no-password");
+		if (tmp != NULL)
+			options->source.promptpassword = !parseBoolean("no-password", mini_file_get_value(config, "source", "no-password"));
+
 
 		/* target options */
 		tmp = mini_file_get_value(config, "target", "host");
@@ -629,6 +637,10 @@ loadConfig(const char *cf, QuarrelOptions *options)
 			if (tmp != NULL)
 				options->target.dbname = strdup(tmp);
 		}
+
+		tmp = mini_file_get_value(config, "target", "no-password");
+		if (tmp != NULL)
+			options->target.promptpassword = !parseBoolean("no-password", mini_file_get_value(config, "target", "no-password"));
 	}
 	else
 	{
@@ -676,7 +688,7 @@ connectDatabase(QuarrelDatabaseOptions opt)
 	 * Connection was not established. If the connection authentication method
 	 * requires a password, asks one.
 	 */
-	if (PQstatus(conn) == CONNECTION_BAD && PQconnectionNeedsPassword(conn))
+	if (PQstatus(conn) == CONNECTION_BAD && PQconnectionNeedsPassword(conn) && opt.promptpassword)
 	{
 		PQfinish(conn);
 		if (opt.istarget)
@@ -3824,10 +3836,12 @@ int main(int argc, char *argv[])
 		{"source-host", required_argument, NULL, 3},
 		{"source-port", required_argument, NULL, 4},
 		{"source-username", required_argument, NULL, 5},
+		{"source-no-password", no_argument, NULL, 38},
 		{"target-dbname", required_argument, NULL, 6},
 		{"target-host", required_argument, NULL, 7},
 		{"target-port", required_argument, NULL, 8},
 		{"target-username", required_argument, NULL, 9},
+		{"target-no-password", no_argument, NULL, 39},
 		{"aggregate", required_argument, NULL, 10},
 		{"cast", required_argument, NULL, 11},
 		{"collation", required_argument, NULL, 12},
@@ -3866,6 +3880,8 @@ int main(int argc, char *argv[])
 
 	bool		output_given = false;
 	bool		tmpdir_given = false;
+	bool		source_prompt_given = false;
+	bool		target_prompt_given = false;
 
 	/* general and connection options */
 	QuarrelOptions	opts;
@@ -4067,6 +4083,14 @@ int main(int argc, char *argv[])
 				gopts.tmpdir = strdup(optarg);
 				tmpdir_given = true;
 				break;
+			case 38:
+				sopts.promptpassword = false;
+				source_prompt_given = true;
+				break;
+			case 39:
+				topts.promptpassword = false;
+				target_prompt_given = true;
+				break;
 			default:
 				fprintf(stderr, "Try \"%s --help\" for more information.\n", PGQ_NAME);
 				exit(EXIT_FAILURE);
@@ -4161,6 +4185,8 @@ int main(int argc, char *argv[])
 		opts.source.port = sopts.port;
 	if (sopts.username)
 		opts.source.username = sopts.username;
+	if (source_prompt_given)
+		opts.source.promptpassword = sopts.promptpassword;
 
 	if (topts.dbname)
 		opts.target.dbname = topts.dbname;
@@ -4170,6 +4196,8 @@ int main(int argc, char *argv[])
 		opts.target.port = topts.port;
 	if (topts.username)
 		opts.target.username = topts.username;
+	if (target_prompt_given)
+		opts.target.promptpassword = topts.promptpassword;
 
 	/* connecting to server1 ... */
 	conn1 = connectDatabase(opts.target);

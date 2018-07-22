@@ -283,10 +283,12 @@ The following command-line options are provided (all are optional):
 * `source-host`: source host name.
 * `source-port`: source port.
 * `source-username`: source user name.
+* `source-no-password`: never prompt for password.
 * `target-dbname`: target database name.
 * `target-host`: target host name.
 * `target-port`: target port.
 * `target-username`: target user name.
+* `target-no-password`: never prompt for password.
 * `help`: print help.
 * `version`: print version.
 * `aggregate`: aggregate comparision (default: false).
@@ -359,12 +361,14 @@ host = 10.27.0.8
 port = 5432
 dbname = quarrel1
 user = bob
+no-password = false
 
 [source]
 host = 10.8.0.10
 port = 5432
 dbname = quarrel2
 user = alice
+no-password = false
 ```
 
 Regression Tests
