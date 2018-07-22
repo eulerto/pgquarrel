@@ -9,4 +9,5 @@ PGPREFIX=/usr/include/postgresql/$PGV/server
 git clone https://github.com/eulerto/pgquarrel.git
 cd pgquarrel
 cmake -DCMAKE_INSTALL_PREFIX=$HOME/pgquarrel -DCMAKE_PREFIX_PATH=$PGPREFIX .
+find /usr -name 'libpgport.a' -print
 make VERBOSE=1 install
