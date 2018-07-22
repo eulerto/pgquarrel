@@ -656,7 +656,7 @@ static PGconn *
 connectDatabase(QuarrelDatabaseOptions opt)
 {
 	PGconn		*conn;
-	char		prompt_password[100];
+	char		*prompt_password = NULL;
 
 #define NUMBER_OF_PARAMS	7
 	const char **keywords = malloc(NUMBER_OF_PARAMS * sizeof(*keywords));
@@ -691,10 +691,18 @@ connectDatabase(QuarrelDatabaseOptions opt)
 	if (PQstatus(conn) == CONNECTION_BAD && PQconnectionNeedsPassword(conn) && opt.promptpassword)
 	{
 		PQfinish(conn);
+#if PG_VERSION_NUM >= 100000
+		prompt_password = malloc(100 * sizeof(char));
 		if (opt.istarget)
 			simple_prompt("Target password: ", prompt_password, sizeof(prompt_password), false);
 		else
 			simple_prompt("Source password: ", prompt_password, sizeof(prompt_password), false);
+#else
+		if (opt.istarget)
+			prompt_password = simple_prompt("Target password: ", sizeof(prompt_password), false);
+		else
+			prompt_password = simple_prompt("Source password: ", sizeof(prompt_password), false);
+#endif
 		values[3] = prompt_password;
 
 		/* try again with informed password */
