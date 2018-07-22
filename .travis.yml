@@ -15,6 +15,7 @@ addons:
       - postgresql-contrib-10
       - postgresql-server-dev-10
       - postgresql-plperl-10
+      - libpq-dev
 
 # install pgquarrel
 install:
