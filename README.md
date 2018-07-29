@@ -276,7 +276,7 @@ The following command-line options are provided (all are optional):
 * `file (-f)`: send output to file, - for stdout (default: stdout).
 * `ignore-version`: ignore version check. pgquarrel uses the reserved keywords provided by the postgres version that it was compiled in. Server version greater than the compiled one could not properly quote some keywords used as identifiers.
 * `summary (-s)`: print a summary of changes.
-* `single-transaction (-s)`: output changes as a single transaction.
+* `single-transaction (-t)`: output changes as a single transaction.
 * `temp-directory`: use this directory as a temporary area ( default: /tmp).
 * `verbose (-v)`: verbose mode.
 * `source-dbname`: source database name.
