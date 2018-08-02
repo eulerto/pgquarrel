@@ -55,6 +55,8 @@ static void dumpAlterColumnSetStorage(FILE *output, PQLTable *a, int i,
 									  bool force);
 static void dumpAlterColumnSetOptions(FILE *output, PQLTable *a, int i,
 									  PQLTable *b, int j);
+static void dumpAddFK(FILE *output, PQLTable *t, int i);
+static void dumpRemoveFK(FILE *output, PQLTable *t, int i);
 static void dumpAttachPartition(FILE *output, PQLTable *a);
 static void dumpDetachPartition(FILE *output, PQLTable *a);
 
@@ -1714,6 +1716,50 @@ dumpAlterColumnSetOptions(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 }
 
 static void
+dumpAddFK(FILE *output, PQLTable *t, int i)
+{
+	char	*schema = formatObjectIdentifier(t->obj.schemaname);
+	char	*tabname = formatObjectIdentifier(t->obj.objectname);
+
+	fprintf(output, "\n\n");
+	fprintf(output, "ALTER TABLE ONLY %s.%s\n", schema, tabname);
+	fprintf(output, "\tADD CONSTRAINT %s %s", t->fk[i].conname, t->fk[i].condef);
+	fprintf(output, ";");
+
+	if (options.comment)
+	{
+		if (t->fk[i].comment != NULL)
+		{
+			char	*fkname = formatObjectIdentifier(t->fk[i].conname);
+
+			fprintf(output, "\n\n");
+			fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS '%s';", fkname, schema,
+					tabname, t->fk[i].comment);
+
+			free(fkname);
+		}
+	}
+
+	free(schema);
+	free(tabname);
+}
+
+static void
+dumpRemoveFK(FILE *output, PQLTable *t, int i)
+{
+	char	*schema = formatObjectIdentifier(t->obj.schemaname);
+	char	*tabname = formatObjectIdentifier(t->obj.objectname);
+
+	fprintf(output, "\n\n");
+	fprintf(output, "ALTER TABLE ONLY %s.%s\n", schema, tabname);
+	fprintf(output, "\tDROP CONSTRAINT %s", t->fk[i].conname);
+	fprintf(output, ";");
+
+	free(schema);
+	free(tabname);
+}
+
+static void
 dumpAttachPartition(FILE *output, PQLTable *a)
 {
 	char	*schema = formatObjectIdentifier(a->obj.schemaname);
@@ -1860,6 +1906,73 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 
 				dumpAlterColumnSetStatistics(output, b, j, false);	/* statistics target */
 				dumpAlterColumnSetStorage(output, b, j, false);		/* storage */
+
+				j++;
+			}
+		}
+
+		/* the FKs are sorted by name */
+		i = j = 0;
+		while (i < a->nfk || j < b->nfk)
+		{
+			/*
+			 * End of table a FKs. Additional FKs from table b will be
+			 * added.
+			 */
+			if (i == a->nfk)
+			{
+				logDebug("table \"%s\".\"%s\" FK \"%s\" added",
+						 b->obj.schemaname, b->obj.objectname,
+						 b->fk[j].conname);
+
+				dumpAddFK(output, b, j);
+
+				j++;
+			}
+			/*
+			 * End of table b FKs. Additional FKs from table a will be
+			 * removed.
+			 */
+			else if (j == b->nfk)
+			{
+				logDebug("table \"%s\".\"%s\" FK \"%s\" removed", a->obj.schemaname,
+						 a->obj.objectname, a->fk[i].conname);
+
+				dumpRemoveFK(output, a, i);
+				i++;
+			}
+			else if (strcmp(a->fk[i].conname, b->fk[j].conname) == 0)
+			{
+				/* drop and create FK again if the definition does not match */
+				if (strcmp(a->fk[i].condef, b->fk[j].condef) != 0)
+				{
+					logDebug("table \"%s\".\"%s\" FK \"%s\" altered",
+							 b->obj.schemaname, b->obj.objectname,
+							 b->fk[j].conname);
+
+					dumpRemoveFK(output, a, i);
+					dumpAddFK(output, b, j);
+				}
+
+				i++;
+				j++;
+			}
+			else if (strcmp(a->fk[i].conname, b->fk[j].conname) < 0)
+			{
+				logDebug("table \"%s\".\"%s\" FK \"%s\" removed",
+						 a->obj.schemaname, a->obj.objectname,
+						 a->fk[i].conname);
+
+				dumpRemoveFK(output, a, i);
+				i++;
+			}
+			else if (strcmp(a->fk[i].conname, b->fk[j].conname) > 0)
+			{
+				logDebug("table \"%s\".\"%s\" FK \"%s\" added",
+						 b->obj.schemaname, b->obj.objectname,
+						 b->fk[j].conname);
+
+				dumpAddFK(output, b, j);
 
 				j++;
 			}
