@@ -4377,14 +4377,14 @@ int main(int argc, char *argv[])
 	}
 
 	/* execute as a single transaction */
-	if (options.singletxn)
+	if (options.singletxn && (!isEmptyFile(prepath) || !isEmptyFile(postpath)))
 		fprintf(fout, "\n\nBEGIN;");
 
 	/* dump the quarrel in the right order */
 	mergeTempFiles(fpre, fpost, fout);
 
 	/* close single transaction */
-	if (options.singletxn)
+	if (options.singletxn && (!isEmptyFile(prepath) || !isEmptyFile(postpath)))
 		fprintf(fout, "\n\nCOMMIT;");
 
 	/* close and remove temporary files */
