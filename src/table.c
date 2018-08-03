@@ -55,6 +55,8 @@ static void dumpAlterColumnSetStorage(FILE *output, PQLTable *a, int i,
 									  bool force);
 static void dumpAlterColumnSetOptions(FILE *output, PQLTable *a, int i,
 									  PQLTable *b, int j);
+static void dumpAddPK(FILE *output, PQLTable *t);
+static void dumpRemovePK(FILE *output, PQLTable *t);
 static void dumpAddFK(FILE *output, PQLTable *t, int i);
 static void dumpRemoveFK(FILE *output, PQLTable *t, int i);
 static void dumpAttachPartition(FILE *output, PQLTable *a);
@@ -1716,6 +1718,50 @@ dumpAlterColumnSetOptions(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 }
 
 static void
+dumpAddPK(FILE *output, PQLTable *t)
+{
+	char	*schema = formatObjectIdentifier(t->obj.schemaname);
+	char	*tabname = formatObjectIdentifier(t->obj.objectname);
+
+	fprintf(output, "\n\n");
+	fprintf(output, "ALTER TABLE ONLY %s.%s\n", schema, tabname);
+	fprintf(output, "\tADD CONSTRAINT %s %s", t->pk.conname, t->pk.condef);
+	fprintf(output, ";");
+
+	if (options.comment)
+	{
+		if (t->pk.comment != NULL)
+		{
+			char	*pkname = formatObjectIdentifier(t->pk.conname);
+
+			fprintf(output, "\n\n");
+			fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS '%s';", pkname, schema,
+					tabname, t->pk.comment);
+
+			free(pkname);
+		}
+	}
+
+	free(schema);
+	free(tabname);
+}
+
+static void
+dumpRemovePK(FILE *output, PQLTable *t)
+{
+	char	*schema = formatObjectIdentifier(t->obj.schemaname);
+	char	*tabname = formatObjectIdentifier(t->obj.objectname);
+
+	fprintf(output, "\n\n");
+	fprintf(output, "ALTER TABLE ONLY %s.%s\n", schema, tabname);
+	fprintf(output, "\tDROP CONSTRAINT %s", t->pk.conname);
+	fprintf(output, ";");
+
+	free(schema);
+	free(tabname);
+}
+
+static void
 dumpAddFK(FILE *output, PQLTable *t, int i)
 {
 	char	*schema = formatObjectIdentifier(t->obj.schemaname);
@@ -1976,6 +2022,34 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 
 				j++;
 			}
+		}
+
+		/* primary key */
+		if (a->pk.conname == NULL && b->pk.conname != NULL)
+		{
+			logDebug("table \"%s\".\"%s\" PK \"%s\" added",
+					 b->obj.schemaname, b->obj.objectname,
+					 b->pk.conname);
+
+			dumpAddPK(output, b);
+		}
+		else if (a->pk.conname != NULL && b->pk.conname == NULL)
+		{
+			logDebug("table \"%s\".\"%s\" PK \"%s\" removed",
+					 a->obj.schemaname, a->obj.objectname,
+					 a->pk.conname);
+
+			dumpRemovePK(output, a);
+		}
+		else if (a->pk.conname != NULL && b->pk.conname != NULL &&
+				strcmp(a->pk.condef, b->pk.condef) != 0)
+		{
+			logDebug("table \"%s\".\"%s\" PK \"%s\" altered",
+					 b->obj.schemaname, b->obj.objectname,
+					 b->pk.conname);
+
+			dumpRemovePK(output, a);
+			dumpAddPK(output, b);
 		}
 	}
 	else
