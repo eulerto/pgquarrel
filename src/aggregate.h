@@ -20,6 +20,7 @@ typedef struct PQLAggregate
 	char		*sspace;
 	char		*finalfunc;
 	bool		finalfuncextra;
+	char		finalfuncmodify;
 	char		*initcond;
 	char		*msfunc;
 	char		*minvfunc;
@@ -27,6 +28,7 @@ typedef struct PQLAggregate
 	char		*msspace;
 	char		*mfinalfunc;
 	bool		mfinalfuncextra;
+	char		mfinalfuncmodify;
 	char		*minitcond;
 	char		*sortop;
 	char		parallel;
