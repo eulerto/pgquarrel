@@ -33,8 +33,13 @@ getFunctions(PGconn *c, int *n)
 
 	logNoise("function: server version: %d", PQserverVersion(c));
 
+	if (PQserverVersion(c) >= 110000)
+	{
+		res = PQexec(c,
+					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_identity_arguments(p.oid) as funciargs, pg_get_function_result(p.oid) as funcresult, prokind = 'w' AS proiswindow, provolatile, proisstrict, prosecdef, proleakproof, array_to_string(proconfig, ',') AS proconfig, proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_identity_arguments(p.oid)");
+	}
 	/* parallel is new in 9.6 ('u'nsafe is the default) */
-	if (PQserverVersion(c) >= 90600)
+	else if (PQserverVersion(c) >= 90600)
 	{
 		res = PQexec(c,
 					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_identity_arguments(p.oid) as funciargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, proleakproof, array_to_string(proconfig, ',') AS proconfig, proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_identity_arguments(p.oid)");
