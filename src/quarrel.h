@@ -22,7 +22,7 @@
 #include <port.h>				/* simple_prompt */
 
 #define PGQ_NAME			"pgquarrel"
-#define PGQ_VERSION			"0.4.0"
+#define PGQ_VERSION			"0.5.0"
 #define PGQ_SUPPORTED		90000	/* first supported version */
 #define PGQ_SUPPORTED_STR	"9.0.0"
 
