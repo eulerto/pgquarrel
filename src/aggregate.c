@@ -123,7 +123,8 @@ getAggregates(PGconn *c, int *n)
 		a[i].mfinalfuncextra = (PQgetvalue(res, i, PQfnumber(res,
 										   "aggmfinalextra"))[0] == 't');
 
-		a[i].mfinalfuncmodify = PQgetvalue(res, i, PQfnumber(res, "aggmfinalmodify"))[0];
+		a[i].mfinalfuncmodify = PQgetvalue(res, i, PQfnumber(res,
+										   "aggmfinalmodify"))[0];
 
 		if (PQgetisnull(res, i, PQfnumber(res, "aggminitval")))
 			a[i].minitcond = NULL;
@@ -327,7 +328,7 @@ dumpCreateAggregate(FILE *output, PQLAggregate *a)
 			fprintf(output, ",\nFINALFUNC_MODIFY = SHAREABLE");
 		else if (a->finalfuncmodify == 'w')
 			fprintf(output, ",\nFINALFUNC_MODIFY = READ_WRITE");
-		else if (a->finalfuncmodify == 'r')	/* FINALFUNC_MODIFY = READ_ONLY is the default */
+		else if (a->finalfuncmodify == 'r')	/* default is READ_ONLY */
 			;
 	}
 	if (a->initcond)
@@ -352,7 +353,7 @@ dumpCreateAggregate(FILE *output, PQLAggregate *a)
 			fprintf(output, ",\nMFINALFUNC_MODIFY = SHAREABLE");
 		else if (a->mfinalfuncmodify == 'w')
 			fprintf(output, ",\nMFINALFUNC_MODIFY = READ_WRITE");
-		else if (a->mfinalfuncmodify == 'r')	/* MFINALFUNC_MODIFY = READ_ONLY is the default */
+		else if (a->mfinalfuncmodify == 'r')	/* default is READ_ONLY */
 			;
 	}
 	if (a->minitcond)

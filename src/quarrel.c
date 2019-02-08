@@ -584,7 +584,8 @@ loadConfig(const char *cf, QuarrelOptions *options)
 
 		tmp = mini_file_get_value(config, "source", "no-password");
 		if (tmp != NULL)
-			options->source.promptpassword = !parseBoolean("no-password", mini_file_get_value(config, "source", "no-password"));
+			options->source.promptpassword = !parseBoolean("no-password",
+											 mini_file_get_value(config, "source", "no-password"));
 
 
 		/* target options */
@@ -640,7 +641,8 @@ loadConfig(const char *cf, QuarrelOptions *options)
 
 		tmp = mini_file_get_value(config, "target", "no-password");
 		if (tmp != NULL)
-			options->target.promptpassword = !parseBoolean("no-password", mini_file_get_value(config, "target", "no-password"));
+			options->target.promptpassword = !parseBoolean("no-password",
+											 mini_file_get_value(config, "target", "no-password"));
 	}
 	else
 	{
@@ -688,20 +690,25 @@ connectDatabase(QuarrelDatabaseOptions opt)
 	 * Connection was not established. If the connection authentication method
 	 * requires a password, asks one.
 	 */
-	if (PQstatus(conn) == CONNECTION_BAD && PQconnectionNeedsPassword(conn) && opt.promptpassword)
+	if (PQstatus(conn) == CONNECTION_BAD && PQconnectionNeedsPassword(conn) &&
+			opt.promptpassword)
 	{
 		PQfinish(conn);
 #if PG_VERSION_NUM >= 100000
 		prompt_password = malloc(100 * sizeof(char));
 		if (opt.istarget)
-			simple_prompt("Target password: ", prompt_password, sizeof(prompt_password), false);
+			simple_prompt("Target password: ", prompt_password, sizeof(prompt_password),
+						  false);
 		else
-			simple_prompt("Source password: ", prompt_password, sizeof(prompt_password), false);
+			simple_prompt("Source password: ", prompt_password, sizeof(prompt_password),
+						  false);
 #else
 		if (opt.istarget)
-			prompt_password = simple_prompt("Target password: ", sizeof(prompt_password), false);
+			prompt_password = simple_prompt("Target password: ", sizeof(prompt_password),
+											false);
 		else
-			prompt_password = simple_prompt("Source password: ", sizeof(prompt_password), false);
+			prompt_password = simple_prompt("Source password: ", sizeof(prompt_password),
+											false);
 #endif
 		values[3] = prompt_password;
 
@@ -716,9 +723,11 @@ connectDatabase(QuarrelDatabaseOptions opt)
 	if (PQstatus(conn) == CONNECTION_BAD)
 	{
 		if (opt.istarget)
-			logError("connection to target database \"%s\" failed: %s", opt.dbname, PQerrorMessage(conn));
+			logError("connection to target database \"%s\" failed: %s", opt.dbname,
+					 PQerrorMessage(conn));
 		else
-			logError("connection to source database \"%s\" failed: %s", opt.dbname, PQerrorMessage(conn));
+			logError("connection to source database \"%s\" failed: %s", opt.dbname,
+					 PQerrorMessage(conn));
 		PQfinish(conn);
 		exit(EXIT_FAILURE);
 	}

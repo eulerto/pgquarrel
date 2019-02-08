@@ -2042,7 +2042,7 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 			dumpRemovePK(output, a);
 		}
 		else if (a->pk.conname != NULL && b->pk.conname != NULL &&
-				strcmp(a->pk.condef, b->pk.condef) != 0)
+				 strcmp(a->pk.condef, b->pk.condef) != 0)
 		{
 			logDebug("table \"%s\".\"%s\" PK \"%s\" altered",
 					 b->obj.schemaname, b->obj.objectname,
