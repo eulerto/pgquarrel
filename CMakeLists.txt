@@ -70,7 +70,16 @@ if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 endif()
 
 # cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_PREFIX_PATH=/home/euler/pg101 .
-find_package(PostgreSQL REQUIRED)
+find_package(PostgreSQL QUIET)
+
+# check pg_config
+find_program(PGCONFIG_PATH NAMES pg_config)
+if(PGCONFIG_PATH)
+	message("pg_config: ${PGCONFIG_PATH}")
+else()
+	message(FATAL_ERROR "could not find pg_config")
+endif()
+
 if(PostgreSQL_FOUND)
 	include_directories(${PostgreSQL_INCLUDE_DIRS})
 	# some postgres headers (those included by optionals) aren't on the include
@@ -82,19 +91,60 @@ if(PostgreSQL_FOUND)
 	if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 		include_directories(${PostgreSQL_INCLUDE_DIR}/server/port/win32 ${PostgreSQL_INCLUDE_DIR}/server/port/win32_msvc)
 	endif()
+	# include static library (for prompt password)
+	# unfortunately CMake does not include it
+	execute_process(COMMAND ${PGCONFIG_PATH} --libdir RESULT_VARIABLE result OUTPUT_VARIABLE pgpath OUTPUT_STRIP_TRAILING_WHITESPACE)
+	if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+		set(LIBS "${pgpath}/libpgport.lib")
+	else()
+		set(LIBS "${pgpath}/libpgport.a")
+	endif()
 else()
-	message(FATAL_ERROR "could not find PostgreSQL")
+	# setup library directory
+	execute_process(COMMAND ${PGCONFIG_PATH} --libdir RESULT_VARIABLE result OUTPUT_VARIABLE pgpath OUTPUT_STRIP_TRAILING_WHITESPACE)
+	set(PostgreSQL_LIBRARY_DIRS "${pgpath}")
+
+	# figure out library directory and try to find libpgport
+	if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+#		execute_process(COMMAND ${PGCONFIG_PATH} --libdir RESULT_VARIABLE result OUTPUT_VARIABLE pgpath OUTPUT_STRIP_TRAILING_WHITESPACE)
+		if(EXISTS "${pgpath}/libpgport.lib")
+			set(LIBS "${pgpath}/libpgport.lib")
+		else()
+			message(FATAL_ERROR "could not find libpgport.lib")
+		endif()
+	else()
+#		execute_process(COMMAND ${PGCONFIG_PATH} --libdir RESULT_VARIABLE result OUTPUT_VARIABLE pgpath OUTPUT_STRIP_TRAILING_WHITESPACE)
+		if(EXISTS "${pgpath}/libpgport.a")
+			set(LIBS "${pgpath}/libpgport.a")
+		else()
+			# Debian-like systems move static libraries to PKGLIBDIR. Let's probe it too.
+			execute_process(COMMAND ${PGCONFIG_PATH} --pkglibdir OUTPUT_VARIABLE pgpath OUTPUT_STRIP_TRAILING_WHITESPACE)
+			if(EXISTS "${pgpath}/libpgport.a")
+				set(LIBS "${pgpath}/libpgport.a")
+			else()
+				message(FATAL_ERROR "could not find libpgport.a")
+			endif()
+		endif()
+	endif()
+
+	# setup include directories
+	execute_process(COMMAND ${PGCONFIG_PATH} --includedir OUTPUT_VARIABLE pgpath OUTPUT_STRIP_TRAILING_WHITESPACE)
+	set(PostgreSQL_INCLUDE_DIRS ${pgpath})
+	execute_process(COMMAND ${PGCONFIG_PATH} --includedir-server OUTPUT_VARIABLE pgpath OUTPUT_STRIP_TRAILING_WHITESPACE)
+	set(PostgreSQL_INCLUDE_DIRS ${PostgreSQL_INCLUDE_DIRS} ${pgpath})
+
+	# setup libpq for linking into pgquarrel
+	set(PostgreSQL_LIBRARIES "pq")
+	include_directories(${PostgreSQL_INCLUDE_DIRS})
 endif(PostgreSQL_FOUND)
 
+message("PostgreSQL FOUND: ${PostgreSQL_FOUND}")
+message("LIBS: ${LIBS}")
+message("PostgreSQL LIBRARIES: ${PostgreSQL_LIBRARIES}")
+message("PostgreSQL LIBRARY DIRS: ${PostgreSQL_LIBRARY_DIRS}")
+message("PostgreSQL INCLUDE DIRS: ${PostgreSQL_INCLUDE_DIRS}")
+
 set(LIBS ${LIBS} ${PostgreSQL_LIBRARIES})
-message(${LIBS})
-# CMake does not include libpgport by default for Windows
-if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-	set(LIBS ${LIBS} ${PostgreSQL_LIBRARY_DIRS}/libpgport.lib)
-else()
-	set(LIBS ${LIBS} ${PostgreSQL_LIBRARY_DIRS}/libpgport.a)
-endif()
-message(${LIBS})
 
 include_directories(mini)
 
