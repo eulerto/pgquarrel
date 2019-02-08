@@ -5,16 +5,16 @@ compiler:
   - gcc
 # - clang
 env:
-  - PGVERSION1=10 PGVERSION2=10
+  - PGVERSION1=11 PGVERSION2=11
 
 addons:
   apt:
     packages:
-      - postgresql-10
-      - postgresql-client-10
-      - postgresql-contrib-10
-      - postgresql-server-dev-10
-      - postgresql-plperl-10
+      - postgresql-11
+      - postgresql-client-11
+      - postgresql-contrib-11
+      - postgresql-server-dev-11
+      - postgresql-plperl-11
       - libpq-dev
 
 # install pgquarrel
