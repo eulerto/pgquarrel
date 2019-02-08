@@ -268,13 +268,13 @@ help(void)
 	printf("      --source-host=HOSTNAME    server host or socket directory\n");
 	printf("      --source-port=PORT        server port\n");
 	printf("      --source-username=NAME    user name\n");
-	printf("      --source-no-password		never prompt for password\n");
+	printf("      --source-no-password      never prompt for password\n");
 	printf("\nTarget options:\n");
 	printf("      --target-dbname=DBNAME    database name\n");
 	printf("      --target-host=HOSTNAME    server host or socket directory\n");
 	printf("      --target-port=PORT        server port\n");
 	printf("      --target-username=NAME    user name\n");
-	printf("      --target-no-password		never prompt for password\n");
+	printf("      --target-no-password      never prompt for password\n");
 	printf("\n");
 	printf("  --help                        show this help, then exit\n");
 	printf("  --version                     output version information, then exit\n");
