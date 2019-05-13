@@ -1,0 +1,27 @@
+Source: pgquarrel
+Section: database
+Priority: optional
+Maintainer: Euler Taveira <euler@timbira.com.br>
+Standards-Version: 3.9.8
+Build-Depends:
+ cmake (>= 2.8.11~),
+ debhelper (>= 9),
+ libpq-dev (>= 9.0~),
+ postgresql-server-dev-11
+Homepage: https://github.com/eulerto/pgquarrel
+
+Package: pgquarrel
+Architecture: any
+Depends:
+ lsb-base (>= 3.1),
+ libpq5,
+ ${misc:Depends},
+ ${shlibs:Depends}
+Description: database schema comparator for PostgreSQL
+ pgquarrel is a program that compares PostgreSQL database schemas. It provides the following features:
+ * uses libpq (does not depend on external applications such as pg_dump)
+ * works with different PostgreSQL versions (9.0 or later)
+ * compares DDL
+ * supports Linux, Windows, and FreeBSD
+ * supports almost all PostgreSQL objects and their options
+ * chooses what to compare using a configuration file or command line options
