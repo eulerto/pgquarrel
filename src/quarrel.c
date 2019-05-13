@@ -39,8 +39,10 @@
  *
  *  UNSUPPORTED
  * ~~~~~~~~~~~~~
+ * access method
  * foreign table
  * policy
+ * procedure
  * publication
  * subscription
  * transform
