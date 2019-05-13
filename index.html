@@ -42,6 +42,8 @@
 
 <p>It could work with different PostgreSQL versions. The generated file could not work as expected if the <em>to</em> PostgreSQL version is greater than <em>from</em> PostgreSQL version. That's because the tool could generate commands that does not exist in a prior PostgreSQL version.</p>
 
+<p><strong>pgquarrel</strong> does not manipulate data (i.e. INSERT, UPDATE, DELETE, COPY, etc).</p>
+
 <p>It works with different operating systems. It was tested on Linux, FreeBSD, and Windows.</p>
 
 <h1>
@@ -59,8 +61,8 @@
 
 <p>Before installing <strong>pgquarrel</strong>, you should have PostgreSQL 9.0+ installed (including the header files). If PostgreSQL is not in your search path add -DCMAKE_PREFIX_PATH=/path/to/pgsql to the cmake command.</p>
 
-<pre><code>$ tar -zxf pgquarrel-0.3.0.tgz
-$ cd pgquarrel-0.3.0
+<pre><code>$ tar -zxf pgquarrel-0.5.0.tgz
+$ cd pgquarrel-0.5.0
 $ cmake .
 $ make
 </code></pre>
@@ -73,7 +75,7 @@ $ make
 <h1>
 <a id="features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h1>
 
-<p><strong>pgquarrel</strong> does not support all of the PostgreSQL objects. Also, <strong>pgquarrel</strong> does not manipulate data (i.e. DML).</p>
+<p><strong>pgquarrel</strong> does not support all of the PostgreSQL objects.</p>
 
 <table>
     <tr>
@@ -258,6 +260,16 @@ $ make
         <td></td>
     </tr>
     <tr>
+        <td>POLICY</td>
+        <td>not implemented</td>
+        <td></td>
+    </tr>
+    <tr>
+        <td>TRANSFORM</td>
+        <td>not implemented</td>
+        <td></td>
+    </tr>
+    <tr>
         <td>ALTER DEFAULT PRIVILEGES</td>
         <td>uncertain</td>
         <td></td>
@@ -269,7 +281,7 @@ $ make
     </tr>
     <tr>
         <td>STATISTICS</td>
-        <td>uncertain</td>
+        <td>complete</td>
         <td></td>
     </tr>
 </table>
@@ -282,11 +294,124 @@ $ make
 </ul>
 
 <h1>
-<a id="tests" class="anchor" href="#tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tests</h1>
+<a id="tests" class="anchor" href="#tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h1>
+
+<pre><code>pgquarrel [OPTION]...
+</code></pre>
+
+<p>By default, the changes will be output to stdout and only some kind of objects will be compared (those whose default is true).</p>
+
+<p>The following command-line options are provided (all are optional):</p>
+
+<ul>
+	<li><i>config (-c)</i>: configuration file that contains source and target connection information and kind of objects that will be compared.</li>
+	<li><i>file (-f)</i>: send output to file, - for stdout (default: stdout).</li>
+	<li><i>ignore-version</i>: ignore version check. pgquarrel uses the reserved keywords provided by the postgres version that it was compiled in. Server version greater than the compiled one could not properly quote some keywords used as identifiers.</li>
+	<li><i>summary (-s)</i>: print a summary of changes.</li>
+	<li><i>single-transaction (-t)</i>: output changes as a single transaction.</li>
+	<li><i>temp-directory</i>: use this directory as a temporary area ( default: /tmp).</li>
+	<li><i>verbose (-v)</i>: verbose mode.</li>
+	<li><i>source-dbname</i>: source database name.</li>
+	<li><i>source-host</i>: source host name.</li>
+	<li><i>source-port</i>: source port.</li>
+	<li><i>source-username</i>: source user name.</li>
+	<li><i>source-no-password</i>: never prompt for password.</li>
+	<li><i>target-dbname</i>: target database name.</li>
+	<li><i>target-host</i>: target host name.</li>
+	<li><i>target-port</i>: target port.</li>
+	<li><i>target-username</i>: target user name.</li>
+	<li><i>target-no-password</i>: never prompt for password.</li>
+	<li><i>help</i>: print help.</li>
+	<li><i>version</i>: print version.</li>
+	<li><i>aggregate</i>: aggregate comparision (default: false).</li>
+	<li><i>cast</i>: cast comparision (default: false).</li>
+	<li><i>collation</i>: collation comparision (default: false).</li>
+	<li><i>comment</i>: comment comparision (default: false).</li>
+	<li><i>conversion</i>: conversion comparision (default: false).</li>
+	<li><i>domain</i>: domain comparision (default: true).</li>
+	<li><i>event-trigger</i>: event trigger comparision (default: false).</li>
+	<li><i>extension</i>: extension comparision (default: false).</li>
+	<li><i>fdw</i>: foreign data wrapper comparision (default: false).</li>
+	<li><i>function</i>: function comparision (default: true).</li>
+	<li><i>index</i>: index comparision (default: true).</li>
+	<li><i>language</i>: language comparision (default: false).</li>
+	<li><i>materialized-view</i>: materialized view comparision (default: true).</li>
+	<li><i>operator</i>: operator comparision (default: false).</li>
+	<li><i>owner</i>: owner comparision (default: false).</li>
+	<li><i>privileges</i>: privileges comparision (default: false).</li>
+	<li><i>rule</i>: rule comparision (default: false).</li>
+	<li><i>schema</i>: schema comparision (default: true).</li>
+	<li><i>security-labels</i>: security labels comparision (default: false).</li>
+	<li><i>sequence</i>: sequence comparision (default: true).</li>
+	<li><i>statistics</i>: statistics comparision (default: false).</li>
+	<li><i>table</i>: table comparision (default: true).</li>
+	<li><i>text-search</i>: text search comparision (default: false).</li>
+	<li><i>trigger</i>: trigger comparision (default: true).</li>
+	<li><i>type</i>: type comparision (default: true).</li>
+	<li><i>view</i>: view comparision (default: true).</li>
+</ul>
+
+<p>You can use a configuration file to store the desired options. The general section specifies which kind of objects will be output. The target and source section options specifies connection options to both servers. Have in mind that any command-line option can override the configuration file option. The configuration file contains the following structure:</p>
+
+<pre><code>
+[general]
+output = /tmp/diff.sql
+temp-directory = /tmp
+verbose = false
+summary = false
+comment = false
+security-labels = false
+owner = false
+privileges = false
+ignore-version = false
+single-transaction = false
+
+aggregate = false
+cast = false
+collation = false
+conversion = false
+domain = true
+event-trigger = false
+extension = false
+fdw = false
+function = true
+index = true
+language = false
+materialized-view = true
+operator = false
+rule = false
+schema = true
+sequence = true
+statistics = false
+table = true
+text-search = false
+trigger = true
+type = true
+view = true
+
+[target]
+host = 10.27.0.8
+port = 5432
+dbname = quarrel1
+user = bob
+no-password = false
+
+[source]
+host = 10.8.0.10
+port = 5432
+dbname = quarrel2
+user = alice
+no-password = false
+</code></pre>
+
+
+<h1>
+<a id="tests" class="anchor" href="#tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Regression Tests</h1>
 
 <pre><code>$ # adjust test/run-test.sh
-$ cd pgquarrel-0.3.0/test
-$ ./run-test.sh 10 10 init
+$ cd pgquarrel-0.5.0/test
+$ # test using 11 on both clusters
+$ ./run-test.sh 11 11 init
 </code></pre>
 
 <h1>
