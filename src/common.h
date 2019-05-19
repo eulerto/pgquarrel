@@ -64,6 +64,7 @@ typedef struct QuarrelGeneralOptions
 	bool			singletxn;
 
 	/* select objects */
+	bool			accessmethod;
 	bool			aggregate;
 	bool			cast;
 	bool			collation;

@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.8.11)
 
 project(pgquarrel C)
 add_executable(pgquarrel
+	src/am.c
+	src/am.h
 	src/aggregate.c
 	src/aggregate.h
 	src/cast.c

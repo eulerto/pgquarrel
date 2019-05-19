@@ -4,6 +4,7 @@
  *
  *  SUPPORTED
  * ~~~~~~~~~~~
+ * access method: complete
  * aggregate: partial
  * cast: complete
  * collation: partial
@@ -39,7 +40,6 @@
  *
  *  UNSUPPORTED
  * ~~~~~~~~~~~~~
- * access method
  * foreign table
  * policy
  * procedure
@@ -64,6 +64,7 @@
 #include "quarrel.h"
 #include "common.h"
 
+#include "am.h"
 #include "aggregate.h"
 #include "cast.h"
 #include "collation.h"
@@ -106,7 +107,7 @@ PQLStatistic		qstat = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-							 0, 0, 0, 0, 0, 0, 0, 0
+							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 					  };
 
 FILE				*fout;			/* output file */
@@ -127,6 +128,7 @@ static FILE *openTempFile(char *p);
 static void closeTempFile(FILE *fp, char *p);
 static bool isEmptyFile(char *p);
 
+static void quarrelAccessMethods();
 static void quarrelAggregates();
 static void quarrelCasts();
 static void quarrelCollations();
@@ -213,6 +215,8 @@ help(void)
 		   (opts.general.tmpdir) ? opts.general.tmpdir : "");
 	printf("  -v, --verbose                 verbose mode\n");
 	printf("\nObject options:\n");
+	printf("      --access-method=BOOL      access method (default: %s)\n",
+		   (opts.general.accessmethod) ? "true" : "false");
 	printf("      --aggregate=BOOL          aggregate (default: %s)\n",
 		   (opts.general.aggregate) ? "true" : "false");
 	printf("      --cast=BOOL               cast (default: %s)\n",
@@ -304,6 +308,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 	options->general.privileges = false;		/* general - privileges */
 	options->general.singletxn = false;			/* general - single-transaction */
 
+	options->general.accessmethod = false;		/* general - access method */
 	options->general.aggregate = false;			/* general - aggregate */
 	options->general.cast = false;				/* general - cast */
 	options->general.collation = false;			/* general - collation */
@@ -437,6 +442,11 @@ loadConfig(const char *cf, QuarrelOptions *options)
 		/*
 		 * select objects that will be compared
 		 */
+		if (mini_file_get_value(config, "general", "access-method") != NULL)
+			options->general.accessmethod = parseBoolean("access-method",
+										 mini_file_get_value(config,
+												 "general", "access-method"));
+
 		if (mini_file_get_value(config, "general", "aggregate") != NULL)
 			options->general.aggregate = parseBoolean("aggregate",
 										 mini_file_get_value(config,
@@ -735,6 +745,87 @@ connectDatabase(QuarrelDatabaseOptions opt)
 	}
 
 	return conn;
+}
+
+static void
+quarrelAccessMethods()
+{
+	PQLAccessMethod		*ams1 = NULL;		/* target */
+	PQLAccessMethod		*ams2 = NULL;		/* source */
+	int			nams1 = 0;		/* # of ams */
+	int			nams2 = 0;
+	int			i, j;
+
+	ams1 = getAccessMethods(conn1, &nams1);
+	ams2 = getAccessMethods(conn2, &nams2);
+
+	for (i = 0; i < nams1; i++)
+		logNoise("server1: %s", ams1[i].amname);
+
+	for (i = 0; i < nams2; i++)
+		logNoise("server2: %s", ams2[i].amname);
+
+	/*
+	 * We have two sorted lists. Let's figure out which elements are not in the
+	 * other list.
+	 * We have two sorted lists. The strategy is transverse both lists only once
+	 * to figure out ams not presented in the other list.
+	 */
+	i = j = 0;
+	while (i < nams1 || j < nams2)
+	{
+		/* End of ams1 list. Print ams2 list until its end. */
+		if (i == nams1)
+		{
+			logDebug("am %s: server2", ams2[j].amname);
+
+			dumpCreateAccessMethod(fpre, &ams2[j]);
+
+			j++;
+			qstat.amadded++;
+		}
+		/* End of ams2 list. Print ams1 list until its end. */
+		else if (j == nams2)
+		{
+			logDebug("am %s: server1", ams1[i].amname);
+
+			dumpDropAccessMethod(fpost, &ams1[i]);
+
+			i++;
+			qstat.amremoved++;
+		}
+		else if (strcmp(ams1[i].amname,
+						ams2[j].amname) == 0)
+		{
+			logDebug("am %s: server1 server2", ams1[i].amname);
+
+			dumpAlterAccessMethod(fpre, &ams1[i], &ams2[j]);
+
+			i++;
+			j++;
+		}
+		else if (strcmp(ams1[i].amname, ams2[j].amname) < 0)
+		{
+			logDebug("am %s: server1", ams1[i].amname);
+
+			dumpDropAccessMethod(fpost, &ams1[i]);
+
+			i++;
+			qstat.amremoved++;
+		}
+		else if (strcmp(ams1[i].amname, ams2[j].amname) > 0)
+		{
+			logDebug("am %s: server2", ams2[j].amname);
+
+			dumpCreateAccessMethod(fpre, &ams2[j]);
+
+			j++;
+			qstat.amadded++;
+		}
+	}
+
+	freeAccessMethods(ams1, nams1);
+	freeAccessMethods(ams2, nams2);
 }
 
 static void
@@ -4326,6 +4417,8 @@ int main(int argc, char *argv[])
 		quarrelSchemas();
 	if (options.extension)
 		quarrelExtensions();
+	if (options.accessmethod)
+		quarrelAccessMethods();
 
 	if (options.cast)
 		quarrelCasts();

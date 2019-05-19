@@ -55,8 +55,8 @@ Features
 		<th>Comments</th>
 	</tr>
 	<tr>
-		<td>ACESS METHOD</td>
-		<td>not implemented</td>
+		<td>ACCESS METHOD</td>
+		<td>complete</td>
 		<td></td>
 	</tr>
 	<tr>
@@ -301,6 +301,7 @@ The following command-line options are provided (all are optional):
 * `target-no-password`: never prompt for password.
 * `help`: print help.
 * `version`: print version.
+* `access-method`: access method comparision (default: false).
 * `aggregate`: aggregate comparision (default: false).
 * `cast`: cast comparision (default: false).
 * `collation`: collation comparision (default: false).
@@ -343,6 +344,7 @@ privileges = false
 ignore-version = false
 single-transaction = false
 
+access-method = false
 aggregate = false
 cast = false
 collation = false
