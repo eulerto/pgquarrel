@@ -301,34 +301,34 @@ The following command-line options are provided (all are optional):
 * `target-no-password`: never prompt for password.
 * `help`: print help.
 * `version`: print version.
-* `access-method`: access method comparision (default: false).
-* `aggregate`: aggregate comparision (default: false).
-* `cast`: cast comparision (default: false).
-* `collation`: collation comparision (default: false).
-* `comment`: comment comparision (default: false).
-* `conversion`: conversion comparision (default: false).
-* `domain`: domain comparision (default: true).
-* `event-trigger`: event trigger comparision (default: false).
-* `extension`: extension comparision (default: false).
-* `fdw`: foreign data wrapper comparision (default: false).
-* `function`: function comparision (default: true).
-* `index`: index comparision (default: true).
-* `language`: language comparision (default: false).
-* `materialized-view`: materialized view comparision (default: true).
-* `operator`: operator comparision (default: false).
-* `policy`: policy comparision (default: false).
-* `owner`: owner comparision (default: false).
-* `privileges`: privileges comparision (default: false).
-* `rule`: rule comparision (default: false).
-* `schema`: schema comparision (default: true).
-* `security-labels`: security labels comparision (default: false).
-* `sequence`: sequence comparision (default: true).
-* `statistics`: statistics comparision (default: false).
-* `table`: table comparision (default: true).
-* `text-search`: text search comparision (default: false).
-* `trigger`: trigger comparision (default: true).
-* `type`: type comparision (default: true).
-* `view`: view comparision (default: true).
+* `access-method`: access method comparison (default: false).
+* `aggregate`: aggregate comparison (default: false).
+* `cast`: cast comparison (default: false).
+* `collation`: collation comparison (default: false).
+* `comment`: comment comparison (default: false).
+* `conversion`: conversion comparison (default: false).
+* `domain`: domain comparison (default: true).
+* `event-trigger`: event trigger comparison (default: false).
+* `extension`: extension comparison (default: false).
+* `fdw`: foreign data wrapper comparison (default: false).
+* `function`: function comparison (default: true).
+* `index`: index comparison (default: true).
+* `language`: language comparison (default: false).
+* `materialized-view`: materialized view comparison (default: true).
+* `operator`: operator comparison (default: false).
+* `policy`: policy comparison (default: false).
+* `owner`: owner comparison (default: false).
+* `privileges`: privileges comparison (default: false).
+* `rule`: rule comparison (default: false).
+* `schema`: schema comparison (default: true).
+* `security-labels`: security labels comparison (default: false).
+* `sequence`: sequence comparison (default: true).
+* `statistics`: statistics comparison (default: false).
+* `table`: table comparison (default: true).
+* `text-search`: text search comparison (default: false).
+* `trigger`: trigger comparison (default: true).
+* `type`: type comparison (default: true).
+* `view`: view comparison (default: true).
 
 You can use a configuration file to store the desired options. The _general_ section specifies which kind of objects will be output. The _target_ and _source_ section options specifies connection options to both servers. Have in mind that any command-line option can override the configuration file option. The configuration file contains the following structure:
 
