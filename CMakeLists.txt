@@ -32,6 +32,8 @@ add_executable(pgquarrel
 	src/matview.h
 	src/operator.c
 	src/operator.h
+	src/policy.c
+	src/policy.h
 	src/privileges.c
 	src/privileges.h
 	src/quarrel.c

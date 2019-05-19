@@ -22,6 +22,7 @@
  * operator: partial
  * operator class: partial
  * operator family: partial
+ * policy: partial
  * revoke: complete
  * rule: partial
  * schema: partial
@@ -41,7 +42,6 @@
  *  UNSUPPORTED
  * ~~~~~~~~~~~~~
  * foreign table
- * policy
  * procedure
  * publication
  * subscription
@@ -78,6 +78,7 @@
 #include "language.h"
 #include "matview.h"
 #include "operator.h"
+#include "policy.h"
 #include "rule.h"
 #include "schema.h"
 #include "sequence.h"
@@ -107,7 +108,8 @@ PQLStatistic		qstat = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+							 0, 0
 					  };
 
 FILE				*fout;			/* output file */
@@ -145,6 +147,7 @@ static void quarrelMaterializedViews();
 static void quarrelOperators();
 static void quarrelOperatorFamilies();
 static void quarrelOperatorClasses();
+static void quarrelPolicies();
 static void quarrelRules();
 static void quarrelSchemas();
 static void quarrelSequences();
@@ -247,6 +250,8 @@ help(void)
 		   (opts.general.operator) ? "true" : "false");
 	printf("      --owner=BOOL              owner (default: %s)\n",
 		   (opts.general.owner) ? "true" : "false");
+	printf("      --policy=BOOL             policy (default: %s)\n",
+		   (opts.general.policy) ? "true" : "false");
 	printf("      --privileges=BOOL         privileges (default: %s)\n",
 		   (opts.general.privileges) ? "true" : "false");
 	printf("      --rule=BOOL               rule (default: %s)\n",
@@ -322,6 +327,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 	options->general.language = false;			/* general - language */
 	options->general.matview = true;			/* general - materialized-view */
 	options->general.operator = false;			/* general - operator */
+	options->general.policy = false;			/* general - policy */
 	options->general.rule = false;				/* general - rule */
 	options->general.schema = true;				/* general - schema */
 	options->general.sequence = true;			/* general - sequence */
@@ -504,6 +510,10 @@ loadConfig(const char *cf, QuarrelOptions *options)
 		if (mini_file_get_value(config, "general", "operator") != NULL)
 			options->general.operator = parseBoolean("operator", mini_file_get_value(config,
 										"general", "operator"));
+
+		if (mini_file_get_value(config, "general", "policy") != NULL)
+			options->general.operator = parseBoolean("policy", mini_file_get_value(config,
+										"general", "policy"));
 
 		if (mini_file_get_value(config, "general", "rule") != NULL)
 			options->general.rule = parseBoolean("rule", mini_file_get_value(config,
@@ -2276,6 +2286,96 @@ quarrelOperatorClasses()
 
 	freeOperatorClasses(opclasses1, nopclasses1);
 	freeOperatorClasses(opclasses2, nopclasses2);
+}
+
+static void
+quarrelPolicies()
+{
+	PQLPolicy	*policies1 = NULL;	/* target */
+	PQLPolicy	*policies2 = NULL;	/* source */
+	int			npolicies1 = 0;		/* # of policies */
+	int			npolicies2 = 0;
+	int			i, j;
+
+	policies1 = getPolicies(conn1, &npolicies1);
+	policies2 = getPolicies(conn2, &npolicies2);
+
+	for (i = 0; i < npolicies1; i++)
+		logNoise("server1: %s.%s", policies1[i].table.schemaname,
+				 policies1[i].table.objectname);
+
+	for (i = 0; i < npolicies2; i++)
+		logNoise("server2: %s.%s", policies2[i].table.schemaname,
+				 policies2[i].table.objectname);
+
+	/*
+	 * We have two sorted lists. Let's figure out which elements are not in the
+	 * other list.
+	 * We have two sorted lists. The strategy is transverse both lists only once
+	 * to figure out relations not presented in the other list.
+	 */
+	i = j = 0;
+	while (i < npolicies1 || j < npolicies2)
+	{
+		/* End of policies1 list. Print policies2 list until its end. */
+		if (i == npolicies1)
+		{
+			logDebug("policy %s.%s: server2", policies2[j].table.schemaname,
+					 policies2[j].table.objectname);
+
+			dumpCreatePolicy(fpre, &policies2[j]);
+
+			j++;
+			qstat.poladded++;
+		}
+		/* End of policies2 list. Print policies1 list until its end. */
+		else if (j == npolicies2)
+		{
+			logDebug("policy %s.%s: server1", policies1[i].table.schemaname,
+					 policies1[i].table.objectname);
+
+			dumpDropPolicy(fpost, &policies1[i]);
+
+			i++;
+			qstat.polremoved++;
+		}
+		else if (compareNamesAndRelations(&policies1[i].table, &policies2[j].table,
+										  policies1[i].polname, policies2[j].polname) == 0)
+		{
+			logDebug("policy %s.%s: server1 server2", policies1[i].table.schemaname,
+					 policies1[i].table.objectname);
+
+			dumpAlterPolicy(fpre, &policies1[i], &policies2[j]);
+
+			i++;
+			j++;
+		}
+		else if (compareNamesAndRelations(&policies1[i].table, &policies2[j].table,
+										  policies1[i].polname, policies2[j].polname) < 0)
+		{
+			logDebug("policy %s.%s: server1", policies1[i].table.schemaname,
+					 policies1[i].table.objectname);
+
+			dumpDropPolicy(fpost, &policies1[i]);
+
+			i++;
+			qstat.polremoved++;
+		}
+		else if (compareNamesAndRelations(&policies1[i].table, &policies2[j].table,
+										  policies1[i].polname, policies2[j].polname) > 0)
+		{
+			logDebug("policy %s.%s: server2", policies2[j].table.schemaname,
+					 policies2[j].table.objectname);
+
+			dumpCreatePolicy(fpre, &policies2[j]);
+
+			j++;
+			qstat.poladded++;
+		}
+	}
+
+	freePolicies(policies1, npolicies1);
+	freePolicies(policies2, npolicies2);
 }
 
 static void
@@ -4454,6 +4554,8 @@ int main(int argc, char *argv[])
 		quarrelTriggers();
 	if (options.rule)
 		quarrelRules();
+	if (options.policy)
+		quarrelPolicies();
 	if (options.eventtrigger)
 		quarrelEventTriggers();
 	if (options.textsearch)

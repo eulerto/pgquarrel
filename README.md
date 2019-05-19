@@ -236,7 +236,7 @@ Features
 	</tr>
 	<tr>
 		<td>POLICY</td>
-		<td>not implemented</td>
+		<td>partial</td>
 		<td></td>
 	</tr>
 	<tr>
@@ -316,6 +316,7 @@ The following command-line options are provided (all are optional):
 * `language`: language comparision (default: false).
 * `materialized-view`: materialized view comparision (default: true).
 * `operator`: operator comparision (default: false).
+* `policy`: policy comparision (default: false).
 * `owner`: owner comparision (default: false).
 * `privileges`: privileges comparision (default: false).
 * `rule`: rule comparision (default: false).
@@ -358,6 +359,7 @@ index = true
 language = false
 materialized-view = true
 operator = false
+policy = false
 rule = false
 schema = true
 sequence = true
