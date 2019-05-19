@@ -85,7 +85,7 @@ $ make
     </tr>
     <tr>
         <td>ACCESS METHOD</td>
-        <td>not implemented</td>
+        <td>complete</td>
         <td></td>
     </tr>
     <tr>
@@ -266,7 +266,7 @@ $ make
     </tr>
     <tr>
         <td>POLICY</td>
-        <td>not implemented</td>
+        <td>partial</td>
         <td></td>
     </tr>
     <tr>
@@ -333,6 +333,7 @@ $ make
 	<li><i>target-no-password</i>: never prompt for password.</li>
 	<li><i>help</i>: print help.</li>
 	<li><i>version</i>: print version.</li>
+	<li><i>access-method</i>: access method comparision (default: false).</li>
 	<li><i>aggregate</i>: aggregate comparision (default: false).</li>
 	<li><i>cast</i>: cast comparision (default: false).</li>
 	<li><i>collation</i>: collation comparision (default: false).</li>
@@ -348,6 +349,7 @@ $ make
 	<li><i>materialized-view</i>: materialized view comparision (default: true).</li>
 	<li><i>operator</i>: operator comparision (default: false).</li>
 	<li><i>owner</i>: owner comparision (default: false).</li>
+	<li><i>policy</i>: policy comparision (default: false).</li>
 	<li><i>privileges</i>: privileges comparision (default: false).</li>
 	<li><i>rule</i>: rule comparision (default: false).</li>
 	<li><i>schema</i>: schema comparision (default: true).</li>
@@ -376,6 +378,7 @@ privileges = false
 ignore-version = false
 single-transaction = false
 
+access-method = false
 aggregate = false
 cast = false
 collation = false
@@ -389,6 +392,7 @@ index = true
 language = false
 materialized-view = true
 operator = false
+policy = false
 rule = false
 schema = true
 sequence = true
