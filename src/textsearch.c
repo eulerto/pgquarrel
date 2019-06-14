@@ -598,7 +598,7 @@ dumpAlterTextSearchConfig(FILE *output, PQLTextSearchConfig *a,
 		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER TEXT SEARCH CONFIGURATION %s.%s OWNER TO %s;",
+			fprintf(output, "ALTER TEXT SEARCH CONFIGURATION %s.%s OWNER TO \"%s\";",
 					schema2,
 					cfgname2,
 					b->owner);
@@ -804,7 +804,8 @@ void dumpAlterTextSearchDict(FILE *output, PQLTextSearchDict *a,
 		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER TEXT SEARCH DICTIONARY %s.%s OWNER TO %s;",
+			fprintf(output, "ALTER TEXT SEARCH DICTIONARY %s.%s OWNER TO \"%s\";",
+
 					schema2,
 					dictname2,
 					b->owner);

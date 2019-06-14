@@ -511,7 +511,7 @@ dumpAlterAggregate(FILE *output, PQLAggregate *a, PQLAggregate *b)
 		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER AGGREGATE %s.%s(%s) OWNER TO %s;",
+			fprintf(output, "ALTER AGGREGATE %s.%s(%s) OWNER TO \"%s\";",
 					schema2,
 					aggname2,
 					b->arguments,

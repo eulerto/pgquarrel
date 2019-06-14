@@ -370,7 +370,7 @@ dumpCreateFunction(FILE *output, PQLFunction *f, bool orreplace)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER FUNCTION %s.%s(%s) OWNER TO %s;",
+		fprintf(output, "ALTER FUNCTION %s.%s(%s) OWNER TO \"%s\";",
 				schema,
 				funcname,
 				f->iarguments,
@@ -766,7 +766,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER FUNCTION %s.%s(%s) OWNER TO %s;",
+			fprintf(output, "ALTER FUNCTION %s.%s(%s) OWNER TO \"%s\";",
 					schema2, funcname2, b->iarguments, b->owner);
 		}
 	}

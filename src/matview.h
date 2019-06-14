@@ -33,6 +33,7 @@ typedef struct PQLMaterializedView
 } PQLMaterializedView;
 
 PQLMaterializedView *getMaterializedViews(PGconn *c, int *n);
+int compareMaterializedViews(PQLMaterializedView *a, PQLMaterializedView *b);
 void getMaterializedViewAttributes(PGconn *c, PQLMaterializedView *v);
 void getMaterializedViewSecurityLabels(PGconn *c, PQLMaterializedView *v);
 

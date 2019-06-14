@@ -42,6 +42,7 @@
  *  UNSUPPORTED
  * ~~~~~~~~~~~~~
  * foreign table
+ * policy
  * procedure
  * publication
  * subscription
@@ -1991,6 +1992,12 @@ quarrelMaterializedViews()
 				getMaterializedViewSecurityLabels(conn2, &matviews2[j]);
 			}
 
+			if (compareMaterializedViews(&matviews1[i], &matviews2[j]) != 0)
+			{
+				dumpDropMaterializedView(fpre, &matviews2[j]);
+				dumpCreateMaterializedView(fpre, &matviews2[j]);
+			}
+
 			dumpAlterMaterializedView(fpre, &matviews1[i], &matviews2[j]);
 
 			i++;
@@ -3822,6 +3829,7 @@ quarrelViews()
 		logNoise("server2: %s.%s", views2[i].obj.schemaname,
 				 views2[i].obj.objectname);
 
+
 	/*
 	 * We have two sorted lists. Let's figure out which elements are not in the
 	 * other list.
@@ -3840,7 +3848,7 @@ quarrelViews()
 			if (options.securitylabels)
 				getViewSecurityLabels(conn2, &views2[j]);
 
-			dumpCreateView(fpre, &views2[j]);
+			dumpCreateView(fpre, &views2[j], false);
 
 			j++;
 			qstat.viewadded++;
@@ -3867,6 +3875,9 @@ quarrelViews()
 				getViewSecurityLabels(conn2, &views2[j]);
 			}
 
+			if (compareViews(&views1[i], &views2[j]) != 0)
+				dumpCreateView(fpre, &views2[j], true);
+
 			dumpAlterView(fpre, &views1[i], &views2[j]);
 
 			i++;
@@ -3890,7 +3901,7 @@ quarrelViews()
 			if (options.securitylabels)
 				getViewSecurityLabels(conn2, &views2[j]);
 
-			dumpCreateView(fpre, &views2[j]);
+			dumpCreateView(fpre, &views2[j], false);
 
 			j++;
 			qstat.viewadded++;
@@ -4023,13 +4034,69 @@ isEmptyFile(char *p)
 static void
 printSummary(void)
 {
-	fprintf(stderr, "%d table(s) added, %d table(s) removed\n", qstat.tableadded,
+	if (qstat.schemaadded > 0 || qstat.schemaremoved > 0)
+		fprintf(stderr, "%d schema(0 ) added, %d schema(s) removed\n", qstat.schemaadded,
+			qstat.schemaremoved);
+	
+	if (qstat.tableadded > 0 || qstat.tableremoved > 0)
+		fprintf(stderr, "%d table(s) added, %d table(s) removed\n", qstat.tableadded,
 			qstat.tableremoved);
-	fprintf(stderr, "%d sequence(s) added, %d sequence(s) removed\n",
-			qstat.seqadded,
+	
+	if (qstat.seqadded > 0 || qstat.seqremoved > 0)
+		fprintf(stderr, "%d sequence(s) added, %d sequence(s) removed\n", qstat.seqadded,
 			qstat.seqremoved);
-	fprintf(stderr, "%d index(es) added, %d index(es) removed\n", qstat.indexadded,
+	
+	if (qstat.indexadded > 0 || qstat.indexremoved > 0)
+		fprintf(stderr, "%d index(es) added, %d index(es) removed\n", qstat.indexadded,
 			qstat.indexremoved);
+	
+	if (qstat.viewadded > 0 || qstat.viewremoved > 0)
+		fprintf(stderr, "%d view(s) added, %d view(s) removed\n", qstat.viewadded,
+			qstat.viewremoved);
+	
+	if (qstat.matviewadded > 0 || qstat.matviewremoved > 0)
+		fprintf(stderr, "%d materialized view(s) added, %d materialized view(s) removed\n", qstat.matviewadded,
+			qstat.matviewremoved);
+	
+	if (qstat.operatoradded > 0 || qstat.operatorremoved > 0)
+		fprintf(stderr, "%d operator(s) added, %d operator(s) removed\n", qstat.operatoradded,
+			qstat.operatorremoved);
+	
+	if (qstat.languageadded > 0 || qstat.languageremoved > 0)
+		fprintf(stderr, "%d language(s) added, %d language(s) removed\n", qstat.languageadded,
+			qstat.languageremoved);
+	
+	if (qstat.collationadded > 0 || qstat.collationremoved > 0)
+		fprintf(stderr, "%d collation(s) added, %d collation(s) removed\n", qstat.collationadded,
+			qstat.collationremoved);
+	
+	if (qstat.conversionadded > 0 || qstat.conversionremoved > 0)
+		fprintf(stderr, "%d conversion(s) added, %d conversion(s) removed\n", qstat.conversionadded,
+			qstat.conversionremoved);
+	
+	if (qstat.domainadded > 0 || qstat.domainremoved > 0)
+		fprintf(stderr, "%d domain(s) added, %d domain(s) removed\n", qstat.domainadded,
+			qstat.domainremoved);
+	
+	if (qstat.evttrgadded > 0 || qstat.evttrgremoved > 0)
+		fprintf(stderr, "%d eventtrigger(s) added, %d eventtrigger(s) removed\n", qstat.evttrgadded,
+			qstat.evttrgremoved);
+	
+	if (qstat.extensionadded > 0 || qstat.extensionremoved > 0)
+		fprintf(stderr, "%d extension(s) added, %d extension(s) removed\n", qstat.extensionadded,
+			qstat.extensionremoved);
+	
+	if (qstat.functionadded > 0 || qstat.functionremoved > 0)
+		fprintf(stderr, "%d function(s) added, %d function(s) removed\n", qstat.functionadded,
+			qstat.functionremoved);
+	
+	if (qstat.ruleadded > 0 || qstat.ruleremoved > 0)
+		fprintf(stderr, "%d rule(s) added, %d rule(s) removed\n", qstat.ruleadded,
+			qstat.ruleremoved);
+	
+	if (qstat.serveradded > 0 || qstat.serverremoved > 0)
+		fprintf(stderr, "%d server(s) added, %d server(s) removed\n", qstat.serveradded,
+			qstat.serverremoved);
 }
 
 int main(int argc, char *argv[])

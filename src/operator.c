@@ -668,7 +668,7 @@ dumpCreateOperator(FILE *output, PQLOperator *o)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER OPERATOR %s.%s(%s,%s) OWNER TO %s;",
+		fprintf(output, "ALTER OPERATOR %s.%s(%s,%s) OWNER TO \"%s\";",
 				schema, oprname,
 				(o->lefttype) ? o->lefttype : "NONE",
 				(o->righttype) ? o->righttype : "NONE",
@@ -763,7 +763,7 @@ dumpCreateOperatorClass(FILE *output, PQLOperatorClass *c)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER OPERATOR CLASS %s.%s USING %s OWNER TO %s;",
+		fprintf(output, "ALTER OPERATOR CLASS %s.%s USING %s OWNER TO \"%s\";",
 				schema, opcname,
 				c->accessmethod,
 				c->owner);
@@ -804,7 +804,7 @@ dumpCreateOperatorFamily(FILE *output, PQLOperatorFamily *f)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER OPERATOR FAMILY %s.%s USING %s OWNER TO %s;",
+		fprintf(output, "ALTER OPERATOR FAMILY %s.%s USING %s OWNER TO \"%s\";",
 				schema, opfname,
 				f->accessmethod,
 				f->owner);
@@ -892,7 +892,7 @@ dumpAlterOperator(FILE *output, PQLOperator *a, PQLOperator *b)
 		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER OPERATOR %s.%s(%s,%s) OWNER TO %s;",
+			fprintf(output, "ALTER OPERATOR %s.%s(%s,%s) OWNER TO \"%s\";",
 					schema2,
 					oprname2,
 					(b->lefttype) ? b->lefttype : "NONE",
@@ -1018,7 +1018,7 @@ dumpAlterOperatorClass(FILE *output, PQLOperatorClass *a, PQLOperatorClass *b)
 		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER OPERATOR CLASS %s.%s USING %s OWNER TO %s;",
+			fprintf(output, "ALTER OPERATOR CLASS %s.%s USING %s OWNER TO \"%s\";",
 					schema2,
 					opcname2,
 					b->accessmethod,
@@ -1172,7 +1172,7 @@ dumpAlterOperatorFamily(FILE *output, PQLOperatorFamily *a,
 		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER OPERATOR CLASS %s.%s USING %s OWNER TO %s;",
+			fprintf(output, "ALTER OPERATOR CLASS %s.%s USING %s OWNER TO \"%s\";",
 					schema2,
 					opfname2,
 					b->accessmethod,

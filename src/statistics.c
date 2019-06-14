@@ -122,7 +122,7 @@ dumpCreateStatistics(FILE *output, PQLStatistics *s)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER STATISTICS %s.%s OWNER TO %s;", schema, stxname,
+		fprintf(output, "ALTER STATISTICS %s.%s OWNER TO \"%s\";", schema, stxname,
 				s->owner);
 	}
 
@@ -175,7 +175,7 @@ dumpAlterStatistics(FILE *output, PQLStatistics *a, PQLStatistics *b)
 		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER STATISTICS %s.%s OWNER TO %s;", schema2, stxname2,
+			fprintf(output, "ALTER STATISTICS %s.%s OWNER TO \"%s\";", schema2, stxname2,
 					b->owner);
 		}
 	}

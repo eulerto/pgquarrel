@@ -210,7 +210,7 @@ dumpCreateForeignDataWrapper(FILE *output, PQLForeignDataWrapper *f)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OWNER TO %s;", fdwname,
+		fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OWNER TO \"%s\";", fdwname,
 				f->owner);
 	}
 
@@ -452,7 +452,7 @@ dumpAlterForeignDataWrapper(FILE *output, PQLForeignDataWrapper *a,
 		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OWNER TO %s;", fdwname2,
+			fprintf(output, "ALTER FOREIGN DATA WRAPPER %s OWNER TO \"%s\";", fdwname2,
 					b->owner);
 		}
 	}

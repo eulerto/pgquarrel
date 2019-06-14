@@ -237,7 +237,7 @@ dumpCreateLanguage(FILE *output, PQLLanguage *l)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER LANGUAGE %s OWNER TO %s;",
+		fprintf(output, "ALTER LANGUAGE %s OWNER TO \"%s\";",
 				langname,
 				l->owner);
 	}
@@ -378,7 +378,7 @@ dumpAlterLanguage(FILE *output, PQLLanguage *a, PQLLanguage *b)
 		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER LANGUAGE %s OWNER TO %s;",
+			fprintf(output, "ALTER LANGUAGE %s OWNER TO \"%s\";",
 					langname2,
 					b->owner);
 		}

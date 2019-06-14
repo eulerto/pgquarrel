@@ -10,6 +10,7 @@
 #define VIEW_H
 
 #include "common.h"
+#include "privileges.h"
 
 typedef struct PQLView
 {
@@ -21,6 +22,7 @@ typedef struct PQLView
 	char			*reloptions;
 	char			*comment;
 	char			*owner;
+	char			*acl;
 
 	/* security labels */
 	PQLSecLabel		*seclabels;
@@ -29,9 +31,10 @@ typedef struct PQLView
 
 PQLView *getViews(PGconn *c, int *n);
 void getViewSecurityLabels(PGconn *c, PQLView *v);
+int compareViews(PQLView *a, PQLView *b);
 
 void dumpDropView(FILE *output, PQLView *v);
-void dumpCreateView(FILE *output, PQLView *v);
+void dumpCreateView(FILE *output, PQLView *v, bool orreplace);
 void dumpAlterView(FILE *output, PQLView *a, PQLView *b);
 
 void freeViews(PQLView *v, int n);

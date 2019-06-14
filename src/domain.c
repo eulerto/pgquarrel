@@ -357,7 +357,7 @@ dumpCreateDomain(FILE *output, PQLDomain *d)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER DOMAIN %s.%s OWNER TO %s;",
+		fprintf(output, "ALTER DOMAIN %s.%s OWNER TO \"%s\";",
 				schema,
 				domname,
 				d->owner);
@@ -544,7 +544,7 @@ dumpAlterDomain(FILE *output, PQLDomain *a, PQLDomain *b)
 		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER DOMAIN %s.%s OWNER TO %s;",
+			fprintf(output, "ALTER DOMAIN %s.%s OWNER TO \"%s\";",
 					schema2,
 					domname2,
 					b->owner);

@@ -196,7 +196,7 @@ dumpCreateForeignServer(FILE *output, PQLForeignServer *s)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER SERVER %s OWNER TO %s;", srvname, s->owner);
+		fprintf(output, "ALTER SERVER %s OWNER TO \"%s\";", srvname, s->owner);
 	}
 
 	/* privileges */
@@ -414,7 +414,7 @@ dumpAlterForeignServer(FILE *output, PQLForeignServer *a, PQLForeignServer *b)
 		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER SERVER %s OWNER TO %s;", srvname2, b->owner);
+			fprintf(output, "ALTER SERVER %s OWNER TO \"%s\";", srvname2, b->owner);
 		}
 	}
 

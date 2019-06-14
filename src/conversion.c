@@ -156,7 +156,7 @@ dumpCreateConversion(FILE *output, PQLConversion *c)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER CONVERSION %s.%s OWNER TO %s;",
+		fprintf(output, "ALTER CONVERSION %s.%s OWNER TO \"%s\";",
 				schema,
 				convname,
 				c->owner);
@@ -193,7 +193,7 @@ dumpAlterConversion(FILE *output, PQLConversion *a, PQLConversion *b)
 		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER CONVERSION %s.%s OWNER TO %s;",
+			fprintf(output, "ALTER CONVERSION %s.%s OWNER TO \"%s\";",
 					schema2,
 					convname2,
 					b->owner);

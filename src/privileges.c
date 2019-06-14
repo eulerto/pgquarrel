@@ -482,6 +482,9 @@ dumpGrant(FILE *output, int objecttype, PQLObject *a, char *privs,
 		case PGQ_TYPE:
 			fprintf(output, "TYPE");
 			break;
+		case PGQ_VIEW:
+			fprintf(output, "TABLE");
+			break;
 	}
 
 	/* function arguments? */
@@ -490,29 +493,51 @@ dumpGrant(FILE *output, int objecttype, PQLObject *a, char *privs,
 		/* there are some objects that are not schema-qualified */
 		schema = formatObjectIdentifier(a->schemaname);
 
-		fprintf(output, " %s.%s(%s) TO %s;",
+		if (strcmp(grantee, "PUBLIC") == 0 || strcmp(grantee, "public") == 0)
+		{
+			fprintf(output, " %s.%s(%s) TO %s;",
 				schema,
 				objname,
 				args,
 				grantee);
+		} else {
+			fprintf(output, " %s.%s(%s) TO \"%s\";",
+				schema,
+				objname,
+				args,
+				grantee);
+		}
 	}
 	else if (objecttype == PGQ_DATABASE || objecttype == PGQ_FOREIGN_DATA_WRAPPER ||
 			 objecttype == PGQ_FOREIGN_SERVER || objecttype == PGQ_LANGUAGE ||
 			 objecttype == PGQ_SCHEMA || objecttype == PGQ_TABLESPACE)
 	{
-		/* there are some objects that are not schema-qualified */
-		fprintf(output, " %s TO %s;",
+		/* there are some objects that are not schema-qualified */		
+		if (strcmp(grantee, "PUBLIC") == 0 || strcmp(grantee, "public") == 0) {
+			fprintf(output, " %s TO %s;",
 				objname,
 				grantee);
+		} else {
+			fprintf(output, " %s TO \"%s\";",
+				objname,
+				grantee);
+		}
 	}
 	else
 	{
 		schema = formatObjectIdentifier(a->schemaname);
 
-		fprintf(output, " %s.%s TO %s;",
+		if (strcmp(grantee, "PUBLIC") == 0 || strcmp(grantee, "public") == 0) {
+			fprintf(output, " %s.%s TO %s;",
 				schema,
 				objname,
 				grantee);
+		} else {
+			fprintf(output, " %s.%s TO \"%s\";",
+				schema,
+				objname,
+				grantee);
+		}
 	}
 
 	free(p);
@@ -579,6 +604,9 @@ dumpRevoke(FILE *output, int objecttype, PQLObject *a, char *privs,
 		case PGQ_TYPE:
 			fprintf(output, "TYPE");
 			break;
+		case PGQ_VIEW:
+			fprintf(output, "TABLE");
+			break;
 	}
 
 	/* function arguments? */
@@ -587,29 +615,50 @@ dumpRevoke(FILE *output, int objecttype, PQLObject *a, char *privs,
 		/* there are some objects that are not schema-qualified */
 		schema = formatObjectIdentifier(a->schemaname);
 
-		fprintf(output, " %s.%s(%s) FROM %s;",
+		if (strcmp(grantee, "PUBLIC") == 0 || strcmp(grantee, "public") == 0) {
+			fprintf(output, " %s.%s(%s) FROM %s;",
 				schema,
 				objname,
 				args,
 				grantee);
+		} else {
+			fprintf(output, " %s.%s(%s) FROM \"%s\";",
+				schema,
+				objname,
+				args,
+				grantee);
+		}
 	}
 	else if (objecttype == PGQ_DATABASE || objecttype == PGQ_FOREIGN_DATA_WRAPPER ||
 			 objecttype == PGQ_FOREIGN_SERVER || objecttype == PGQ_LANGUAGE ||
 			 objecttype == PGQ_SCHEMA || objecttype == PGQ_TABLESPACE)
 	{
 		/* there are some objects that are not schema-qualified */
-		fprintf(output, " %s FROM %s;",
+		if (strcmp(grantee, "PUBLIC") == 0 || strcmp(grantee, "public") == 0) {
+			fprintf(output, " %s FROM %s;",
 				objname,
 				grantee);
+		} else {
+			fprintf(output, " %s FROM \"%s\";",
+				objname,
+				grantee);
+		}
 	}
 	else
 	{
 		schema = formatObjectIdentifier(a->schemaname);
 
-		fprintf(output, " %s.%s FROM %s;",
+		if (strcmp(grantee, "PUBLIC") == 0 || strcmp(grantee, "public") == 0) {
+			fprintf(output, " %s.%s FROM %s;",
 				schema,
 				objname,
 				grantee);
+		} else {
+			fprintf(output, " %s.%s FROM \"%s\";",
+				schema,
+				objname,
+				grantee);
+		}
 	}
 
 	free(p);
@@ -641,7 +690,7 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject *a, PQLObject *b,
 		/* End of aclList ala. Print GRANT for aclList alb until its end. */
 		if (tmpa == NULL)
 		{
-			logDebug("grant to %s: server2 (end)", tmpb->grantee);
+			logDebug("grant to \"%s\": server2 (end)", tmpb->grantee);
 
 			dumpGrant(output, objecttype, b, tmpb->privileges, tmpb->grantee,
 					  ((objecttype == PGQ_FUNCTION) ? args : NULL), cols);
@@ -687,7 +736,7 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject *a, PQLObject *b,
 		}
 		else if (strcmp(tmpa->grantee, tmpb->grantee) > 0)
 		{
-			logDebug("grant to %s: server2", tmpb->grantee);
+			logDebug("grant to \"%s\": server2", tmpb->grantee);
 
 			dumpGrant(output, objecttype, b, tmpb->privileges, tmpb->grantee,
 					  ((objecttype == PGQ_FUNCTION) ? args : NULL), cols);

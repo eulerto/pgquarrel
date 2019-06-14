@@ -25,6 +25,26 @@
 #include "view.h"
 
 
+int
+compareViews(PQLView *a, PQLView *b)
+{
+	int		c;
+
+	c = strcmp(a->obj.schemaname, b->obj.schemaname);
+
+	/* compare relation names iif schema names are equal */
+	if (c == 0) {
+		c = strcmp((a->obj.objectname != NULL)?a->obj.objectname:"", (b->obj.objectname != NULL)?b->obj.objectname:"");
+
+		if (c == 0) {
+			c = strcmp((a->viewdef != NULL)?a->viewdef:"", (b->viewdef != NULL)?b->viewdef:"");
+		}
+	}
+
+	return c;
+}
+
+
 PQLView *
 getViews(PGconn *c, int *n)
 {
@@ -42,17 +62,17 @@ getViews(PGconn *c, int *n)
 	if (PQserverVersion(c) >= 90300)
 	{
 		res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, pg_get_viewdef(c.oid) AS viewdef, array_to_string(array_remove(array_remove(c.reloptions,'check_option=local'),'check_option=cascaded'), ', ') AS reloptions, CASE WHEN 'check_option=local' = ANY(c.reloptions) THEN 'LOCAL'::text WHEN 'check_option=cascaded' = ANY(c.reloptions) THEN 'CASCADED'::text ELSE NULL END AS checkoption, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'v' AND nspname !~ '^pg_' AND nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, relname");
+					 "SELECT c.oid, n.nspname, c.relname, pg_get_viewdef(c.oid) AS viewdef, array_to_string(array_remove(array_remove(c.reloptions,'check_option=local'),'check_option=cascaded'), ', ') AS reloptions, CASE WHEN 'check_option=local' = ANY(c.reloptions) THEN 'LOCAL'::text WHEN 'check_option=cascaded' = ANY(c.reloptions) THEN 'CASCADED'::text ELSE NULL END AS checkoption, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'v' AND nspname !~ '^pg_' AND nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, relname");
 	}
 	else if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
 		res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, pg_get_viewdef(c.oid) AS viewdef, array_to_string(c.reloptions, ', ') AS reloptions, CASE WHEN 'check_option=local' = ANY(c.reloptions) THEN 'LOCAL'::text WHEN 'check_option=cascaded' = ANY(c.reloptions) THEN 'CASCADED'::text ELSE NULL END AS checkoption, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'v' AND nspname !~ '^pg_' AND nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, relname");
+					 "SELECT c.oid, n.nspname, c.relname, pg_get_viewdef(c.oid) AS viewdef, array_to_string(c.reloptions, ', ') AS reloptions, CASE WHEN 'check_option=local' = ANY(c.reloptions) THEN 'LOCAL'::text WHEN 'check_option=cascaded' = ANY(c.reloptions) THEN 'CASCADED'::text ELSE NULL END AS checkoption, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'v' AND nspname !~ '^pg_' AND nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, relname");
 	}
 	else
 	{
 		res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, pg_get_viewdef(c.oid) AS viewdef, array_to_string(c.reloptions, ', ') AS reloptions, CASE WHEN 'check_option=local' = ANY(c.reloptions) THEN 'LOCAL'::text WHEN 'check_option=cascaded' = ANY(c.reloptions) THEN 'CASCADED'::text ELSE NULL END AS checkoption, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'v' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
+					 "SELECT c.oid, n.nspname, c.relname, pg_get_viewdef(c.oid) AS viewdef, array_to_string(c.reloptions, ', ') AS reloptions, CASE WHEN 'check_option=local' = ANY(c.reloptions) THEN 'LOCAL'::text WHEN 'check_option=cascaded' = ANY(c.reloptions) THEN 'CASCADED'::text ELSE NULL END AS checkoption, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'v' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -93,6 +113,11 @@ getViews(PGconn *c, int *n)
 			v[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
 
 		v[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "relowner")));
+
+		if (PQgetisnull(res, i, PQfnumber(res, "relacl")))
+			v[i].acl = NULL;
+		else
+			v[i].acl = strdup(PQgetvalue(res, i, PQfnumber(res, "relacl")));
 
 		/*
 		 * Security labels are not assigned here (see getViewSecurityLabels),
@@ -208,13 +233,13 @@ dumpDropView(FILE *output, PQLView *v)
 }
 
 void
-dumpCreateView(FILE *output, PQLView *v)
+dumpCreateView(FILE *output, PQLView *v, bool orreplace)
 {
 	char	*schema = formatObjectIdentifier(v->obj.schemaname);
 	char	*viewname = formatObjectIdentifier(v->obj.objectname);
 
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE VIEW %s.%s", schema, viewname);
+	fprintf(output, "CREATE %sVIEW %s.%s", orreplace ? "OR REPLACE " : "", schema, viewname);
 
 	/* reloptions */
 	if (v->reloptions != NULL)
@@ -254,8 +279,11 @@ dumpCreateView(FILE *output, PQLView *v)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER VIEW %s.%s OWNER TO %s;", schema, viewname, v->owner);
+		fprintf(output, "ALTER VIEW %s.%s OWNER TO \"%s\";", schema, viewname, v->owner);
 	}
+
+	if (options.privileges)
+		dumpGrantAndRevoke(output, PGQ_VIEW, &v->obj, &v->obj, NULL, v->acl, NULL, NULL);
 
 	free(schema);
 	free(viewname);
@@ -486,9 +514,12 @@ dumpAlterView(FILE *output, PQLView *a, PQLView *b)
 		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER VIEW %s.%s OWNER TO %s;", schema2, viewname2, b->owner);
+			fprintf(output, "ALTER VIEW %s.%s OWNER TO \"%s\";", schema2, viewname2, b->owner);
 		}
 	}
+
+	if (options.privileges)
+		dumpGrantAndRevoke(output, PGQ_VIEW, &a->obj, &b->obj, a->acl, b->acl, NULL, NULL);
 
 	free(schema1);
 	free(viewname1);

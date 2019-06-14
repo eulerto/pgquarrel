@@ -216,7 +216,7 @@ dumpCreateSchema(FILE *output, PQLSchema *s)
 	if (options.owner)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER SCHEMA %s OWNER TO %s;", schemaname, s->owner);
+		fprintf(output, "ALTER SCHEMA %s OWNER TO \"%s\";", schemaname, s->owner);
 	}
 
 	/* privileges */
@@ -359,7 +359,8 @@ dumpAlterSchema(FILE *output, PQLSchema *a, PQLSchema *b)
 		if (strcmp(a->owner, b->owner) != 0)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER SCHEMA %s OWNER TO %s;", schemaname2, b->owner);
+			fprintf(output, "ALTER SCHEMA %s OWNER TO \"%s\";", schemaname2, b->owner);
+
 		}
 	}
 
