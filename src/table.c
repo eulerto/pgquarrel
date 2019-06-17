@@ -1140,7 +1140,7 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 		if (t->comment != NULL)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TABLE %s.%s IS '%s';", schema, tabname, t->comment);
+			fprintf(output, "COMMENT ON TABLE %s.%s IS $QUOT$%s$QUOT$;", schema, tabname, t->comment);
 		}
 
 		/* columns */
@@ -1151,7 +1151,7 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 				char	*attname = formatObjectIdentifier(t->attributes[i].attname);
 
 				fprintf(output, "\n\n");
-				fprintf(output, "COMMENT ON COLUMN %s.%s.%s IS '%s';", schema, tabname, attname,
+				fprintf(output, "COMMENT ON COLUMN %s.%s.%s IS $QUOT$%s$QUOT$;", schema, tabname, attname,
 						t->attributes[i].comment);
 
 				free(attname);
@@ -1164,7 +1164,7 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 			char	*pkname = formatObjectIdentifier(t->pk.conname);
 
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS '%s';", pkname, schema,
+			fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS $QUOT$%s$QUOT$;", pkname, schema,
 					tabname, t->pk.comment);
 
 			free(pkname);
@@ -1178,7 +1178,7 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 				char	*fkname = formatObjectIdentifier(t->fk[i].conname);
 
 				fprintf(output, "\n\n");
-				fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS '%s';", fkname, schema,
+				fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS $QUOT$%s$QUOT$;", fkname, schema,
 						tabname, t->fk[i].comment);
 
 				free(fkname);
@@ -1193,7 +1193,7 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 				char	*ckname = formatObjectIdentifier(t->check[i].conname);
 
 				fprintf(output, "\n\n");
-				fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS '%s';", ckname, schema,
+				fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS $QUOT$%s$QUOT$;", ckname, schema,
 						tabname, t->check[i].comment);
 
 				free(ckname);
@@ -1222,7 +1222,7 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 		for (i = 0; i < t->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS '%s';",
+			fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS $QUOT$%s$QUOT$;",
 					t->seclabels[i].provider,
 					schema,
 					tabname,
@@ -1240,7 +1240,7 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 				for (j = 0; j < t->attributes[i].nseclabels; j++)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS $QUOT$%s$QUOT$;",
 							t->attributes[i].seclabels[j].provider,
 							schema,
 							tabname,
@@ -1326,7 +1326,7 @@ dumpAddColumn(FILE *output, PQLTable *t, int i)
 	if (options.comment && t->attributes[i].comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON COLUMN %s.%s.%s IS '%s';", schema, tabname, attname,
+		fprintf(output, "COMMENT ON COLUMN %s.%s.%s IS $QUOT$%s$QUOT$;", schema, tabname, attname,
 				t->attributes[i].comment);
 	}
 
@@ -1338,7 +1338,7 @@ dumpAddColumn(FILE *output, PQLTable *t, int i)
 		for (j = 0; j < t->attributes[i].nseclabels; j++)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
+			fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS $QUOT$%s$QUOT$;",
 					t->attributes[i].seclabels[j].provider,
 					schema,
 					tabname,
@@ -1445,7 +1445,7 @@ dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 				 strcmp(a->attributes[i].comment, b->attributes[j].comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON COLUMN %s.%s.%s IS '%s';", schema2, tabname2,
+			fprintf(output, "COMMENT ON COLUMN %s.%s.%s IS $QUOT$%s$QUOT$;", schema2, tabname2,
 					attname2, b->attributes[j].comment);
 		}
 		else if (a->attributes[i].comment != NULL && b->attributes[j].comment == NULL)
@@ -1466,7 +1466,7 @@ dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 			for (k = 0; k < b->attributes[j].nseclabels; k++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
+				fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS $QUOT$%s$QUOT$;",
 						b->attributes[j].seclabels[k].provider,
 						schema2,
 						tabname2,
@@ -1500,7 +1500,7 @@ dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 				if (k == a->attributes[i].nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS $QUOT$%s$QUOT$;",
 							b->attributes[j].seclabels[l].provider,
 							schema2,
 							tabname2,
@@ -1525,7 +1525,7 @@ dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 							   b->attributes[j].seclabels[l].label) != 0)
 					{
 						fprintf(output, "\n\n");
-						fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
+						fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS $QUOT$%s$QUOT$;",
 								b->attributes[j].seclabels[l].provider,
 								schema2,
 								tabname2,
@@ -1550,7 +1550,7 @@ dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 								b->attributes[j].seclabels[l].provider) > 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS $QUOT$%s$QUOT$;",
 							b->attributes[j].seclabels[l].provider,
 							schema2,
 							tabname2,
@@ -1735,7 +1735,7 @@ dumpAddPK(FILE *output, PQLTable *t)
 			char	*pkname = formatObjectIdentifier(t->pk.conname);
 
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS '%s';", pkname, schema,
+			fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS $QUOT$%s$QUOT$;", pkname, schema,
 					tabname, t->pk.comment);
 
 			free(pkname);
@@ -1779,7 +1779,7 @@ dumpAddFK(FILE *output, PQLTable *t, int i)
 			char	*fkname = formatObjectIdentifier(t->fk[i].conname);
 
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS '%s';", fkname, schema,
+			fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS $QUOT$%s$QUOT$;", fkname, schema,
 					tabname, t->fk[i].comment);
 
 			free(fkname);
@@ -2224,7 +2224,7 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TABLE %s.%s IS '%s';", schema2, tabname2,
+			fprintf(output, "COMMENT ON TABLE %s.%s IS $QUOT$%s$QUOT$;", schema2, tabname2,
 					b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
@@ -2242,7 +2242,7 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS '%s';",
+				fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS $QUOT$%s$QUOT$;",
 						b->seclabels[i].provider,
 						schema2,
 						tabname2,
@@ -2268,7 +2268,7 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS $QUOT$%s$QUOT$;",
 							b->seclabels[j].provider,
 							schema2,
 							tabname2,
@@ -2289,7 +2289,7 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
-						fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS '%s';",
+						fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS $QUOT$%s$QUOT$;",
 								b->seclabels[j].provider,
 								schema2,
 								tabname2,
@@ -2310,7 +2310,7 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS $QUOT$%s$QUOT$;",
 							b->seclabels[j].provider,
 							schema2,
 							tabname2,

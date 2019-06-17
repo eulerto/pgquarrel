@@ -37,6 +37,9 @@ SET work_mem TO '100MB';
 
 COMMENT ON FUNCTION same_function_2(integer, integer) IS 'this is comment for same_function_2';
 
+COMMENT ON FUNCTION same_function_3(integer, integer) IS 'this is comment for same_function_3 with ''';
+
+
 GRANT EXECUTE ON FUNCTION to_function_1(integer, integer) TO same_role_1, same_role_2, same_role_3;
 GRANT ALL PRIVILEGES ON FUNCTION same_function_1(integer, integer) TO same_role_1;
 GRANT EXECUTE ON FUNCTION same_function_1(integer, integer) TO same_role_3;

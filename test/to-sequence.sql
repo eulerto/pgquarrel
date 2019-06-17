@@ -10,6 +10,8 @@ CREATE SEQUENCE same_sequence_1;
 
 COMMENT ON SEQUENCE to_sequence_2 IS 'this is comment for to_sequence_2';
 
+COMMENT ON SEQUENCE to_sequence_3 IS 'this is comment for to_sequence_3 with ''';
+
 GRANT USAGE ON SEQUENCE to_sequence_1 TO same_role_1, same_role_2, same_role_3;
 GRANT ALL PRIVILEGES ON SEQUENCE same_sequence_1 TO same_role_1;
 GRANT SELECT, USAGE ON SEQUENCE same_sequence_1 TO same_role_3;

@@ -179,7 +179,7 @@ dumpCreateCast(FILE *output, PQLCast *c)
 	if (options.comment && c->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON CAST (%s AS %s) IS '%s';",
+		fprintf(output, "COMMENT ON CAST (%s AS %s) IS $QUOT$%s$QUOT$;",
 				c->source,
 				c->target,
 				c->comment);
@@ -219,7 +219,7 @@ dumpAlterCast(FILE *output, PQLCast *a, PQLCast *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON CAST (%s AS %s) IS '%s';",
+			fprintf(output, "COMMENT ON CAST (%s AS %s) IS $QUOT$%s$QUOT$;",
 					b->source,
 					b->target,
 					b->comment);
