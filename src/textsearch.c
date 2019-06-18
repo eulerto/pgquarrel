@@ -105,7 +105,10 @@ getTextSearchConfigs(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			d[i].comment = NULL;
 		else
+		{
 			d[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			d[i].comment = escapeQuotes(d[i].comment);
+		}
 
 		d[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "cfgowner")));
 
@@ -177,7 +180,10 @@ getTextSearchDicts(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			d[i].comment = NULL;
 		else
+		{
 			d[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			d[i].comment = escapeQuotes(d[i].comment);
+		}
 
 		d[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "dictowner")));
 
@@ -252,7 +258,10 @@ getTextSearchParsers(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			p[i].comment = NULL;
 		else
+		{
 			p[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			p[i].comment = escapeQuotes(p[i].comment);
+		}
 
 		logDebug("text search parser \"%s\".\"%s\"", p[i].obj.schemaname,
 				 p[i].obj.objectname);
@@ -321,7 +330,10 @@ getTextSearchTemplates(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			t[i].comment = NULL;
 		else
+		{
 			t[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			t[i].comment = escapeQuotes(t[i].comment);
+		}
 
 		logDebug("text search template \"%s\".\"%s\"", t[i].obj.schemaname,
 				 t[i].obj.objectname);

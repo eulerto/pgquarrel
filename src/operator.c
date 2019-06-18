@@ -130,7 +130,10 @@ getOperators(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			o[i].comment = NULL;
 		else
+		{
 			o[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			o[i].comment = escapeQuotes(o[i].comment);
+		}
 
 		o[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "oprowner")));
 
@@ -233,7 +236,10 @@ getOperatorClasses(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			d[i].comment = NULL;
 		else
+		{
 			d[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			d[i].comment = escapeQuotes(d[i].comment);
+		}
 
 		d[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "opcowner")));
 	}
@@ -308,7 +314,10 @@ getOperatorFamilies(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			f[i].comment = NULL;
 		else
+		{
 			f[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			f[i].comment = escapeQuotes(f[i].comment);
+		}
 
 		f[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "opfowner")));
 	}

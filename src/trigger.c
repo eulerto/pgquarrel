@@ -58,7 +58,10 @@ getTriggers(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			t[i].comment = NULL;
 		else
+		{
 			t[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			t[i].comment = escapeQuotes(t[i].comment);
+		}
 
 		logDebug("trigger \"%s\" on \"%s\".\"%s\"", t[i].trgname, t[i].table.schemaname,
 				 t[i].table.objectname);

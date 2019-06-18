@@ -103,7 +103,10 @@ getFunctions(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			f[i].comment = NULL;
 		else
+		{
 			f[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			f[i].comment = escapeQuotes(f[i].comment);
+		}
 
 		f[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "proowner")));
 		if (PQgetisnull(res, i, PQfnumber(res, "proacl")))

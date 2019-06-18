@@ -75,7 +75,10 @@ getPolicies(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			p[i].comment = NULL;
 		else
+		{
 			p[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			p[i].comment = escapeQuotes(p[i].comment);
+		}
 
 		logDebug("policy \"%s\" on \"%s\".\"%s\"", p[i].polname, p[i].table.schemaname,
 				 p[i].table.objectname);

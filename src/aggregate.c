@@ -143,7 +143,10 @@ getAggregates(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			a[i].comment = NULL;
 		else
+		{
 			a[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			a[i].comment = escapeQuotes(a[i].comment);
+		}
 
 		a[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "aggowner")));
 

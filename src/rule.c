@@ -59,7 +59,10 @@ getRules(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			r[i].comment = NULL;
 		else
+		{
 			r[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			r[i].comment = escapeQuotes(r[i].comment);
+		}
 
 		logDebug("rule \"%s\" on \"%s\".\"%s\"", r[i].rulename, r[i].table.schemaname,
 				 r[i].table.objectname);

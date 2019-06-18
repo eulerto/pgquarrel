@@ -102,7 +102,10 @@ getBaseTypes(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			t[i].comment = NULL;
 		else
+		{
 			t[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			t[i].comment = escapeQuotes(t[i].comment);
+		}
 
 		t[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "typowner")));
 		if (PQgetisnull(res, i, PQfnumber(res, "typacl")))
@@ -314,7 +317,10 @@ getCompositeTypes(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			t[i].comment = NULL;
 		else
+		{
 			t[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			t[i].comment = escapeQuotes(t[i].comment);
+		}
 
 		t[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "typowner")));
 		if (PQgetisnull(res, i, PQfnumber(res, "typacl")))
@@ -510,7 +516,10 @@ getEnumTypes(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			t[i].comment = NULL;
 		else
+		{
 			t[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			t[i].comment = escapeQuotes(t[i].comment);
+		}
 
 		t[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "typowner")));
 		if (PQgetisnull(res, i, PQfnumber(res, "typacl")))
@@ -650,7 +659,10 @@ getRangeTypes(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			t[i].comment = NULL;
 		else
+		{
 			t[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			t[i].comment = escapeQuotes(t[i].comment);
+		}
 
 		t[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "typowner")));
 		if (PQgetisnull(res, i, PQfnumber(res, "typacl")))

@@ -67,7 +67,10 @@ getSchemas(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			s[i].comment = NULL;
 		else
+		{
 			s[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			s[i].comment = escapeQuotes(s[i].comment);
+		}
 
 		s[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "nspowner")));
 		if (PQgetisnull(res, i, PQfnumber(res, "nspacl")))

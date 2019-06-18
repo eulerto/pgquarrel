@@ -67,7 +67,10 @@ getAccessMethods(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			a[i].comment = NULL;
 		else
+		{
 			a[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			a[i].comment = escapeQuotes(a[i].comment);
+		}
 
 		logDebug("access method \"%s\"", a[i].amname);
 	}

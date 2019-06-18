@@ -108,7 +108,10 @@ getCasts(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			d[i].comment = NULL;
 		else
+		{
 			d[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			d[i].comment = escapeQuotes(d[i].comment);
+		}
 
 		logDebug("cast \"%s\" as \"%s\" ; method: %c ; context: %c", d[i].source,
 				 d[i].target, d[i].method, d[i].context);

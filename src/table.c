@@ -149,7 +149,10 @@ getTables(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			t[i].comment = NULL;
 		else
+		{
 			t[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			t[i].comment = escapeQuotes(t[i].comment);
+		}
 
 		t[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "relowner")));
 		if (PQgetisnull(res, i, PQfnumber(res, "relacl")))
@@ -333,8 +336,11 @@ getCheckConstraints(PGconn *c, PQLTable *t, int n)
 			if (PQgetisnull(res, j, PQfnumber(res, "description")))
 				t[i].check[j].comment = NULL;
 			else
+			{
 				t[i].check[j].comment = strdup(PQgetvalue(res, j, PQfnumber(res,
 											   "description")));
+				t[i].check[j].comment = escapeQuotes(t[i].check[j].comment);
+			}
 		}
 
 		PQclear(res);
@@ -394,7 +400,10 @@ getFKConstraints(PGconn *c, PQLTable *t, int n)
 			if (PQgetisnull(res, j, PQfnumber(res, "description")))
 				t[i].fk[j].comment = NULL;
 			else
+			{
 				t[i].fk[j].comment = strdup(PQgetvalue(res, j, PQfnumber(res, "description")));
+				t[i].fk[j].comment = escapeQuotes(t[i].fk[j].comment);
+			}
 		}
 
 		PQclear(res);
@@ -447,7 +456,10 @@ getPKConstraints(PGconn *c, PQLTable *t, int n)
 			if (PQgetisnull(res, 0, PQfnumber(res, "description")))
 				t[i].pk.comment = NULL;
 			else
+			{
 				t[i].pk.comment = strdup(PQgetvalue(res, 0, PQfnumber(res, "description")));
+				t[i].pk.comment = escapeQuotes(t[i].pk.comment);
+			}
 		}
 		/* XXX cannot happen */
 		else if (PQntuples(res) > 1)
@@ -595,8 +607,11 @@ getTableAttributes(PGconn *c, PQLTable *t)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			t->attributes[i].comment = NULL;
 		else
+		{
 			t->attributes[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res,
 											  "description")));
+			t->attributes[i].comment = escapeQuotes(t->attributes[i].comment);
+		}
 
 		/*
 		 * Security labels are not assigned here (see getTableSecurityLabels),

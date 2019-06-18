@@ -101,7 +101,10 @@ getForeignDataWrappers(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			f[i].comment = NULL;
 		else
+		{
 			f[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			f[i].comment = escapeQuotes(f[i].comment);
+		}
 
 		logDebug("foreign data wrapper \"%s\"", f[i].fdwname);
 	}

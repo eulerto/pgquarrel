@@ -73,7 +73,10 @@ getLanguages(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			l[i].comment = NULL;
 		else
+		{
 			l[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			l[i].comment = escapeQuotes(l[i].comment);
+		}
 
 		l[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "lanowner")));
 		if (PQgetisnull(res, i, PQfnumber(res, "lanacl")))

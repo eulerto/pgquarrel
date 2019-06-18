@@ -202,4 +202,6 @@ bool searchStringList(stringList *sl, const char *s);
 #endif
 void freeStringList(stringList *sl);
 
+char *escapeQuotes(char *str);
+
 #endif	/* COMMON_H */

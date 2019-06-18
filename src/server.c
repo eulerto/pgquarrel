@@ -86,7 +86,10 @@ getForeignServers(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			s[i].comment = NULL;
 		else
+		{
 			s[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			s[i].comment = escapeQuotes(s[i].comment);
+		}
 
 		logDebug("foreign server \"%s\"", s[i].servername);
 	}

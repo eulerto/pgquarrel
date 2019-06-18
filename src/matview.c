@@ -99,7 +99,10 @@ getMaterializedViews(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			v[i].comment = NULL;
 		else
+		{
 			v[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			v[i].comment = escapeQuotes(v[i].comment);
+		}
 
 		v[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "relowner")));
 

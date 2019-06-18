@@ -69,7 +69,10 @@ getEventTriggers(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			e[i].comment = NULL;
 		else
+		{
 			e[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			e[i].comment = escapeQuotes(e[i].comment);
+		}
 
 		e[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "evtowner")));
 

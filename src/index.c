@@ -71,7 +71,10 @@ getIndexes(PGconn *c, int *n)
 		if (PQgetisnull(res, k, PQfnumber(res, "description")))
 			i[k].comment = NULL;
 		else
+		{
 			i[k].comment = strdup(PQgetvalue(res, k, PQfnumber(res, "description")));
+			i[k].comment = escapeQuotes(i[k].comment);
+		}
 
 		logDebug("index \"%s\".\"%s\"", i[k].obj.schemaname, i[k].obj.objectname);
 	}

@@ -92,7 +92,10 @@ getDomains(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			d[i].comment = NULL;
 		else
+		{
 			d[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+			d[i].comment = escapeQuotes(d[i].comment);
+		}
 
 		d[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "typowner")));
 		if (PQgetisnull(res, i, PQfnumber(res, "typacl")))
