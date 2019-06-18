@@ -83,18 +83,6 @@ CREATE TABLE to_table_4 OF same_type_1;
 -- empty table
 CREATE TABLE to_table_5 ();
 
--- table comment with escaped single quote
-CREATE TABLE same_table_6 (
-	a integer not null,
-	b text not null,
-	c varchar(40),
-	d double precision,
-	PRIMARY KEY(a)
-);
-
-COMMENT ON TABLE same_table_6 IS 'this is comment with '' for table same_table_6 modified';
-COMMENT ON COLUMN same_table_6.b IS 'this is comment with '' for column same_table_6.b modified';
-
 -- reloptions
 ALTER TABLE same_table_1 SET (autovacuum_enabled = off, autovacuum_vacuum_cost_delay = 13);
 ALTER TABLE same_table_2 SET (autovacuum_vacuum_scale_factor = 0.44, autovacuum_analyze_scale_factor = 0.22);

@@ -342,7 +342,7 @@ dumpCreateFunction(FILE *output, PQLFunction *f, bool orreplace)
 	if (options.comment && f->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON FUNCTION %s.%s(%s) IS $QUOT$%s$QUOT$;",
+		fprintf(output, "COMMENT ON FUNCTION %s.%s(%s) IS '%s';",
 				schema,
 				funcname,
 				f->iarguments,
@@ -357,7 +357,7 @@ dumpCreateFunction(FILE *output, PQLFunction *f, bool orreplace)
 		for (i = 0; i < f->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS $QUOT$%s$QUOT$;",
+			fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
 					f->seclabels[i].provider,
 					schema,
 					funcname,
@@ -667,7 +667,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON FUNCTION %s.%s(%s) IS $QUOT$%s$QUOT$;",
+			fprintf(output, "COMMENT ON FUNCTION %s.%s(%s) IS '%s';",
 					schema2, funcname2, b->iarguments, b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
@@ -688,7 +688,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS $QUOT$%s$QUOT$;",
+				fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
 						b->seclabels[i].provider,
 						schema2, funcname2, b->iarguments, b->seclabels[i].label);
 			}
@@ -715,7 +715,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS $QUOT$%s$QUOT$;",
+					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
 							b->seclabels[j].provider,
 							schema2, funcname2, b->iarguments, b->seclabels[j].label);
 					j++;
@@ -733,7 +733,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
-						fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS $QUOT$%s$QUOT$;",
+						fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
 								b->seclabels[j].provider,
 								schema2, funcname2, b->iarguments, b->seclabels[j].label);
 					}
@@ -751,7 +751,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS $QUOT$%s$QUOT$;",
+					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
 							b->seclabels[j].provider,
 							schema2, funcname2, b->iarguments, b->seclabels[j].label);
 					j++;

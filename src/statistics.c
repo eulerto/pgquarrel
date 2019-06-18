@@ -114,7 +114,7 @@ dumpCreateStatistics(FILE *output, PQLStatistics *s)
 	if (options.comment && s->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON STATISTICS %s.%s IS $QUOT$%s$QUOT$;", schema, stxname,
+		fprintf(output, "COMMENT ON STATISTICS %s.%s IS '%s';", schema, stxname,
 				s->comment);
 	}
 
@@ -159,7 +159,7 @@ dumpAlterStatistics(FILE *output, PQLStatistics *a, PQLStatistics *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON STATISTICS %s.%s IS $QUOT$%s$QUOT$;", schema2, stxname2,
+			fprintf(output, "COMMENT ON STATISTICS %s.%s IS '%s';", schema2, stxname2,
 					b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)

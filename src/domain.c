@@ -333,7 +333,7 @@ dumpCreateDomain(FILE *output, PQLDomain *d)
 	if (options.comment && d->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON DOMAIN %s.%s IS $QUOT$%s$QUOT$;",
+		fprintf(output, "COMMENT ON DOMAIN %s.%s IS '%s';",
 				schema,
 				domname,
 				d->comment);
@@ -345,7 +345,7 @@ dumpCreateDomain(FILE *output, PQLDomain *d)
 		for (i = 0; i < d->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS $QUOT$%s$QUOT$;",
+			fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
 					d->seclabels[i].provider,
 					schema,
 					domname,
@@ -431,7 +431,7 @@ dumpAlterDomain(FILE *output, PQLDomain *a, PQLDomain *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON DOMAIN %s.%s IS $QUOT$%s$QUOT$;",
+			fprintf(output, "COMMENT ON DOMAIN %s.%s IS '%s';",
 					schema2,
 					domname2,
 					b->comment);
@@ -455,7 +455,7 @@ dumpAlterDomain(FILE *output, PQLDomain *a, PQLDomain *b)
 			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS $QUOT$%s$QUOT$;",
+				fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
 						b->seclabels[i].provider,
 						schema2,
 						domname2,
@@ -485,7 +485,7 @@ dumpAlterDomain(FILE *output, PQLDomain *a, PQLDomain *b)
 				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS $QUOT$%s$QUOT$;",
+					fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
 							b->seclabels[j].provider,
 							schema2,
 							domname2,
@@ -506,7 +506,7 @@ dumpAlterDomain(FILE *output, PQLDomain *a, PQLDomain *b)
 					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
-						fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS $QUOT$%s$QUOT$;",
+						fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
 								b->seclabels[j].provider,
 								schema2,
 								domname2,
@@ -527,7 +527,7 @@ dumpAlterDomain(FILE *output, PQLDomain *a, PQLDomain *b)
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS $QUOT$%s$QUOT$;",
+					fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
 							b->seclabels[j].provider,
 							schema2,
 							domname2,

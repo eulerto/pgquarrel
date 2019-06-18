@@ -383,7 +383,7 @@ dumpCreateSequence(FILE *output, PQLSequence *s)
 	if (options.comment && s->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON SEQUENCE %s.%s IS $QUOT$%s$QUOT$;", schema, seqname,
+		fprintf(output, "COMMENT ON SEQUENCE %s.%s IS '%s';", schema, seqname,
 				s->comment);
 	}
 
@@ -395,7 +395,7 @@ dumpCreateSequence(FILE *output, PQLSequence *s)
 		for (i = 0; i < s->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS $QUOT$%s$QUOT$;",
+			fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
 					s->seclabels[i].provider,
 					schema,
 					seqname,
@@ -528,7 +528,7 @@ dumpAlterSequence(FILE *output, PQLSequence *a, PQLSequence *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON SEQUENCE %s.%s IS $QUOT$%s$QUOT$;", schema2, seqname2,
+			fprintf(output, "COMMENT ON SEQUENCE %s.%s IS '%s';", schema2, seqname2,
 					b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
@@ -548,7 +548,7 @@ dumpAlterSequence(FILE *output, PQLSequence *a, PQLSequence *b)
 			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS $QUOT$%s$QUOT$;",
+				fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
 						b->seclabels[i].provider,
 						schema2,
 						seqname2,
@@ -578,7 +578,7 @@ dumpAlterSequence(FILE *output, PQLSequence *a, PQLSequence *b)
 				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS $QUOT$%s$QUOT$;",
+					fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
 							b->seclabels[j].provider,
 							schema2,
 							seqname2,
@@ -599,7 +599,7 @@ dumpAlterSequence(FILE *output, PQLSequence *a, PQLSequence *b)
 					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
-						fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS $QUOT$%s$QUOT$;",
+						fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
 								b->seclabels[j].provider,
 								schema2,
 								seqname2,
@@ -620,7 +620,7 @@ dumpAlterSequence(FILE *output, PQLSequence *a, PQLSequence *b)
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS $QUOT$%s$QUOT$;",
+					fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
 							b->seclabels[j].provider,
 							schema2,
 							seqname2,
