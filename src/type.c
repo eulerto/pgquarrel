@@ -461,6 +461,7 @@ getEnumTypeLabels(PGconn *c, PQLEnumType *t)
 
 	for (i = 0; i < t->nlabels; i++)
 		t->labels[i] = strdup(PQgetvalue(res, i, PQfnumber(res, "enumlabel")));
+		t->labels[i] = escapeQuotes(t->labels[i]);
 
 	PQclear(res);
 }
@@ -592,6 +593,8 @@ getEnumTypeSecurityLabels(PGconn *c, PQLEnumType *t)
 		t->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
 		t->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
+		t->seclabels[i].label = escapeQuotes(t->seclabels[i].label);
+
 	}
 
 	PQclear(res);
