@@ -52,4 +52,6 @@ CREATE EXTENSION file_fdw;
 
 \i from-statistics.sql
 
+\i from-enum-type.sql
+
 --\i from-user-mapping.sql

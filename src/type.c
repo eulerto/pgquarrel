@@ -459,9 +459,10 @@ getEnumTypeLabels(PGconn *c, PQLEnumType *t)
 	logDebug("number of labels on enum type \"%s\".\"%s\": %d", t->obj.schemaname,
 			 t->obj.objectname, t->nlabels);
 
-	for (i = 0; i < t->nlabels; i++)
+	for (i = 0; i < t->nlabels; i++) {
 		t->labels[i] = strdup(PQgetvalue(res, i, PQfnumber(res, "enumlabel")));
 		t->labels[i] = escapeQuotes(t->labels[i]);
+	}
 
 	PQclear(res);
 }
