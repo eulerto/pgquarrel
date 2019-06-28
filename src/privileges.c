@@ -170,6 +170,18 @@ splitACLItem(char *a)
 
 	ptr = a;
 
+	/* If first character is double-quote then we probably deal with something like below:
+	 * "\"to-quoted-role\"=U/quarrel"
+	 * In such case leading and trailing `"` must be stripped
+	 * and escaped quotes must be replaced with quotes
+	 */
+	if (ptr[0] == '"' && ptr[strlen(ptr)-1] == '"')
+	    ptr = fixDoubleQuotes(ptr);
+	if (ptr[0] == '"')
+		ptr++;
+	if (ptr[strlen(ptr)-1] == '"')
+		ptr[strlen(ptr)-1]=0;
+
 	/* grantee */
 	nextptr = strchr(ptr, '=');
 	if (nextptr)

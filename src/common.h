@@ -203,5 +203,6 @@ bool searchStringList(stringList *sl, const char *s);
 void freeStringList(stringList *sl);
 
 char *escapeQuotes(char *str);
+char *fixDoubleQuotes(char *str);
 
 #endif	/* COMMON_H */

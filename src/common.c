@@ -732,3 +732,12 @@ escapeQuotes(char *str)
 {
 	return strReplace(str, "'", "''");
 }
+
+/*
+ * Replace escaped double-quote with double-quote.
+ */
+char*
+fixDoubleQuotes(char *str)
+{
+	return strReplace(str, "\\\"", "\"");
+}
