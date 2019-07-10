@@ -343,6 +343,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 	options->source.username = NULL;			/* source - user */
 	options->source.password = NULL;			/* source - password */
 	options->source.dbname = NULL;				/* source - dbname */
+	options->source.sslmode = NULL;				/* source - sslmode */
 	options->source.promptpassword = true;		/* source - prompt for password */
 
 	options->target.host = NULL;				/* target - host */
@@ -350,6 +351,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 	options->target.username = NULL;			/* target - user */
 	options->target.password = NULL;			/* target - password */
 	options->target.dbname = NULL;				/* target - dbname */
+	options->target.sslmode = NULL;				/* target - sslmode */
 	options->target.promptpassword = true;		/* source - prompt for password */
 
 	/* if there is no config file, bail out */
@@ -604,6 +606,16 @@ loadConfig(const char *cf, QuarrelOptions *options)
 				options->source.dbname = strdup(tmp);
 		}
 
+		tmp = mini_file_get_value(config, "source", "sslmode");
+		if (tmp != NULL)
+			options->source.sslmode = strdup(tmp);
+		else
+		{
+			tmp = mini_file_get_value(config, "to", "sslmode");
+			if (tmp != NULL)
+				options->source.sslmode = strdup(tmp);
+		}
+
 		tmp = mini_file_get_value(config, "source", "no-password");
 		if (tmp != NULL)
 			options->source.promptpassword = !parseBoolean("no-password",
@@ -661,6 +673,16 @@ loadConfig(const char *cf, QuarrelOptions *options)
 				options->target.dbname = strdup(tmp);
 		}
 
+		tmp = mini_file_get_value(config, "target", "sslmode");
+		if (tmp != NULL)
+			options->target.sslmode = strdup(tmp);
+		else
+		{
+			tmp = mini_file_get_value(config, "from", "sslmode");
+			if (tmp != NULL)
+				options->target.sslmode = strdup(tmp);
+		}
+
 		tmp = mini_file_get_value(config, "target", "no-password");
 		if (tmp != NULL)
 			options->target.promptpassword = !parseBoolean("no-password",
@@ -682,7 +704,7 @@ connectDatabase(QuarrelDatabaseOptions opt)
 	PGconn		*conn;
 	char		*prompt_password = NULL;
 
-#define NUMBER_OF_PARAMS	7
+#define NUMBER_OF_PARAMS	8
 	const char **keywords = malloc(NUMBER_OF_PARAMS * sizeof(*keywords));
 	const char **values = malloc(NUMBER_OF_PARAMS * sizeof(*values));
 
@@ -696,9 +718,11 @@ connectDatabase(QuarrelDatabaseOptions opt)
 	values[3] = opt.password;
 	keywords[4] = "dbname";
 	values[4] = opt.dbname;
-	keywords[5] = "fallback_application_name";
-	values[5] = PGQ_NAME;
-	keywords[6] = values[6] = NULL;
+	keywords[5] = "sslmode";
+	values[5] = opt.sslmode;
+	keywords[6] = "fallback_application_name";
+	values[6] = PGQ_NAME;
+	keywords[7] = values[7] = NULL;
 
 	conn = PQconnectdbParams(keywords, values, 1);
 
@@ -4046,11 +4070,13 @@ int main(int argc, char *argv[])
 		{"source-host", required_argument, NULL, 3},
 		{"source-port", required_argument, NULL, 4},
 		{"source-username", required_argument, NULL, 5},
+		{"source-sslmode", required_argument, NULL, 40},
 		{"source-no-password", no_argument, NULL, 38},
 		{"target-dbname", required_argument, NULL, 6},
 		{"target-host", required_argument, NULL, 7},
 		{"target-port", required_argument, NULL, 8},
 		{"target-username", required_argument, NULL, 9},
+		{"target-sslmode", required_argument, NULL, 41},
 		{"target-no-password", no_argument, NULL, 39},
 		{"aggregate", required_argument, NULL, 10},
 		{"cast", required_argument, NULL, 11},
@@ -4125,6 +4151,7 @@ int main(int argc, char *argv[])
 	/* source or target? */
 	opts.source.istarget = false;
 	opts.target.istarget = true;
+
 
 	/* process command-line options */
 	while ((c = getopt_long(argc, argv, "c:f:stv", long_options, &optindex)) != -1)
@@ -4301,6 +4328,12 @@ int main(int argc, char *argv[])
 				topts.promptpassword = false;
 				target_prompt_given = true;
 				break;
+			case 40:
+				sopts.sslmode = strdup(optarg);
+				break;
+			case 41:
+				topts.sslmode = strdup(optarg);
+				break;
 			default:
 				fprintf(stderr, "Try \"%s --help\" for more information.\n", PGQ_NAME);
 				exit(EXIT_FAILURE);
@@ -4395,6 +4428,8 @@ int main(int argc, char *argv[])
 		opts.source.port = sopts.port;
 	if (sopts.username)
 		opts.source.username = sopts.username;
+	if (sopts.sslmode)
+		opts.source.sslmode = sopts.sslmode;
 	if (source_prompt_given)
 		opts.source.promptpassword = sopts.promptpassword;
 
@@ -4406,6 +4441,8 @@ int main(int argc, char *argv[])
 		opts.target.port = topts.port;
 	if (topts.username)
 		opts.target.username = topts.username;
+	if (topts.sslmode)
+		opts.target.sslmode = topts.sslmode;
 	if (target_prompt_given)
 		opts.target.promptpassword = topts.promptpassword;
 
