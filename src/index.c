@@ -55,6 +55,8 @@ getIndexes(PGconn *c, int *n)
 
 	for (k = 0; k < *n; k++)
 	{
+		char	*withoutescape;
+
 		i[k].obj.oid = strtoul(PQgetvalue(res, k, PQfnumber(res, "oid")), NULL, 10);
 		i[k].obj.schemaname = strdup(PQgetvalue(res, k, PQfnumber(res, "nspname")));
 		i[k].obj.objectname = strdup(PQgetvalue(res, k, PQfnumber(res, "relname")));
@@ -71,7 +73,18 @@ getIndexes(PGconn *c, int *n)
 		if (PQgetisnull(res, k, PQfnumber(res, "description")))
 			i[k].comment = NULL;
 		else
-			i[k].comment = strdup(PQgetvalue(res, k, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, k, PQfnumber(res, "description"));
+			i[k].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (i[k].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		logDebug("index \"%s\".\"%s\"", i[k].obj.schemaname, i[k].obj.objectname);
 	}
@@ -98,7 +111,7 @@ freeIndexes(PQLIndex *i, int n)
 			if (i[j].reloptions)
 				free(i[j].reloptions);
 			if (i[j].comment)
-				free(i[j].comment);
+				PQfreemem(i[j].comment);
 		}
 
 		free(i);
@@ -131,7 +144,7 @@ dumpCreateIndex(FILE *output, PQLIndex *i)
 	if (options.comment && i->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON INDEX %s.%s IS '%s';",
+		fprintf(output, "COMMENT ON INDEX %s.%s IS %s;",
 				schema, idxname, i->comment);
 	}
 
@@ -269,7 +282,7 @@ dumpAlterIndex(FILE *output, PQLIndex *a, PQLIndex *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON INDEX %s.%s IS '%s';",
+			fprintf(output, "COMMENT ON INDEX %s.%s IS %s;",
 					schema2, idxname2, b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)

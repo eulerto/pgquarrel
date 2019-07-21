@@ -50,6 +50,8 @@ getRules(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		r[i].oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		r[i].table.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res,
 									   "schemaname")));
@@ -59,7 +61,18 @@ getRules(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			r[i].comment = NULL;
 		else
-			r[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			r[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (r[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		logDebug("rule \"%s\" on \"%s\".\"%s\"", r[i].rulename, r[i].table.schemaname,
 				 r[i].table.objectname);
@@ -84,7 +97,7 @@ freeRules(PQLRule *r, int n)
 			free(r[i].rulename);
 			free(r[i].ruledef);
 			if (r[i].comment)
-				free(r[i].comment);
+				PQfreemem(r[i].comment);
 		}
 
 		free(r);
@@ -120,7 +133,7 @@ dumpCreateRule(FILE *output, PQLRule *r)
 	if (options.comment && r->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON RULE %s ON %s.%s IS '%s';", rulename, schema,
+		fprintf(output, "COMMENT ON RULE %s ON %s.%s IS %s;", rulename, schema,
 				objname, r->comment);
 	}
 
@@ -152,7 +165,7 @@ dumpAlterRule(FILE *output, PQLRule *a, PQLRule *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON RULE %s ON %s.%s IS '%s';", rulename2, schema,
+			fprintf(output, "COMMENT ON RULE %s ON %s.%s IS %s;", rulename2, schema,
 					objname, b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)

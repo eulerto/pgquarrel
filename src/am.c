@@ -54,6 +54,8 @@ getAccessMethods(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		a[i].oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		a[i].amname = strdup(PQgetvalue(res, i, PQfnumber(res, "amname")));
 		a[i].amtype = PQgetvalue(res, i, PQfnumber(res, "amtype"))[0];
@@ -67,7 +69,18 @@ getAccessMethods(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			a[i].comment = NULL;
 		else
-			a[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			a[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (a[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		logDebug("access method \"%s\"", a[i].amname);
 	}
@@ -92,7 +105,7 @@ freeAccessMethods(PQLAccessMethod *a, int n)
 			if (a[i].handler.objectname)
 				free(a[i].handler.objectname);
 			if (a[i].comment)
-				free(a[i].comment);
+				PQfreemem(a[i].comment);
 		}
 
 		free(a);
@@ -137,7 +150,7 @@ dumpCreateAccessMethod(FILE *output, PQLAccessMethod *a)
 	if (options.comment && a->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON ACCESS METHOD %s IS '%s';", amname,
+		fprintf(output, "COMMENT ON ACCESS METHOD %s IS %s;", amname,
 				a->comment);
 	}
 
@@ -168,7 +181,7 @@ dumpAlterAccessMethod(FILE *output, PQLAccessMethod *a, PQLAccessMethod *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON ACCESS METHOD %s IS '%s';",
+			fprintf(output, "COMMENT ON ACCESS METHOD %s IS %s;",
 					b->amname,
 					b->comment);
 		}

@@ -98,6 +98,8 @@ getCollations(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		d[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		d[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		d[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "collname")));
@@ -113,7 +115,18 @@ getCollations(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			d[i].comment = NULL;
 		else
-			d[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			d[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (d[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		d[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "collowner")));
 
@@ -142,7 +155,7 @@ freeCollations(PQLCollation *c, int n)
 			if (c[i].provider)
 				free(c[i].provider);
 			if (c[i].comment)
-				free(c[i].comment);
+				PQfreemem(c[i].comment);
 			free(c[i].owner);
 		}
 
@@ -185,7 +198,7 @@ dumpCreateCollation(FILE *output, PQLCollation *c)
 	if (options.comment && c->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON COLLATION %s.%s IS '%s';",
+		fprintf(output, "COMMENT ON COLLATION %s.%s IS %s;",
 				schema,
 				collname,
 				c->comment);
@@ -233,7 +246,7 @@ dumpAlterCollation(FILE *output, PQLCollation *a, PQLCollation *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON COLLATION %s.%s IS '%s';",
+			fprintf(output, "COMMENT ON COLLATION %s.%s IS %s;",
 					schema2,
 					collname2,
 					b->comment);

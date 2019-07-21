@@ -74,6 +74,8 @@ getViews(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		v[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		v[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		v[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "relname")));
@@ -90,7 +92,18 @@ getViews(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			v[i].comment = NULL;
 		else
-			v[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			v[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (v[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		v[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "relowner")));
 
@@ -149,9 +162,20 @@ getViewSecurityLabels(PGconn *c, PQLView *v)
 
 	for (i = 0; i < v->nseclabels; i++)
 	{
+		char	*withoutescape;
+
 		v->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
-		v->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
+		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
+		v->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		if (v->seclabels[i].label == NULL)
+		{
+			logError("escaping comment failed: %s", PQerrorMessage(c));
+			PQclear(res);
+			PQfinish(c);
+			/* XXX leak another connection? */
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	PQclear(res);
@@ -176,14 +200,14 @@ freeViews(PQLView *v, int n)
 			if (v[i].checkoption)
 				free(v[i].checkoption);
 			if (v[i].comment)
-				free(v[i].comment);
+				PQfreemem(v[i].comment);
 			free(v[i].owner);
 
 			/* security labels */
 			for (j = 0; j < v[i].nseclabels; j++)
 			{
 				free(v[i].seclabels[j].provider);
-				free(v[i].seclabels[j].label);
+				PQfreemem(v[i].seclabels[j].label);
 			}
 
 			if (v[i].seclabels)
@@ -231,7 +255,7 @@ dumpCreateView(FILE *output, PQLView *v)
 	if (options.comment && v->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON VIEW %s.%s IS '%s';", schema, viewname, v->comment);
+		fprintf(output, "COMMENT ON VIEW %s.%s IS %s;", schema, viewname, v->comment);
 	}
 
 	/* security labels */
@@ -242,7 +266,7 @@ dumpCreateView(FILE *output, PQLView *v)
 		for (i = 0; i < v->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS '%s';",
+			fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS %s;",
 					v->seclabels[i].provider,
 					schema,
 					viewname,
@@ -377,7 +401,7 @@ dumpAlterView(FILE *output, PQLView *a, PQLView *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON VIEW %s.%s IS '%s';", schema2, viewname2,
+			fprintf(output, "COMMENT ON VIEW %s.%s IS %s;", schema2, viewname2,
 					b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
@@ -397,7 +421,7 @@ dumpAlterView(FILE *output, PQLView *a, PQLView *b)
 			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS '%s';",
+				fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS %s;",
 						b->seclabels[i].provider,
 						schema2,
 						viewname2,
@@ -427,7 +451,7 @@ dumpAlterView(FILE *output, PQLView *a, PQLView *b)
 				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS %s;",
 							b->seclabels[j].provider,
 							schema2,
 							viewname2,
@@ -448,7 +472,7 @@ dumpAlterView(FILE *output, PQLView *a, PQLView *b)
 					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
-						fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS '%s';",
+						fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS %s;",
 								b->seclabels[j].provider,
 								schema2,
 								viewname2,
@@ -469,7 +493,7 @@ dumpAlterView(FILE *output, PQLView *a, PQLView *b)
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON VIEW %s.%s IS %s;",
 							b->seclabels[j].provider,
 							schema2,
 							viewname2,

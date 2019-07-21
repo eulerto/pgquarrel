@@ -89,6 +89,8 @@ getConversions(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		d[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		d[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "conschema")));
 		d[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "conname")));
@@ -100,7 +102,18 @@ getConversions(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			d[i].comment = NULL;
 		else
-			d[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			d[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (d[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		d[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "conowner")));
 
@@ -128,7 +141,7 @@ freeConversions(PQLConversion *c, int n)
 			free(c[i].toencoding);
 			free(c[i].funcname);
 			if (c[i].comment)
-				free(c[i].comment);
+				PQfreemem(c[i].comment);
 			free(c[i].owner);
 		}
 
@@ -208,7 +221,7 @@ dumpAlterConversion(FILE *output, PQLConversion *a, PQLConversion *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON CONVERSION %s.%s IS '%s';",
+			fprintf(output, "COMMENT ON CONVERSION %s.%s IS %s;",
 					schema2,
 					convname2,
 					b->comment);

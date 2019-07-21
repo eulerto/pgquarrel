@@ -50,6 +50,8 @@ getTriggers(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		t[i].oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		t[i].trgname = strdup(PQgetvalue(res, i, PQfnumber(res, "trgname")));
 		t[i].table.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
@@ -58,7 +60,18 @@ getTriggers(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			t[i].comment = NULL;
 		else
-			t[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			t[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (t[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		logDebug("trigger \"%s\" on \"%s\".\"%s\"", t[i].trgname, t[i].table.schemaname,
 				 t[i].table.objectname);
@@ -83,7 +96,7 @@ freeTriggers(PQLTrigger *t, int n)
 			free(t[i].table.objectname);
 			free(t[i].trgdef);
 			if (t[i].comment)
-				free(t[i].comment);
+				PQfreemem(t[i].comment);
 		}
 
 		free(t);
@@ -104,7 +117,7 @@ dumpCreateTrigger(FILE *output, PQLTrigger *t)
 	if (options.comment && t->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON TRIGGER %s ON %s.%s IS '%s';", trgname, schema,
+		fprintf(output, "COMMENT ON TRIGGER %s ON %s.%s IS %s;", trgname, schema,
 				tabname, t->comment);
 	}
 
@@ -144,7 +157,7 @@ dumpAlterTrigger(FILE *output, PQLTrigger *a, PQLTrigger *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TRIGGER %s ON %s.%s IS '%s';", trgname2, schema2,
+			fprintf(output, "COMMENT ON TRIGGER %s ON %s.%s IS %s;", trgname2, schema2,
 					tabname2, b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)

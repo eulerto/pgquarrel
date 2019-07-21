@@ -53,6 +53,8 @@ getPolicies(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		p[i].oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		p[i].polname = strdup(PQgetvalue(res, i, PQfnumber(res, "polname")));
 		p[i].table.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "polrelid")), NULL, 10);
@@ -75,7 +77,18 @@ getPolicies(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			p[i].comment = NULL;
 		else
-			p[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			p[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (p[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		logDebug("policy \"%s\" on \"%s\".\"%s\"", p[i].polname, p[i].table.schemaname,
 				 p[i].table.objectname);
@@ -102,7 +115,7 @@ freePolicies(PQLPolicy *p, int n)
 			free(p[i].qual);
 			free(p[i].withcheck);
 			if (p[i].comment)
-				free(p[i].comment);
+				PQfreemem(p[i].comment);
 		}
 
 		free(p);
@@ -149,7 +162,7 @@ dumpCreatePolicy(FILE *output, PQLPolicy *p)
 	if (options.comment && p->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON POLICY %s ON %s.%s IS '%s';", polname, schema,
+		fprintf(output, "COMMENT ON POLICY %s ON %s.%s IS %s;", polname, schema,
 				tabname, p->comment);
 	}
 
@@ -227,7 +240,7 @@ dumpAlterPolicy(FILE *output, PQLPolicy *a, PQLPolicy *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON POLICY %s ON %s.%s IS '%s';", polname2, schema2,
+			fprintf(output, "COMMENT ON POLICY %s ON %s.%s IS %s;", polname2, schema2,
 					tabname2, b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)

@@ -79,6 +79,8 @@ getFunctions(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		f[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		f[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		f[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "proname")));
@@ -103,7 +105,18 @@ getFunctions(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			f[i].comment = NULL;
 		else
-			f[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			f[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (f[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		f[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "proowner")));
 		if (PQgetisnull(res, i, PQfnumber(res, "proacl")))
@@ -187,9 +200,20 @@ getFunctionSecurityLabels(PGconn *c, PQLFunction *f)
 
 	for (i = 0; i < f->nseclabels; i++)
 	{
+		char	*withoutescape;
+
 		f->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
-		f->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
+		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
+		f->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		if (f->seclabels[i].label == NULL)
+		{
+			logError("escaping label failed: %s", PQerrorMessage(c));
+			PQclear(res);
+			PQfinish(c);
+			/* XXX leak another connection? */
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	PQclear(res);
@@ -218,7 +242,7 @@ freeFunctions(PQLFunction *f, int n)
 			if (f[i].configparams)
 				free(f[i].configparams);
 			if (f[i].comment)
-				free(f[i].comment);
+				PQfreemem(f[i].comment);
 			free(f[i].owner);
 			if (f[i].acl)
 				free(f[i].acl);
@@ -227,7 +251,7 @@ freeFunctions(PQLFunction *f, int n)
 			for (j = 0; j < f[i].nseclabels; j++)
 			{
 				free(f[i].seclabels[j].provider);
-				free(f[i].seclabels[j].label);
+				PQfreemem(f[i].seclabels[j].label);
 			}
 
 			if (f[i].seclabels)
@@ -342,7 +366,7 @@ dumpCreateFunction(FILE *output, PQLFunction *f, bool orreplace)
 	if (options.comment && f->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON FUNCTION %s.%s(%s) IS '%s';",
+		fprintf(output, "COMMENT ON FUNCTION %s.%s(%s) IS %s;",
 				schema,
 				funcname,
 				f->iarguments,
@@ -357,7 +381,7 @@ dumpCreateFunction(FILE *output, PQLFunction *f, bool orreplace)
 		for (i = 0; i < f->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
+			fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS %s;",
 					f->seclabels[i].provider,
 					schema,
 					funcname,
@@ -667,7 +691,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON FUNCTION %s.%s(%s) IS '%s';",
+			fprintf(output, "COMMENT ON FUNCTION %s.%s(%s) IS %s;",
 					schema2, funcname2, b->iarguments, b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
@@ -688,7 +712,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
+				fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS %s;",
 						b->seclabels[i].provider,
 						schema2, funcname2, b->iarguments, b->seclabels[i].label);
 			}
@@ -715,7 +739,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS %s;",
 							b->seclabels[j].provider,
 							schema2, funcname2, b->iarguments, b->seclabels[j].label);
 					j++;
@@ -733,7 +757,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
-						fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
+						fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS %s;",
 								b->seclabels[j].provider,
 								schema2, funcname2, b->iarguments, b->seclabels[j].label);
 					}
@@ -751,7 +775,7 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS %s;",
 							b->seclabels[j].provider,
 							schema2, funcname2, b->iarguments, b->seclabels[j].label);
 					j++;

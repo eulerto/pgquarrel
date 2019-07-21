@@ -89,6 +89,8 @@ getOperators(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		o[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		o[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		o[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "oprname")));
@@ -130,7 +132,18 @@ getOperators(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			o[i].comment = NULL;
 		else
-			o[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			o[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (o[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		o[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "oprowner")));
 
@@ -197,6 +210,8 @@ getOperatorClasses(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		d[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		d[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "opcnspname")));
 		d[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "opcname")));
@@ -233,7 +248,18 @@ getOperatorClasses(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			d[i].comment = NULL;
 		else
-			d[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			d[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (d[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		d[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "opcowner")));
 	}
@@ -290,6 +316,8 @@ getOperatorFamilies(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		f[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		f[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "opfnspname")));
 		f[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "opfname")));
@@ -308,7 +336,18 @@ getOperatorFamilies(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			f[i].comment = NULL;
 		else
-			f[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			f[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (f[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		f[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "opfowner")));
 	}
@@ -489,7 +528,7 @@ freeOperators(PQLOperator *o, int n)
 			if (o[i].join)
 				free(o[i].join);
 			if (o[i].comment)
-				free(o[i].comment);
+				PQfreemem(o[i].comment);
 			free(o[i].owner);
 		}
 
@@ -534,7 +573,7 @@ freeOperatorClasses(PQLOperatorClass *c, int n)
 				free(c[i].opandfunc.functions[j].funcname);
 
 			if (c[i].comment)
-				free(c[i].comment);
+				PQfreemem(c[i].comment);
 			free(c[i].owner);
 		}
 
@@ -572,7 +611,7 @@ freeOperatorFamilies(PQLOperatorFamily *f, int n)
 				free(f[i].opandfunc.functions[j].funcname);
 
 			if (f[i].comment)
-				free(f[i].comment);
+				PQfreemem(f[i].comment);
 			free(f[i].owner);
 		}
 
@@ -656,7 +695,7 @@ dumpCreateOperator(FILE *output, PQLOperator *o)
 		if (o->comment != NULL)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON OPERATOR %s.%s(%s,%s) IS '%s';",
+			fprintf(output, "COMMENT ON OPERATOR %s.%s(%s,%s) IS %s;",
 					schema, oprname,
 					(o->lefttype) ? o->lefttype : "NONE",
 					(o->righttype) ? o->righttype : "NONE",
@@ -752,7 +791,7 @@ dumpCreateOperatorClass(FILE *output, PQLOperatorClass *c)
 		if (c->comment != NULL)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON OPERATOR CLASS %s.%s USING %s IS '%s';",
+			fprintf(output, "COMMENT ON OPERATOR CLASS %s.%s USING %s IS %s;",
 					schema, opcname,
 					c->accessmethod,
 					c->comment);
@@ -793,7 +832,7 @@ dumpCreateOperatorFamily(FILE *output, PQLOperatorFamily *f)
 		if (f->comment != NULL)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON OPERATOR FAMILY %s.%s USING %s IS '%s';",
+			fprintf(output, "COMMENT ON OPERATOR FAMILY %s.%s USING %s IS %s;",
 					schema, opfname,
 					f->accessmethod,
 					f->comment);

@@ -62,6 +62,8 @@ getLanguages(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		l[i].oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		l[i].languagename = strdup(PQgetvalue(res, i, PQfnumber(res, "languagename")));
 		l[i].pltemplate = (PQgetvalue(res, i, PQfnumber(res, "pltemplate"))[0] == 't');
@@ -73,7 +75,18 @@ getLanguages(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			l[i].comment = NULL;
 		else
-			l[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			l[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (l[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		l[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "lanowner")));
 		if (PQgetisnull(res, i, PQfnumber(res, "lanacl")))
@@ -136,9 +149,20 @@ getLanguageSecurityLabels(PGconn *c, PQLLanguage *l)
 
 	for (i = 0; i < l->nseclabels; i++)
 	{
+		char	*withoutescape;
+
 		l->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
-		l->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
+		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
+		l->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		if (l->seclabels[i].label == NULL)
+		{
+			logError("escaping label failed: %s", PQerrorMessage(c));
+			PQclear(res);
+			PQfinish(c);
+			/* XXX leak another connection? */
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	PQclear(res);
@@ -160,7 +184,7 @@ freeLanguages(PQLLanguage *l, int n)
 			free(l[i].inlinehandler);
 			free(l[i].validator);
 			if (l[i].comment)
-				free(l[i].comment);
+				PQfreemem(l[i].comment);
 			free(l[i].owner);
 			if (l[i].acl)
 				free(l[i].acl);
@@ -169,7 +193,7 @@ freeLanguages(PQLLanguage *l, int n)
 			for (j = 0; j < l[i].nseclabels; j++)
 			{
 				free(l[i].seclabels[j].provider);
-				free(l[i].seclabels[j].label);
+				PQfreemem(l[i].seclabels[j].label);
 			}
 
 			if (l[i].seclabels)
@@ -215,7 +239,7 @@ dumpCreateLanguage(FILE *output, PQLLanguage *l)
 	if (options.comment && l->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON LANGUAGE %s IS '%s';", langname, l->comment);
+		fprintf(output, "COMMENT ON LANGUAGE %s IS %s;", langname, l->comment);
 	}
 
 	/* security labels */
@@ -226,7 +250,7 @@ dumpCreateLanguage(FILE *output, PQLLanguage *l)
 		for (i = 0; i < l->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS '%s';",
+			fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS %s;",
 					l->seclabels[i].provider,
 					langname,
 					l->seclabels[i].label);
@@ -277,7 +301,7 @@ dumpAlterLanguage(FILE *output, PQLLanguage *a, PQLLanguage *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON LANGUAGE %s IS '%s';", langname2, b->comment);
+			fprintf(output, "COMMENT ON LANGUAGE %s IS %s;", langname2, b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
 		{
@@ -296,7 +320,7 @@ dumpAlterLanguage(FILE *output, PQLLanguage *a, PQLLanguage *b)
 			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS '%s';",
+				fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS %s;",
 						b->seclabels[i].provider,
 						langname2,
 						b->seclabels[i].label);
@@ -324,7 +348,7 @@ dumpAlterLanguage(FILE *output, PQLLanguage *a, PQLLanguage *b)
 				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS %s;",
 							b->seclabels[j].provider,
 							langname2,
 							b->seclabels[j].label);
@@ -343,7 +367,7 @@ dumpAlterLanguage(FILE *output, PQLLanguage *a, PQLLanguage *b)
 					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
-						fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS '%s';",
+						fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS %s;",
 								b->seclabels[j].provider,
 								langname2,
 								b->seclabels[j].label);
@@ -362,7 +386,7 @@ dumpAlterLanguage(FILE *output, PQLLanguage *a, PQLLanguage *b)
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON LANGUAGE %s IS %s;",
 							b->seclabels[j].provider,
 							langname2,
 							b->seclabels[j].label);

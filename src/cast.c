@@ -98,6 +98,8 @@ getCasts(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		d[i].oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		d[i].source = strdup(PQgetvalue(res, i, PQfnumber(res, "source")));
 		d[i].target = strdup(PQgetvalue(res, i, PQfnumber(res, "target")));
@@ -108,7 +110,18 @@ getCasts(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			d[i].comment = NULL;
 		else
-			d[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			d[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (d[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		logDebug("cast \"%s\" as \"%s\" ; method: %c ; context: %c", d[i].source,
 				 d[i].target, d[i].method, d[i].context);
@@ -132,7 +145,7 @@ freeCasts(PQLCast *c, int n)
 			free(c[i].target);
 			free(c[i].funcname);
 			if (c[i].comment)
-				free(c[i].comment);
+				PQfreemem(c[i].comment);
 		}
 
 		free(c);
@@ -179,7 +192,7 @@ dumpCreateCast(FILE *output, PQLCast *c)
 	if (options.comment && c->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON CAST (%s AS %s) IS '%s';",
+		fprintf(output, "COMMENT ON CAST (%s AS %s) IS %s;",
 				c->source,
 				c->target,
 				c->comment);
@@ -219,7 +232,7 @@ dumpAlterCast(FILE *output, PQLCast *a, PQLCast *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON CAST (%s AS %s) IS '%s';",
+			fprintf(output, "COMMENT ON CAST (%s AS %s) IS %s;",
 					b->source,
 					b->target,
 					b->comment);

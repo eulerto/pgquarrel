@@ -15,8 +15,8 @@ CREATE TABLE same_table_2 (
 	b text,
 	PRIMARY KEY(a)
 );
-COMMENT ON TABLE same_table_2 IS 'this is comment for table same_table_2 modified';
-COMMENT ON COLUMN same_table_2.b IS 'this is comment for column same_table_2.b modified';
+COMMENT ON TABLE same_table_2 IS 'this is ''comment'' \\ for table same_table_2 modified';
+COMMENT ON COLUMN same_table_2.b IS 'this is ''comment'' \ for column same_table_2.b modified';
 ALTER TABLE same_table_2 ALTER COLUMN b TYPE varchar(1024);
 
 CREATE TABLE same_table_3 (

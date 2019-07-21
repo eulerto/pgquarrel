@@ -115,6 +115,8 @@ getTables(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		t[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		t[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		t[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "relname")));
@@ -149,7 +151,18 @@ getTables(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			t[i].comment = NULL;
 		else
-			t[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			t[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (t[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		t[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "relowner")));
 		if (PQgetisnull(res, i, PQfnumber(res, "relacl")))
@@ -328,13 +341,25 @@ getCheckConstraints(PGconn *c, PQLTable *t, int n)
 				 t[i].obj.schemaname, t[i].obj.objectname, t[i].ncheck);
 		for (j = 0; j < t[i].ncheck; j++)
 		{
+			char	*withoutescape;
+
 			t[i].check[j].conname = strdup(PQgetvalue(res, j, PQfnumber(res, "conname")));
 			t[i].check[j].condef = strdup(PQgetvalue(res, j, PQfnumber(res, "condef")));
 			if (PQgetisnull(res, j, PQfnumber(res, "description")))
 				t[i].check[j].comment = NULL;
 			else
-				t[i].check[j].comment = strdup(PQgetvalue(res, j, PQfnumber(res,
-											   "description")));
+			{
+				withoutescape = PQgetvalue(res, j, PQfnumber(res, "description"));
+				t[i].check[j].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+				if (t[i].check[j].comment == NULL)
+				{
+					logError("escaping comment failed: %s", PQerrorMessage(c));
+					PQclear(res);
+					PQfinish(c);
+					/* XXX leak another connection? */
+					exit(EXIT_FAILURE);
+				}
+			}
 		}
 
 		PQclear(res);
@@ -389,12 +414,25 @@ getFKConstraints(PGconn *c, PQLTable *t, int n)
 				 t[i].obj.schemaname, t[i].obj.objectname, t[i].nfk);
 		for (j = 0; j < t[i].nfk; j++)
 		{
+			char	*withoutescape;
+
 			t[i].fk[j].conname = strdup(PQgetvalue(res, j, PQfnumber(res, "conname")));
 			t[i].fk[j].condef = strdup(PQgetvalue(res, j, PQfnumber(res, "condef")));
 			if (PQgetisnull(res, j, PQfnumber(res, "description")))
 				t[i].fk[j].comment = NULL;
 			else
-				t[i].fk[j].comment = strdup(PQgetvalue(res, j, PQfnumber(res, "description")));
+			{
+				withoutescape = PQgetvalue(res, j, PQfnumber(res, "description"));
+				t[i].fk[j].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+				if (t[i].fk[j].comment == NULL)
+				{
+					logError("escaping comment failed: %s", PQerrorMessage(c));
+					PQclear(res);
+					PQfinish(c);
+					/* XXX leak another connection? */
+					exit(EXIT_FAILURE);
+				}
+			}
 		}
 
 		PQclear(res);
@@ -442,12 +480,25 @@ getPKConstraints(PGconn *c, PQLTable *t, int n)
 
 		if (PQntuples(res) == 1)
 		{
+			char	*withoutescape;
+
 			t[i].pk.conname = strdup(PQgetvalue(res, 0, PQfnumber(res, "conname")));
 			t[i].pk.condef = strdup(PQgetvalue(res, 0, PQfnumber(res, "condef")));
 			if (PQgetisnull(res, 0, PQfnumber(res, "description")))
 				t[i].pk.comment = NULL;
 			else
-				t[i].pk.comment = strdup(PQgetvalue(res, 0, PQfnumber(res, "description")));
+			{
+				withoutescape = PQgetvalue(res, 0, PQfnumber(res, "description"));
+				t[i].pk.comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+				if (t[i].pk.comment == NULL)
+				{
+					logError("escaping comment failed: %s", PQerrorMessage(c));
+					PQclear(res);
+					PQfinish(c);
+					/* XXX leak another connection? */
+					exit(EXIT_FAILURE);
+				}
+			}
 		}
 		/* XXX cannot happen */
 		else if (PQntuples(res) > 1)
@@ -528,6 +579,7 @@ getTableAttributes(PGconn *c, PQLTable *t)
 	for (i = 0; i < t->nattributes; i++)
 	{
 		char	storage;
+		char	*withoutescape;
 
 		t->attributes[i].attnum = strtoul(PQgetvalue(res, i, PQfnumber(res, "attnum")),
 										  NULL, 10);
@@ -595,8 +647,18 @@ getTableAttributes(PGconn *c, PQLTable *t)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			t->attributes[i].comment = NULL;
 		else
-			t->attributes[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res,
-											  "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			t->attributes[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (t->attributes[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		/*
 		 * Security labels are not assigned here (see getTableSecurityLabels),
@@ -705,9 +767,20 @@ getTableSecurityLabels(PGconn *c, PQLTable *t)
 
 	for (i = 0; i < t->nseclabels; i++)
 	{
+		char	*withoutescape;
+
 		t->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
-		t->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
+		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
+		t->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		if (t->seclabels[i].label == NULL)
+		{
+			logError("escaping label failed: %s", PQerrorMessage(c));
+			PQclear(res);
+			PQfinish(c);
+			/* XXX leak another connection? */
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	PQclear(res);
@@ -745,10 +818,20 @@ getTableSecurityLabels(PGconn *c, PQLTable *t)
 
 		for (j = 0; j < t->attributes[i].nseclabels; j++)
 		{
+			char	*withoutescape;
+
 			t->attributes[i].seclabels[j].provider = strdup(PQgetvalue(res, j,
 					PQfnumber(res, "provider")));
-			t->attributes[i].seclabels[j].label = strdup(PQgetvalue(res, j, PQfnumber(res,
-												  "label")));
+			withoutescape = PQgetvalue(res, j, PQfnumber(res, "label"));
+			t->attributes[i].seclabels[j].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (t->attributes[i].seclabels[j].label == NULL)
+			{
+				logError("escaping label failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
 		}
 
 		PQclear(res);
@@ -784,7 +867,7 @@ freeTables(PQLTable *t, int n)
 			if (t[i].partitionbound)
 				free(t[i].partitionbound);
 			if (t[i].comment)
-				free(t[i].comment);
+				PQfreemem(t[i].comment);
 			if (t[i].acl)
 				free(t[i].acl);
 
@@ -792,7 +875,7 @@ freeTables(PQLTable *t, int n)
 			for (j = 0; j < t[i].nseclabels; j++)
 			{
 				free(t[i].seclabels[j].provider);
-				free(t[i].seclabels[j].label);
+				PQfreemem(t[i].seclabels[j].label);
 			}
 
 			if (t[i].seclabels)
@@ -816,13 +899,13 @@ freeTables(PQLTable *t, int n)
 				if (t[i].attributes[j].acl)
 					free(t[i].attributes[j].acl);
 				if (t[i].attributes[j].comment)
-					free(t[i].attributes[j].comment);
+					PQfreemem(t[i].attributes[j].comment);
 
 				/* security labels */
 				for (k = 0; k < t[i].attributes[j].nseclabels; k++)
 				{
 					free(t[i].attributes[j].seclabels[k].provider);
-					free(t[i].attributes[j].seclabels[k].label);
+					PQfreemem(t[i].attributes[j].seclabels[k].label);
 				}
 
 				if (t[i].attributes[j].seclabels)
@@ -842,7 +925,7 @@ freeTables(PQLTable *t, int n)
 				free(t[i].check[j].conname);
 				free(t[i].check[j].condef);
 				if (t[i].check[j].comment)
-					free(t[i].check[j].comment);
+					PQfreemem(t[i].check[j].comment);
 			}
 
 			/* foreign keys */
@@ -851,7 +934,7 @@ freeTables(PQLTable *t, int n)
 				free(t[i].fk[j].conname);
 				free(t[i].fk[j].condef);
 				if (t[i].fk[j].comment)
-					free(t[i].fk[j].comment);
+					PQfreemem(t[i].fk[j].comment);
 			}
 
 			/* primary key */
@@ -860,7 +943,7 @@ freeTables(PQLTable *t, int n)
 			if (t[i].pk.condef)
 				free(t[i].pk.condef);
 			if (t[i].pk.comment)
-				free(t[i].pk.comment);
+				PQfreemem(t[i].pk.comment);
 
 			/* ownedby sequences */
 			for (j = 0; j < t[i].nownedby; j++)
@@ -1140,7 +1223,7 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 		if (t->comment != NULL)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TABLE %s.%s IS '%s';", schema, tabname, t->comment);
+			fprintf(output, "COMMENT ON TABLE %s.%s IS %s;", schema, tabname, t->comment);
 		}
 
 		/* columns */
@@ -1151,7 +1234,7 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 				char	*attname = formatObjectIdentifier(t->attributes[i].attname);
 
 				fprintf(output, "\n\n");
-				fprintf(output, "COMMENT ON COLUMN %s.%s.%s IS '%s';", schema, tabname, attname,
+				fprintf(output, "COMMENT ON COLUMN %s.%s.%s IS %s;", schema, tabname, attname,
 						t->attributes[i].comment);
 
 				free(attname);
@@ -1164,7 +1247,7 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 			char	*pkname = formatObjectIdentifier(t->pk.conname);
 
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS '%s';", pkname, schema,
+			fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS %s;", pkname, schema,
 					tabname, t->pk.comment);
 
 			free(pkname);
@@ -1178,7 +1261,7 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 				char	*fkname = formatObjectIdentifier(t->fk[i].conname);
 
 				fprintf(output, "\n\n");
-				fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS '%s';", fkname, schema,
+				fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS %s;", fkname, schema,
 						tabname, t->fk[i].comment);
 
 				free(fkname);
@@ -1193,7 +1276,7 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 				char	*ckname = formatObjectIdentifier(t->check[i].conname);
 
 				fprintf(output, "\n\n");
-				fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS '%s';", ckname, schema,
+				fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS %s;", ckname, schema,
 						tabname, t->check[i].comment);
 
 				free(ckname);
@@ -1222,7 +1305,7 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 		for (i = 0; i < t->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS '%s';",
+			fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS %s;",
 					t->seclabels[i].provider,
 					schema,
 					tabname,
@@ -1240,7 +1323,7 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 				for (j = 0; j < t->attributes[i].nseclabels; j++)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS %s;",
 							t->attributes[i].seclabels[j].provider,
 							schema,
 							tabname,
@@ -1326,7 +1409,7 @@ dumpAddColumn(FILE *output, PQLTable *t, int i)
 	if (options.comment && t->attributes[i].comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON COLUMN %s.%s.%s IS '%s';", schema, tabname, attname,
+		fprintf(output, "COMMENT ON COLUMN %s.%s.%s IS %s;", schema, tabname, attname,
 				t->attributes[i].comment);
 	}
 
@@ -1338,7 +1421,7 @@ dumpAddColumn(FILE *output, PQLTable *t, int i)
 		for (j = 0; j < t->attributes[i].nseclabels; j++)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
+			fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS %s;",
 					t->attributes[i].seclabels[j].provider,
 					schema,
 					tabname,
@@ -1445,7 +1528,7 @@ dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 				 strcmp(a->attributes[i].comment, b->attributes[j].comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON COLUMN %s.%s.%s IS '%s';", schema2, tabname2,
+			fprintf(output, "COMMENT ON COLUMN %s.%s.%s IS %s;", schema2, tabname2,
 					attname2, b->attributes[j].comment);
 		}
 		else if (a->attributes[i].comment != NULL && b->attributes[j].comment == NULL)
@@ -1466,7 +1549,7 @@ dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 			for (k = 0; k < b->attributes[j].nseclabels; k++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
+				fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS %s;",
 						b->attributes[j].seclabels[k].provider,
 						schema2,
 						tabname2,
@@ -1500,7 +1583,7 @@ dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 				if (k == a->attributes[i].nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS %s;",
 							b->attributes[j].seclabels[l].provider,
 							schema2,
 							tabname2,
@@ -1525,7 +1608,7 @@ dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 							   b->attributes[j].seclabels[l].label) != 0)
 					{
 						fprintf(output, "\n\n");
-						fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
+						fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS %s;",
 								b->attributes[j].seclabels[l].provider,
 								schema2,
 								tabname2,
@@ -1550,7 +1633,7 @@ dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 								b->attributes[j].seclabels[l].provider) > 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON COLUMN %s.%s.%s IS %s;",
 							b->attributes[j].seclabels[l].provider,
 							schema2,
 							tabname2,
@@ -1735,7 +1818,7 @@ dumpAddPK(FILE *output, PQLTable *t)
 			char	*pkname = formatObjectIdentifier(t->pk.conname);
 
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS '%s';", pkname, schema,
+			fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS %s;", pkname, schema,
 					tabname, t->pk.comment);
 
 			free(pkname);
@@ -1779,7 +1862,7 @@ dumpAddFK(FILE *output, PQLTable *t, int i)
 			char	*fkname = formatObjectIdentifier(t->fk[i].conname);
 
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS '%s';", fkname, schema,
+			fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS %s;", fkname, schema,
 					tabname, t->fk[i].comment);
 
 			free(fkname);
@@ -2224,7 +2307,7 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TABLE %s.%s IS '%s';", schema2, tabname2,
+			fprintf(output, "COMMENT ON TABLE %s.%s IS %s;", schema2, tabname2,
 					b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
@@ -2242,7 +2325,7 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS '%s';",
+				fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS %s;",
 						b->seclabels[i].provider,
 						schema2,
 						tabname2,
@@ -2268,7 +2351,7 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS %s;",
 							b->seclabels[j].provider,
 							schema2,
 							tabname2,
@@ -2289,7 +2372,7 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
-						fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS '%s';",
+						fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS %s;",
 								b->seclabels[j].provider,
 								schema2,
 								tabname2,
@@ -2310,7 +2393,7 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS %s;",
 							b->seclabels[j].provider,
 							schema2,
 							tabname2,

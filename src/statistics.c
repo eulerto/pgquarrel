@@ -62,6 +62,8 @@ getStatistics(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		s[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		s[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		s[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "stxname")));
@@ -69,7 +71,19 @@ getStatistics(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			s[i].comment = NULL;
 		else
-			s[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			s[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (s[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
+
 		s[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "stxowner")));
 
 		logDebug("statistics \"%s\".\"%s\"", s[i].obj.schemaname, s[i].obj.objectname);
@@ -94,7 +108,7 @@ freeStatistics(PQLStatistics *s, int n)
 			free(s[i].stxdef);
 			free(s[i].owner);
 			if (s[i].comment)
-				free(s[i].comment);
+				PQfreemem(s[i].comment);
 		}
 
 		free(s);
@@ -114,7 +128,7 @@ dumpCreateStatistics(FILE *output, PQLStatistics *s)
 	if (options.comment && s->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON STATISTICS %s.%s IS '%s';", schema, stxname,
+		fprintf(output, "COMMENT ON STATISTICS %s.%s IS %s;", schema, stxname,
 				s->comment);
 	}
 
@@ -159,7 +173,7 @@ dumpAlterStatistics(FILE *output, PQLStatistics *a, PQLStatistics *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON STATISTICS %s.%s IS '%s';", schema2, stxname2,
+			fprintf(output, "COMMENT ON STATISTICS %s.%s IS %s;", schema2, stxname2,
 					b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)

@@ -63,6 +63,8 @@ getExtensions(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		e[i].oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		e[i].extensionname = strdup(PQgetvalue(res, i, PQfnumber(res,
 											   "extensionname")));
@@ -73,7 +75,18 @@ getExtensions(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			e[i].comment = NULL;
 		else
-			e[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			e[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (e[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		logDebug("extension \"%s\"", e[i].extensionname);
 	}
@@ -96,7 +109,7 @@ freeExtensions(PQLExtension *e, int n)
 			free(e[i].schemaname);
 			free(e[i].version);
 			if (e[i].comment)
-				free(e[i].comment);
+				PQfreemem(e[i].comment);
 		}
 
 		free(e);
@@ -133,7 +146,7 @@ dumpCreateExtension(FILE *output, PQLExtension *e)
 	if (options.comment && e->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON EXTENSION %s IS '%s';", extname, e->comment);
+		fprintf(output, "COMMENT ON EXTENSION %s IS %s;", extname, e->comment);
 	}
 
 	free(extname);
@@ -164,7 +177,7 @@ dumpAlterExtension(FILE *output, PQLExtension *a, PQLExtension *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON EXTENSION %s IS '%s';", extname2, b->comment);
+			fprintf(output, "COMMENT ON EXTENSION %s IS %s;", extname2, b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
 		{

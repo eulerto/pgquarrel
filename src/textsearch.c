@@ -92,6 +92,8 @@ getTextSearchConfigs(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		d[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		d[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		d[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "cfgname")));
@@ -105,7 +107,18 @@ getTextSearchConfigs(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			d[i].comment = NULL;
 		else
-			d[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			d[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (d[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		d[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "cfgowner")));
 
@@ -165,6 +178,8 @@ getTextSearchDicts(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		d[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		d[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		d[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "dictname")));
@@ -177,7 +192,18 @@ getTextSearchDicts(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			d[i].comment = NULL;
 		else
-			d[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			d[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (d[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		d[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "dictowner")));
 
@@ -237,6 +263,8 @@ getTextSearchParsers(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		p[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		p[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		p[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "prsname")));
@@ -252,7 +280,18 @@ getTextSearchParsers(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			p[i].comment = NULL;
 		else
-			p[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			p[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (p[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		logDebug("text search parser \"%s\".\"%s\"", p[i].obj.schemaname,
 				 p[i].obj.objectname);
@@ -309,6 +348,8 @@ getTextSearchTemplates(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		t[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		t[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		t[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "tmplname")));
@@ -321,7 +362,18 @@ getTextSearchTemplates(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			t[i].comment = NULL;
 		else
-			t[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			t[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (t[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		logDebug("text search template \"%s\".\"%s\"", t[i].obj.schemaname,
 				 t[i].obj.objectname);
@@ -348,7 +400,7 @@ freeTextSearchConfigs(PQLTextSearchConfig *c, int n)
 			if (c[i].tokentype)
 				free(c[i].tokentype);
 			if (c[i].comment)
-				free(c[i].comment);
+				PQfreemem(c[i].comment);
 			free(c[i].owner);
 		}
 
@@ -371,7 +423,7 @@ freeTextSearchDicts(PQLTextSearchDict *d, int n)
 			if (d[i].options)
 				free(d[i].options);
 			if (d[i].comment)
-				free(d[i].comment);
+				PQfreemem(d[i].comment);
 			free(d[i].owner);
 		}
 
@@ -397,7 +449,7 @@ freeTextSearchParsers(PQLTextSearchParser *p, int n)
 			if (p[i].headlinefunc)
 				free(p[i].headlinefunc);
 			if (p[i].comment)
-				free(p[i].comment);
+				PQfreemem(p[i].comment);
 		}
 
 		free(p);
@@ -419,7 +471,7 @@ freeTextSearchTemplates(PQLTextSearchTemplate *t, int n)
 			if (t[i].initfunc)
 				free(t[i].initfunc);
 			if (t[i].comment)
-				free(t[i].comment);
+				PQfreemem(t[i].comment);
 		}
 
 		free(t);
@@ -581,7 +633,7 @@ dumpAlterTextSearchConfig(FILE *output, PQLTextSearchConfig *a,
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TEXT SEARCH CONFIGURATION %s.%s IS '%s';",
+			fprintf(output, "COMMENT ON TEXT SEARCH CONFIGURATION %s.%s IS %s;",
 					schema2, cfgname2, b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
@@ -787,7 +839,7 @@ void dumpAlterTextSearchDict(FILE *output, PQLTextSearchDict *a,
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TEXT SEARCH DICTIONARY %s.%s IS '%s';",
+			fprintf(output, "COMMENT ON TEXT SEARCH DICTIONARY %s.%s IS %s;",
 					schema2, dictname2, b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
@@ -833,7 +885,7 @@ void dumpAlterTextSearchParser(FILE *output, PQLTextSearchParser *a,
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TEXT SEARCH PARSER %s.%s IS '%s';",
+			fprintf(output, "COMMENT ON TEXT SEARCH PARSER %s.%s IS %s;",
 					schema2, prsname2, b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
@@ -866,7 +918,7 @@ void dumpAlterTextSearchTemplate(FILE *output, PQLTextSearchTemplate *a,
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TEXT SEARCH TEMPLATE %s.%s IS '%s';",
+			fprintf(output, "COMMENT ON TEXT SEARCH TEMPLATE %s.%s IS %s;",
 					schema2, tmplname2, b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)

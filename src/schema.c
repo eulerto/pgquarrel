@@ -62,12 +62,25 @@ getSchemas(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		s[i].oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		s[i].schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			s[i].comment = NULL;
 		else
-			s[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			s[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (s[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		s[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "nspowner")));
 		if (PQgetisnull(res, i, PQfnumber(res, "nspacl")))
@@ -130,9 +143,20 @@ getSchemaSecurityLabels(PGconn *c, PQLSchema *s)
 
 	for (i = 0; i < s->nseclabels; i++)
 	{
+		char	*withoutescape;
+
 		s->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
-		s->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
+		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
+		s->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		if (s->seclabels[i].label == NULL)
+		{
+			logError("escaping label failed: %s", PQerrorMessage(c));
+			PQclear(res);
+			PQfinish(c);
+			/* XXX leak another connection? */
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	PQclear(res);
@@ -151,7 +175,7 @@ freeSchemas(PQLSchema *s, int n)
 
 			free(s[i].schemaname);
 			if (s[i].comment)
-				free(s[i].comment);
+				PQfreemem(s[i].comment);
 			if (s[i].acl)
 				free(s[i].acl);
 			free(s[i].owner);
@@ -160,7 +184,7 @@ freeSchemas(PQLSchema *s, int n)
 			for (j = 0; j < s[i].nseclabels; j++)
 			{
 				free(s[i].seclabels[j].provider);
-				free(s[i].seclabels[j].label);
+				PQfreemem(s[i].seclabels[j].label);
 			}
 
 			if (s[i].seclabels)
@@ -194,7 +218,7 @@ dumpCreateSchema(FILE *output, PQLSchema *s)
 	if (options.comment && s->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON SCHEMA %s IS '%s';", schemaname, s->comment);
+		fprintf(output, "COMMENT ON SCHEMA %s IS %s;", schemaname, s->comment);
 	}
 
 	/* security labels */
@@ -205,7 +229,7 @@ dumpCreateSchema(FILE *output, PQLSchema *s)
 		for (i = 0; i < s->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "SECURITY LABEL FOR %s ON SCHEMA %s IS '%s';",
+			fprintf(output, "SECURITY LABEL FOR %s ON SCHEMA %s IS %s;",
 					s->seclabels[i].provider,
 					schemaname,
 					s->seclabels[i].label);
@@ -258,7 +282,7 @@ dumpAlterSchema(FILE *output, PQLSchema *a, PQLSchema *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON SCHEMA %s IS '%s';", schemaname2, b->comment);
+			fprintf(output, "COMMENT ON SCHEMA %s IS %s;", schemaname2, b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
 		{
@@ -277,7 +301,7 @@ dumpAlterSchema(FILE *output, PQLSchema *a, PQLSchema *b)
 			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON SCHEMA %s IS '%s';",
+				fprintf(output, "SECURITY LABEL FOR %s ON SCHEMA %s IS %s;",
 						b->seclabels[i].provider,
 						schemaname2,
 						b->seclabels[i].label);
@@ -305,7 +329,7 @@ dumpAlterSchema(FILE *output, PQLSchema *a, PQLSchema *b)
 				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON SCHEMA %s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON SCHEMA %s IS %s;",
 							b->seclabels[j].provider,
 							schemaname2,
 							b->seclabels[j].label);
@@ -324,7 +348,7 @@ dumpAlterSchema(FILE *output, PQLSchema *a, PQLSchema *b)
 					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
-						fprintf(output, "SECURITY LABEL FOR %s ON SCHEMA %s IS '%s';",
+						fprintf(output, "SECURITY LABEL FOR %s ON SCHEMA %s IS %s;",
 								b->seclabels[j].provider,
 								schemaname2,
 								b->seclabels[j].label);
@@ -343,7 +367,7 @@ dumpAlterSchema(FILE *output, PQLSchema *a, PQLSchema *b)
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON SCHEMA %s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON SCHEMA %s IS %s;",
 							b->seclabels[j].provider,
 							schemaname2,
 							b->seclabels[j].label);

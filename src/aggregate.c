@@ -68,6 +68,8 @@ getAggregates(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		a[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		a[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		a[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "proname")));
@@ -143,7 +145,18 @@ getAggregates(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			a[i].comment = NULL;
 		else
-			a[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			a[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (a[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		a[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "aggowner")));
 
@@ -226,9 +239,20 @@ getAggregateSecurityLabels(PGconn *c, PQLAggregate *a)
 
 	for (i = 0; i < a->nseclabels; i++)
 	{
+		char	*withoutescape;
+
 		a->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
-		a->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
+		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
+		a->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		if (a->seclabels[i].label == NULL)
+		{
+			logError("escaping label failed: %s", PQerrorMessage(c));
+			PQclear(res);
+			PQfinish(c);
+			/* XXX leak another connection? */
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	PQclear(res);
@@ -271,14 +295,14 @@ freeAggregates(PQLAggregate *a, int n)
 			if (a[i].sortop)
 				free(a[i].sortop);
 			if (a[i].comment)
-				free(a[i].comment);
+				PQfreemem(a[i].comment);
 			free(a[i].owner);
 
 			/* security labels */
 			for (j = 0; j < a[i].nseclabels; j++)
 			{
 				free(a[i].seclabels[j].provider);
-				free(a[i].seclabels[j].label);
+				PQfreemem(a[i].seclabels[j].label);
 			}
 
 			if (a[i].seclabels)
@@ -394,7 +418,7 @@ dumpAlterAggregate(FILE *output, PQLAggregate *a, PQLAggregate *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON AGGREGATE %s.%s(%s) IS '%s';",
+			fprintf(output, "COMMENT ON AGGREGATE %s.%s(%s) IS %s;",
 					schema2, aggname2, b->arguments, b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
@@ -415,7 +439,7 @@ dumpAlterAggregate(FILE *output, PQLAggregate *a, PQLAggregate *b)
 			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS '%s';",
+				fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS %s;",
 						b->seclabels[i].provider,
 						schema2,
 						aggname2,
@@ -447,7 +471,7 @@ dumpAlterAggregate(FILE *output, PQLAggregate *a, PQLAggregate *b)
 				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS %s;",
 							b->seclabels[j].provider,
 							schema2,
 							aggname2,
@@ -470,7 +494,7 @@ dumpAlterAggregate(FILE *output, PQLAggregate *a, PQLAggregate *b)
 					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
-						fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS '%s';",
+						fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS %s;",
 								b->seclabels[j].provider,
 								schema2,
 								aggname2,
@@ -493,7 +517,7 @@ dumpAlterAggregate(FILE *output, PQLAggregate *a, PQLAggregate *b)
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON AGGREGATE %s.%s(%s) IS %s;",
 							b->seclabels[j].provider,
 							schema2,
 							aggname2,

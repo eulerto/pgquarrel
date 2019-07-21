@@ -73,7 +73,8 @@ getMaterializedViews(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
-		int	len;
+		char	*withoutescape;
+		int		len;
 
 		v[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		v[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
@@ -99,7 +100,18 @@ getMaterializedViews(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			v[i].comment = NULL;
 		else
-			v[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			v[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (v[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		v[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "relowner")));
 
@@ -272,9 +284,20 @@ getMaterializedViewSecurityLabels(PGconn *c, PQLMaterializedView *v)
 
 	for (i = 0; i < v->nseclabels; i++)
 	{
+		char	*withoutescape;
+
 		v->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
-		v->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
+		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
+		v->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		if (v->seclabels[i].label == NULL)
+		{
+			logError("escaping label failed: %s", PQerrorMessage(c));
+			PQclear(res);
+			PQfinish(c);
+			/* XXX leak another connection? */
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	PQclear(res);
@@ -299,14 +322,14 @@ freeMaterializedViews(PQLMaterializedView *v, int n)
 			if (v[i].reloptions)
 				free(v[i].reloptions);
 			if (v[i].comment)
-				free(v[i].comment);
+				PQfreemem(v[i].comment);
 			free(v[i].owner);
 
 			/* security labels */
 			for (j = 0; j < v[i].nseclabels; j++)
 			{
 				free(v[i].seclabels[j].provider);
-				free(v[i].seclabels[j].label);
+				PQfreemem(v[i].seclabels[j].label);
 			}
 
 			if (v[i].seclabels)
@@ -380,7 +403,7 @@ dumpCreateMaterializedView(FILE *output, PQLMaterializedView *v)
 	if (options.comment && v->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON MATERIALIZED VIEW %s.%s IS '%s';", schema, matvname,
+		fprintf(output, "COMMENT ON MATERIALIZED VIEW %s.%s IS %s;", schema, matvname,
 				v->comment);
 	}
 
@@ -390,7 +413,7 @@ dumpCreateMaterializedView(FILE *output, PQLMaterializedView *v)
 		for (i = 0; i < v->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "SECURITY LABEL FOR %s ON MATERIALIZED VIEW %s.%s IS '%s';",
+			fprintf(output, "SECURITY LABEL FOR %s ON MATERIALIZED VIEW %s.%s IS %s;",
 					v->seclabels[i].provider,
 					schema,
 					matvname,
@@ -700,7 +723,7 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView *a,
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON MATERIALIZED VIEW %s.%s IS '%s';",
+			fprintf(output, "COMMENT ON MATERIALIZED VIEW %s.%s IS %s;",
 					schema2,
 					matvname2,
 					b->comment);
@@ -722,7 +745,7 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView *a,
 			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON MATERIALIZED VIEW %s.%s IS '%s';",
+				fprintf(output, "SECURITY LABEL FOR %s ON MATERIALIZED VIEW %s.%s IS %s;",
 						b->seclabels[i].provider,
 						schema2,
 						matvname2,
@@ -750,7 +773,7 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView *a,
 				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON MATERIALIZED VIEW %s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON MATERIALIZED VIEW %s.%s IS %s;",
 							b->seclabels[j].provider,
 							schema2,
 							matvname2,
@@ -771,7 +794,7 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView *a,
 					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
-						fprintf(output, "SECURITY LABEL FOR %s ON MATERIALIZED VIEW %s.%s IS '%s';",
+						fprintf(output, "SECURITY LABEL FOR %s ON MATERIALIZED VIEW %s.%s IS %s;",
 								b->seclabels[j].provider,
 								schema2,
 								matvname2,
@@ -792,7 +815,7 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView *a,
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON MATERIALIZED VIEW %s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON MATERIALIZED VIEW %s.%s IS %s;",
 							b->seclabels[j].provider,
 							schema2,
 							matvname2,

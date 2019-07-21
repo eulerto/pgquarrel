@@ -76,6 +76,8 @@ getBaseTypes(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		t[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		t[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		t[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "typname")));
@@ -102,7 +104,18 @@ getBaseTypes(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			t[i].comment = NULL;
 		else
-			t[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			t[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (t[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		t[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "typowner")));
 		if (PQgetisnull(res, i, PQfnumber(res, "typacl")))
@@ -169,9 +182,20 @@ getBaseTypeSecurityLabels(PGconn *c, PQLBaseType *t)
 
 	for (i = 0; i < t->nseclabels; i++)
 	{
+		char	*withoutescape;
+
 		t->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
-		t->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
+		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
+		t->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		if (t->seclabels[i].label == NULL)
+		{
+			logError("escaping label failed: %s", PQerrorMessage(c));
+			PQclear(res);
+			PQfinish(c);
+			/* XXX leak another connection? */
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	PQclear(res);
@@ -307,6 +331,8 @@ getCompositeTypes(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		t[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		t[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		t[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "typname")));
@@ -314,7 +340,18 @@ getCompositeTypes(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			t[i].comment = NULL;
 		else
-			t[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			t[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (t[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		t[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "typowner")));
 		if (PQgetisnull(res, i, PQfnumber(res, "typacl")))
@@ -385,9 +422,20 @@ getCompositeTypeSecurityLabels(PGconn *c, PQLCompositeType *t)
 
 	for (i = 0; i < t->nseclabels; i++)
 	{
+		char	*withoutescape;
+
 		t->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
-		t->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
+		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
+		t->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		if (t->seclabels[i].label == NULL)
+		{
+			logError("escaping label failed: %s", PQerrorMessage(c));
+			PQclear(res);
+			PQfinish(c);
+			/* XXX leak another connection? */
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	PQclear(res);
@@ -503,6 +551,8 @@ getEnumTypes(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		t[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		t[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		t[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "typname")));
@@ -510,7 +560,18 @@ getEnumTypes(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			t[i].comment = NULL;
 		else
-			t[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			t[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (t[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		t[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "typowner")));
 		if (PQgetisnull(res, i, PQfnumber(res, "typacl")))
@@ -580,9 +641,20 @@ getEnumTypeSecurityLabels(PGconn *c, PQLEnumType *t)
 
 	for (i = 0; i < t->nseclabels; i++)
 	{
+		char	*withoutescape;
+
 		t->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
-		t->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
+		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
+		t->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		if (t->seclabels[i].label == NULL)
+		{
+			logError("escaping label failed: %s", PQerrorMessage(c));
+			PQclear(res);
+			PQfinish(c);
+			/* XXX leak another connection? */
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	PQclear(res);
@@ -626,6 +698,8 @@ getRangeTypes(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		t[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		t[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		t[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "typname")));
@@ -650,7 +724,18 @@ getRangeTypes(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			t[i].comment = NULL;
 		else
-			t[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			t[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (t[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		t[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "typowner")));
 		if (PQgetisnull(res, i, PQfnumber(res, "typacl")))
@@ -717,9 +802,20 @@ getRangeTypeSecurityLabels(PGconn *c, PQLRangeType *t)
 
 	for (i = 0; i < t->nseclabels; i++)
 	{
+		char	*withoutescape;
+
 		t->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
-		t->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
+		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
+		t->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		if (t->seclabels[i].label == NULL)
+		{
+			logError("escaping label failed: %s", PQerrorMessage(c));
+			PQclear(res);
+			PQfinish(c);
+			/* XXX leak another connection? */
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	PQclear(res);
@@ -755,7 +851,7 @@ freeBaseTypes(PQLBaseType *t, int n)
 			if (t[i].acl)
 				free(t[i].acl);
 			if (t[i].comment)
-				free(t[i].comment);
+				PQfreemem(t[i].comment);
 
 			/* security labels */
 			for (j = 0; j < t[i].nseclabels; j++)
@@ -789,7 +885,7 @@ freeCompositeTypes(PQLCompositeType *t, int n)
 			if (t[i].acl)
 				free(t[i].acl);
 			if (t[i].comment)
-				free(t[i].comment);
+				PQfreemem(t[i].comment);
 
 			/* security labels */
 			for (j = 0; j < t[i].nseclabels; j++)
@@ -836,7 +932,7 @@ freeEnumTypes(PQLEnumType *t, int n)
 			if (t[i].acl)
 				free(t[i].acl);
 			if (t[i].comment)
-				free(t[i].comment);
+				PQfreemem(t[i].comment);
 
 			/* security labels */
 			for (j = 0; j < t[i].nseclabels; j++)
@@ -885,7 +981,7 @@ freeRangeTypes(PQLRangeType *t, int n)
 			if (t[i].acl)
 				free(t[i].acl);
 			if (t[i].comment)
-				free(t[i].comment);
+				PQfreemem(t[i].comment);
 
 			/* security labels */
 			for (j = 0; j < t[i].nseclabels; j++)
@@ -974,7 +1070,7 @@ dumpCreateBaseType(FILE *output, PQLBaseType *t)
 	if (options.comment && t->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema, typname, t->comment);
+		fprintf(output, "COMMENT ON TYPE %s.%s IS %s;", schema, typname, t->comment);
 	}
 
 	/* security labels */
@@ -985,7 +1081,7 @@ dumpCreateBaseType(FILE *output, PQLBaseType *t)
 		for (i = 0; i < t->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
+			fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS %s;",
 					t->seclabels[i].provider,
 					schema,
 					typname,
@@ -1046,7 +1142,7 @@ dumpCreateCompositeType(FILE *output, PQLCompositeType *t)
 	if (options.comment && t->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema, typname, t->comment);
+		fprintf(output, "COMMENT ON TYPE %s.%s IS %s;", schema, typname, t->comment);
 	}
 
 	/* security labels */
@@ -1055,7 +1151,7 @@ dumpCreateCompositeType(FILE *output, PQLCompositeType *t)
 		for (i = 0; i < t->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
+			fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS %s;",
 					t->seclabels[i].provider,
 					schema,
 					typname,
@@ -1104,7 +1200,7 @@ dumpCreateEnumType(FILE *output, PQLEnumType *t)
 	if (options.comment && t->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema, typname, t->comment);
+		fprintf(output, "COMMENT ON TYPE %s.%s IS %s;", schema, typname, t->comment);
 	}
 
 	/* security labels */
@@ -1113,7 +1209,7 @@ dumpCreateEnumType(FILE *output, PQLEnumType *t)
 		for (i = 0; i < t->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
+			fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS %s;",
 					t->seclabels[i].provider,
 					schema,
 					typname,
@@ -1184,7 +1280,7 @@ dumpCreateRangeType(FILE *output, PQLRangeType *t)
 	if (options.comment && t->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema, typname, t->comment);
+		fprintf(output, "COMMENT ON TYPE %s.%s IS %s;", schema, typname, t->comment);
 	}
 
 	/* security labels */
@@ -1195,7 +1291,7 @@ dumpCreateRangeType(FILE *output, PQLRangeType *t)
 		for (i = 0; i < t->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
+			fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS %s;",
 					t->seclabels[i].provider,
 					schema,
 					typname,
@@ -1288,7 +1384,7 @@ dumpAlterBaseType(FILE *output, PQLBaseType *a, PQLBaseType *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema2, typname2,
+			fprintf(output, "COMMENT ON TYPE %s.%s IS %s;", schema2, typname2,
 					b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
@@ -1308,7 +1404,7 @@ dumpAlterBaseType(FILE *output, PQLBaseType *a, PQLBaseType *b)
 			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
+				fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS %s;",
 						b->seclabels[i].provider,
 						schema2,
 						typname2,
@@ -1338,7 +1434,7 @@ dumpAlterBaseType(FILE *output, PQLBaseType *a, PQLBaseType *b)
 				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS %s;",
 							b->seclabels[j].provider,
 							schema2,
 							typname2,
@@ -1359,7 +1455,7 @@ dumpAlterBaseType(FILE *output, PQLBaseType *a, PQLBaseType *b)
 					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
-						fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
+						fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS %s;",
 								b->seclabels[j].provider,
 								schema2,
 								typname2,
@@ -1380,7 +1476,7 @@ dumpAlterBaseType(FILE *output, PQLBaseType *a, PQLBaseType *b)
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS %s;",
 							b->seclabels[j].provider,
 							schema2,
 							typname2,
@@ -1431,7 +1527,7 @@ dumpAlterCompositeType(FILE *output, PQLCompositeType *a, PQLCompositeType *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema2, typname2,
+			fprintf(output, "COMMENT ON TYPE %s.%s IS %s;", schema2, typname2,
 					b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
@@ -1451,7 +1547,7 @@ dumpAlterCompositeType(FILE *output, PQLCompositeType *a, PQLCompositeType *b)
 			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
+				fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS %s;",
 						b->seclabels[i].provider,
 						schema2,
 						typname2,
@@ -1481,7 +1577,7 @@ dumpAlterCompositeType(FILE *output, PQLCompositeType *a, PQLCompositeType *b)
 				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS %s;",
 							b->seclabels[j].provider,
 							schema2,
 							typname2,
@@ -1502,7 +1598,7 @@ dumpAlterCompositeType(FILE *output, PQLCompositeType *a, PQLCompositeType *b)
 					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
-						fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
+						fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS %s;",
 								b->seclabels[j].provider,
 								schema2,
 								typname2,
@@ -1523,7 +1619,7 @@ dumpAlterCompositeType(FILE *output, PQLCompositeType *a, PQLCompositeType *b)
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS %s;",
 							b->seclabels[j].provider,
 							schema2,
 							typname2,
@@ -1574,7 +1670,7 @@ dumpAlterEnumType(FILE *output, PQLEnumType *a, PQLEnumType *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema2, typname2,
+			fprintf(output, "COMMENT ON TYPE %s.%s IS %s;", schema2, typname2,
 					b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
@@ -1594,7 +1690,7 @@ dumpAlterEnumType(FILE *output, PQLEnumType *a, PQLEnumType *b)
 			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
+				fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS %s;",
 						b->seclabels[i].provider,
 						schema2,
 						typname2,
@@ -1624,7 +1720,7 @@ dumpAlterEnumType(FILE *output, PQLEnumType *a, PQLEnumType *b)
 				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS %s;",
 							b->seclabels[j].provider,
 							schema2,
 							typname2,
@@ -1645,7 +1741,7 @@ dumpAlterEnumType(FILE *output, PQLEnumType *a, PQLEnumType *b)
 					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
-						fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
+						fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS %s;",
 								b->seclabels[j].provider,
 								schema2,
 								typname2,
@@ -1666,7 +1762,7 @@ dumpAlterEnumType(FILE *output, PQLEnumType *a, PQLEnumType *b)
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS %s;",
 							b->seclabels[j].provider,
 							schema2,
 							typname2,
@@ -1717,7 +1813,7 @@ dumpAlterRangeType(FILE *output, PQLRangeType *a, PQLRangeType *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TYPE %s.%s IS '%s';", schema2, typname2,
+			fprintf(output, "COMMENT ON TYPE %s.%s IS %s;", schema2, typname2,
 					b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
@@ -1737,7 +1833,7 @@ dumpAlterRangeType(FILE *output, PQLRangeType *a, PQLRangeType *b)
 			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
+				fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS %s;",
 						b->seclabels[i].provider,
 						schema2,
 						typname2,
@@ -1767,7 +1863,7 @@ dumpAlterRangeType(FILE *output, PQLRangeType *a, PQLRangeType *b)
 				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS %s;",
 							b->seclabels[j].provider,
 							schema2,
 							typname2,
@@ -1788,7 +1884,7 @@ dumpAlterRangeType(FILE *output, PQLRangeType *a, PQLRangeType *b)
 					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
-						fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
+						fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS %s;",
 								b->seclabels[j].provider,
 								schema2,
 								typname2,
@@ -1809,7 +1905,7 @@ dumpAlterRangeType(FILE *output, PQLRangeType *a, PQLRangeType *b)
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON TYPE %s.%s IS %s;",
 							b->seclabels[j].provider,
 							schema2,
 							typname2,

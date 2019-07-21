@@ -65,13 +65,26 @@ getSequences(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		s[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		s[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		s[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "relname")));
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			s[i].comment = NULL;
 		else
-			s[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			s[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (s[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		s[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "relowner")));
 		if (PQgetisnull(res, i, PQfnumber(res, "relacl")))
@@ -219,9 +232,20 @@ getSequenceSecurityLabels(PGconn *c, PQLSequence *s)
 
 	for (i = 0; i < s->nseclabels; i++)
 	{
+		char	*withoutescape;
+
 		s->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
-		s->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
+		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
+		s->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		if (s->seclabels[i].label == NULL)
+		{
+			logError("escaping label failed: %s", PQerrorMessage(c));
+			PQclear(res);
+			PQfinish(c);
+			/* XXX leak another connection? */
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	PQclear(res);
@@ -241,7 +265,7 @@ freeSequences(PQLSequence *s, int n)
 			free(s[i].obj.schemaname);
 			free(s[i].obj.objectname);
 			if (s[i].comment)
-				free(s[i].comment);
+				PQfreemem(s[i].comment);
 			free(s[i].owner);
 			if (s[i].acl)
 				free(s[i].acl);
@@ -263,7 +287,7 @@ freeSequences(PQLSequence *s, int n)
 			for (j = 0; j < s[i].nseclabels; j++)
 			{
 				free(s[i].seclabels[j].provider);
-				free(s[i].seclabels[j].label);
+				PQfreemem(s[i].seclabels[j].label);
 			}
 
 			if (s[i].seclabels)
@@ -383,7 +407,7 @@ dumpCreateSequence(FILE *output, PQLSequence *s)
 	if (options.comment && s->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON SEQUENCE %s.%s IS '%s';", schema, seqname,
+		fprintf(output, "COMMENT ON SEQUENCE %s.%s IS %s;", schema, seqname,
 				s->comment);
 	}
 
@@ -395,7 +419,7 @@ dumpCreateSequence(FILE *output, PQLSequence *s)
 		for (i = 0; i < s->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
+			fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS %s;",
 					s->seclabels[i].provider,
 					schema,
 					seqname,
@@ -528,7 +552,7 @@ dumpAlterSequence(FILE *output, PQLSequence *a, PQLSequence *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON SEQUENCE %s.%s IS '%s';", schema2, seqname2,
+			fprintf(output, "COMMENT ON SEQUENCE %s.%s IS %s;", schema2, seqname2,
 					b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
@@ -548,7 +572,7 @@ dumpAlterSequence(FILE *output, PQLSequence *a, PQLSequence *b)
 			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
+				fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS %s;",
 						b->seclabels[i].provider,
 						schema2,
 						seqname2,
@@ -578,7 +602,7 @@ dumpAlterSequence(FILE *output, PQLSequence *a, PQLSequence *b)
 				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS %s;",
 							b->seclabels[j].provider,
 							schema2,
 							seqname2,
@@ -599,7 +623,7 @@ dumpAlterSequence(FILE *output, PQLSequence *a, PQLSequence *b)
 					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
-						fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
+						fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS %s;",
 								b->seclabels[j].provider,
 								schema2,
 								seqname2,
@@ -620,7 +644,7 @@ dumpAlterSequence(FILE *output, PQLSequence *a, PQLSequence *b)
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON SEQUENCE %s.%s IS %s;",
 							b->seclabels[j].provider,
 							schema2,
 							seqname2,

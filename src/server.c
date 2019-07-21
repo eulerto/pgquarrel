@@ -54,6 +54,8 @@ getForeignServers(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		s[i].oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		s[i].servername = strdup(PQgetvalue(res, i, PQfnumber(res, "servername")));
 		s[i].serverfdw = strdup(PQgetvalue(res, i, PQfnumber(res, "serverfdw")));
@@ -86,7 +88,18 @@ getForeignServers(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			s[i].comment = NULL;
 		else
-			s[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			s[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (s[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		logDebug("foreign server \"%s\"", s[i].servername);
 	}
@@ -117,7 +130,7 @@ freeForeignServers(PQLForeignServer *s, int n)
 			if (s[i].acl)
 				free(s[i].acl);
 			if (s[i].comment)
-				free(s[i].comment);
+				PQfreemem(s[i].comment);
 		}
 
 		free(s);
@@ -189,7 +202,7 @@ dumpCreateForeignServer(FILE *output, PQLForeignServer *s)
 	if (options.comment && s->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON SERVER %s IS '%s';", srvname, s->comment);
+		fprintf(output, "COMMENT ON SERVER %s IS %s;", srvname, s->comment);
 	}
 
 	/* owner */
@@ -399,7 +412,7 @@ dumpAlterForeignServer(FILE *output, PQLForeignServer *a, PQLForeignServer *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON SERVER %s IS '%s';", srvname2, b->comment);
+			fprintf(output, "COMMENT ON SERVER %s IS %s;", srvname2, b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
 		{

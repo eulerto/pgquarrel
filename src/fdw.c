@@ -54,6 +54,8 @@ getForeignDataWrappers(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		f[i].oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		f[i].fdwname = strdup(PQgetvalue(res, i, PQfnumber(res, "fdwname")));
 		/* handler */
@@ -101,7 +103,18 @@ getForeignDataWrappers(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			f[i].comment = NULL;
 		else
-			f[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			f[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (f[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		logDebug("foreign data wrapper \"%s\"", f[i].fdwname);
 	}
@@ -135,7 +148,7 @@ freeForeignDataWrappers(PQLForeignDataWrapper *f, int n)
 			if (f[i].acl)
 				free(f[i].acl);
 			if (f[i].comment)
-				free(f[i].comment);
+				PQfreemem(f[i].comment);
 		}
 
 		free(f);
@@ -202,7 +215,7 @@ dumpCreateForeignDataWrapper(FILE *output, PQLForeignDataWrapper *f)
 	if (options.comment && f->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON FOREIGN DATA WRAPPER %s IS '%s';", fdwname,
+		fprintf(output, "COMMENT ON FOREIGN DATA WRAPPER %s IS %s;", fdwname,
 				f->comment);
 	}
 
@@ -436,7 +449,7 @@ dumpAlterForeignDataWrapper(FILE *output, PQLForeignDataWrapper *a,
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON FOREIGN DATA WRAPPER %s IS '%s';", fdwname2,
+			fprintf(output, "COMMENT ON FOREIGN DATA WRAPPER %s IS %s;", fdwname2,
 					b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)

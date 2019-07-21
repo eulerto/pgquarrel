@@ -74,6 +74,8 @@ getDomains(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		d[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		d[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		d[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "typname")));
@@ -92,7 +94,18 @@ getDomains(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			d[i].comment = NULL;
 		else
-			d[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			d[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (d[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		d[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "typowner")));
 		if (PQgetisnull(res, i, PQfnumber(res, "typacl")))
@@ -239,9 +252,20 @@ getDomainSecurityLabels(PGconn *c, PQLDomain *d)
 
 	for (i = 0; i < d->nseclabels; i++)
 	{
+		char	*withoutescape;
+
 		d->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
-		d->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
+		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
+		d->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		if (d->seclabels[i].label == NULL)
+		{
+			logError("escaping label failed: %s", PQerrorMessage(c));
+			PQclear(res);
+			PQfinish(c);
+			/* XXX leak another connection? */
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	PQclear(res);
@@ -266,7 +290,7 @@ freeDomains(PQLDomain *d, int n)
 			if (d[i].ddefault)
 				free(d[i].ddefault);
 			if (d[i].comment)
-				free(d[i].comment);
+				PQfreemem(d[i].comment);
 			free(d[i].owner);
 			if (d[i].acl)
 				free(d[i].acl);
@@ -284,7 +308,7 @@ freeDomains(PQLDomain *d, int n)
 			for (j = 0; j < d[i].nseclabels; j++)
 			{
 				free(d[i].seclabels[j].provider);
-				free(d[i].seclabels[j].label);
+				PQfreemem(d[i].seclabels[j].label);
 			}
 
 			if (d[i].seclabels)
@@ -333,7 +357,7 @@ dumpCreateDomain(FILE *output, PQLDomain *d)
 	if (options.comment && d->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON DOMAIN %s.%s IS '%s';",
+		fprintf(output, "COMMENT ON DOMAIN %s.%s IS %s;",
 				schema,
 				domname,
 				d->comment);
@@ -345,7 +369,7 @@ dumpCreateDomain(FILE *output, PQLDomain *d)
 		for (i = 0; i < d->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
+			fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS %s;",
 					d->seclabels[i].provider,
 					schema,
 					domname,
@@ -431,7 +455,7 @@ dumpAlterDomain(FILE *output, PQLDomain *a, PQLDomain *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON DOMAIN %s.%s IS '%s';",
+			fprintf(output, "COMMENT ON DOMAIN %s.%s IS %s;",
 					schema2,
 					domname2,
 					b->comment);
@@ -455,7 +479,7 @@ dumpAlterDomain(FILE *output, PQLDomain *a, PQLDomain *b)
 			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
+				fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS %s;",
 						b->seclabels[i].provider,
 						schema2,
 						domname2,
@@ -485,7 +509,7 @@ dumpAlterDomain(FILE *output, PQLDomain *a, PQLDomain *b)
 				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS %s;",
 							b->seclabels[j].provider,
 							schema2,
 							domname2,
@@ -506,7 +530,7 @@ dumpAlterDomain(FILE *output, PQLDomain *a, PQLDomain *b)
 					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
-						fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
+						fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS %s;",
 								b->seclabels[j].provider,
 								schema2,
 								domname2,
@@ -527,7 +551,7 @@ dumpAlterDomain(FILE *output, PQLDomain *a, PQLDomain *b)
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON DOMAIN %s.%s IS %s;",
 							b->seclabels[j].provider,
 							schema2,
 							domname2,

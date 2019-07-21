@@ -57,6 +57,8 @@ getEventTriggers(PGconn *c, int *n)
 
 	for (i = 0; i < *n; i++)
 	{
+		char	*withoutescape;
+
 		e[i].oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		e[i].trgname = strdup(PQgetvalue(res, i, PQfnumber(res, "evtname")));
 		e[i].event = strdup(PQgetvalue(res, i, PQfnumber(res, "evtevent")));
@@ -69,7 +71,18 @@ getEventTriggers(PGconn *c, int *n)
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			e[i].comment = NULL;
 		else
-			e[i].comment = strdup(PQgetvalue(res, i, PQfnumber(res, "description")));
+		{
+			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
+			e[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			if (e[i].comment == NULL)
+			{
+				logError("escaping comment failed: %s", PQerrorMessage(c));
+				PQclear(res);
+				PQfinish(c);
+				/* XXX leak another connection? */
+				exit(EXIT_FAILURE);
+			}
+		}
 
 		e[i].owner = strdup(PQgetvalue(res, i, PQfnumber(res, "evtowner")));
 
@@ -128,9 +141,20 @@ getEventTriggerSecurityLabels(PGconn *c, PQLEventTrigger *e)
 
 	for (i = 0; i < e->nseclabels; i++)
 	{
+		char	*withoutescape;
+
 		e->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
-		e->seclabels[i].label = strdup(PQgetvalue(res, i, PQfnumber(res, "label")));
+		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
+		e->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		if (e->seclabels[i].label == NULL)
+		{
+			logError("escaping label failed: %s", PQerrorMessage(c));
+			PQclear(res);
+			PQfinish(c);
+			/* XXX leak another connection? */
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	PQclear(res);
@@ -153,14 +177,14 @@ freeEventTriggers(PQLEventTrigger *e, int n)
 				free(e[i].tags);
 			free(e[i].functionname);
 			if (e[i].comment)
-				free(e[i].comment);
+				PQfreemem(e[i].comment);
 			free(e[i].owner);
 
 			/* security labels */
 			for (j = 0; j < e[i].nseclabels; j++)
 			{
 				free(e[i].seclabels[j].provider);
-				free(e[i].seclabels[j].label);
+				PQfreemem(e[i].seclabels[j].label);
 			}
 
 			if (e[i].seclabels)
@@ -214,7 +238,7 @@ dumpCreateEventTrigger(FILE *output, PQLEventTrigger *e)
 	if (options.comment && e->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON EVENT TRIGGER %s IS '%s';", evtname, e->comment);
+		fprintf(output, "COMMENT ON EVENT TRIGGER %s IS %s;", evtname, e->comment);
 	}
 
 	/* security labels */
@@ -225,7 +249,7 @@ dumpCreateEventTrigger(FILE *output, PQLEventTrigger *e)
 		for (i = 0; i < e->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS '%s';",
+			fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS %s;",
 					e->seclabels[i].provider,
 					evtname,
 					e->seclabels[i].label);
@@ -299,7 +323,7 @@ dumpAlterEventTrigger(FILE *output, PQLEventTrigger *a, PQLEventTrigger *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON EVENT TRIGGER %s IS '%s';", evtname2, b->comment);
+			fprintf(output, "COMMENT ON EVENT TRIGGER %s IS %s;", evtname2, b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
 		{
@@ -318,7 +342,7 @@ dumpAlterEventTrigger(FILE *output, PQLEventTrigger *a, PQLEventTrigger *b)
 			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS '%s';",
+				fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS %s;",
 						b->seclabels[i].provider,
 						evtname2,
 						b->seclabels[i].label);
@@ -346,7 +370,7 @@ dumpAlterEventTrigger(FILE *output, PQLEventTrigger *a, PQLEventTrigger *b)
 				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS %s;",
 							b->seclabels[j].provider,
 							evtname2,
 							b->seclabels[j].label);
@@ -364,7 +388,7 @@ dumpAlterEventTrigger(FILE *output, PQLEventTrigger *a, PQLEventTrigger *b)
 					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
-						fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS '%s';",
+						fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS %s;",
 								b->seclabels[j].provider,
 								evtname2,
 								b->seclabels[j].label);
@@ -382,7 +406,7 @@ dumpAlterEventTrigger(FILE *output, PQLEventTrigger *a, PQLEventTrigger *b)
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS '%s';",
+					fprintf(output, "SECURITY LABEL FOR %s ON EVENT TRIGGER %s IS %s;",
 							b->seclabels[j].provider,
 							evtname2,
 							b->seclabels[j].label);
