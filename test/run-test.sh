@@ -29,42 +29,17 @@ CLUSTERPATH=/tmp
 # CHANGE STOPS HERE
 ###############################################
 
-function getPgDir
-{
-	if [ "$vtmp" = "11" ]; then
-		echo "pg114"
-	elif [ "$vtmp" = "10" ]; then
-		echo "pg109"
-	elif [ "$vtmp" = "96" ]; then
-		echo "pg9614"
-	elif [ "$vtmp" = "95" ]; then
-		echo "pg9518"
-	elif [ "$vtmp" = "94" ]; then
-		echo "pg9423"
-	elif [ "$vtmp" = "93" ]; then
-		echo "pg9325"
-	elif [ "$vtmp" = "92" ]; then
-		echo "pg9224"
-	elif [ "$vtmp" = "91" ]; then
-		echo "pg9124"
-	elif [ "$vtmp" = "90" ]; then
-		echo "pg9023"
-	fi
-}
-
-vtmp="10"
+PGV1="10"
 if [ ! -z $1 ]; then
-	vtmp=$1
+	PGV1=$1
 fi
-PGV1=$vtmp
-PGDIR1=$(getPgDir)
+PGDIR1="pg$PGV1"
 
-vtmp="10"
-if [ ! -z $2 ]; then
-	vtmp=$2
+PGV2="10"
+if [ ! -z "$2" ]; then
+	PGV2=$2
 fi
-PGV2=$vtmp
-PGDIR2=$(getPgDir)
+PGDIR2="pg$PGV2"
 
 PGPATH1=/home/euler/$PGDIR1/bin
 PGPATH2=/home/euler/$PGDIR2/bin
