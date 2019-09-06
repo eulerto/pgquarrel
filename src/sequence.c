@@ -430,8 +430,12 @@ dumpCreateSequence(FILE *output, PQLSequence *s)
 	/* owner */
 	if (options.owner)
 	{
+		char	*owner = formatObjectIdentifier(s->owner);
+
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER SEQUENCE %s.%s OWNER TO %s;", schema, seqname, s->owner);
+		fprintf(output, "ALTER SEQUENCE %s.%s OWNER TO %s;", schema, seqname, owner);
+
+		free(owner);
 	}
 
 	/* privileges */
@@ -660,9 +664,13 @@ dumpAlterSequence(FILE *output, PQLSequence *a, PQLSequence *b)
 	{
 		if (strcmp(a->owner, b->owner) != 0)
 		{
+			char	*owner = formatObjectIdentifier(b->owner);
+
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER SEQUENCE %s.%s OWNER TO %s;", schema2, seqname2,
-					b->owner);
+					owner);
+
+			free(owner);
 		}
 	}
 

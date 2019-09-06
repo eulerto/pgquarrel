@@ -259,10 +259,14 @@ dumpCreateEventTrigger(FILE *output, PQLEventTrigger *e)
 	/* owner */
 	if (options.owner)
 	{
+		char	*owner = formatObjectIdentifier(e->owner);
+
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER EVENT TRIGGER %s OWNER TO %s;",
 				evtname,
 				e->owner);
+
+		free(owner);
 	}
 
 	free(evtname);
@@ -421,10 +425,14 @@ dumpAlterEventTrigger(FILE *output, PQLEventTrigger *a, PQLEventTrigger *b)
 	{
 		if (strcmp(a->owner, b->owner) != 0)
 		{
+			char	*owner = formatObjectIdentifier(b->owner);
+
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER EVENT TRIGGER %s OWNER TO %s;",
 					evtname2,
-					b->owner);
+					owner);
+
+			free(owner);
 		}
 	}
 

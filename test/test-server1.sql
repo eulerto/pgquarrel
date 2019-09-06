@@ -6,9 +6,11 @@ CREATE DATABASE quarrel1;
 DROP ROLE IF EXISTS same_role_1;
 DROP ROLE IF EXISTS same_role_2;
 DROP ROLE IF EXISTS same_role_3;
+DROP ROLE IF EXISTS "PGQ_same_role_4";
 CREATE ROLE same_role_1;
 CREATE ROLE same_role_2;
 CREATE ROLE same_role_3;
+CREATE ROLE "PGQ_same_role_4";
 
 RESET client_min_messages;
 

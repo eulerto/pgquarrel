@@ -207,11 +207,15 @@ dumpCreateCollation(FILE *output, PQLCollation *c)
 	/* owner */
 	if (options.owner)
 	{
+		char	*owner = formatObjectIdentifier(c->owner);
+
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER COLLATION %s.%s OWNER TO %s;",
 				schema,
 				collname,
-				c->owner);
+				owner);
+
+		free(owner);
 	}
 
 	free(schema);
@@ -265,11 +269,15 @@ dumpAlterCollation(FILE *output, PQLCollation *a, PQLCollation *b)
 	{
 		if (strcmp(a->owner, b->owner) != 0)
 		{
+			char	*owner = formatObjectIdentifier(b->owner);
+
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER COLLATION %s.%s OWNER TO %s;",
 					schema2,
 					collname2,
-					b->owner);
+					owner);
+
+			free(owner);
 		}
 	}
 

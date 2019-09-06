@@ -277,8 +277,12 @@ dumpCreateView(FILE *output, PQLView *v)
 	/* owner */
 	if (options.owner)
 	{
+		char	*owner = formatObjectIdentifier(v->owner);
+
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER VIEW %s.%s OWNER TO %s;", schema, viewname, v->owner);
+		fprintf(output, "ALTER VIEW %s.%s OWNER TO %s;", schema, viewname, owner);
+
+		free(owner);
 	}
 
 	free(schema);
@@ -509,8 +513,12 @@ dumpAlterView(FILE *output, PQLView *a, PQLView *b)
 	{
 		if (strcmp(a->owner, b->owner) != 0)
 		{
+			char	*owner = formatObjectIdentifier(b->owner);
+
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER VIEW %s.%s OWNER TO %s;", schema2, viewname2, b->owner);
+			fprintf(output, "ALTER VIEW %s.%s OWNER TO %s;", schema2, viewname2, owner);
+
+			free(owner);
 		}
 	}
 

@@ -424,9 +424,13 @@ dumpCreateMaterializedView(FILE *output, PQLMaterializedView *v)
 	/* owner */
 	if (options.owner)
 	{
+		char	*owner = formatObjectIdentifier(v->owner);
+
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER MATERIALIZED VIEW %s.%s OWNER TO %s;", schema, matvname,
-				v->owner);
+				owner);
+
+		free(owner);
 	}
 
 	free(schema);
@@ -831,11 +835,15 @@ dumpAlterMaterializedView(FILE *output, PQLMaterializedView *a,
 	{
 		if (strcmp(a->owner, b->owner) != 0)
 		{
+			char	*owner = formatObjectIdentifier(b->owner);
+
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER MATERIALIZED VIEW %s.%s OWNER TO %s;",
 					schema2,
 					matvname2,
-					b->owner);
+					owner);
+
+			free(owner);
 		}
 	}
 

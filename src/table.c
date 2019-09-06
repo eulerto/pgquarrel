@@ -1339,8 +1339,12 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 	/* owner */
 	if (options.owner)
 	{
+		char	*owner = formatObjectIdentifier(t->owner);
+
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TABLE %s.%s OWNER TO %s;", schema, tabname, t->owner);
+		fprintf(output, "ALTER TABLE %s.%s OWNER TO %s;", schema, tabname, owner);
+
+		free(owner);
 	}
 
 	/* privileges */
@@ -2409,8 +2413,12 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 	{
 		if (strcmp(a->owner, b->owner) != 0)
 		{
+			char	*owner = formatObjectIdentifier(b->owner);
+
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER TABLE %s.%s OWNER TO %s;", schema2, tabname2, b->owner);
+			fprintf(output, "ALTER TABLE %s.%s OWNER TO %s;", schema2, tabname2, owner);
+
+			free(owner);
 		}
 	}
 

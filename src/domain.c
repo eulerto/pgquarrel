@@ -380,11 +380,15 @@ dumpCreateDomain(FILE *output, PQLDomain *d)
 	/* owner */
 	if (options.owner)
 	{
+		char	*owner = formatObjectIdentifier(d->owner);
+
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER DOMAIN %s.%s OWNER TO %s;",
 				schema,
 				domname,
-				d->owner);
+				owner);
+
+		free(owner);
 	}
 
 	/* privileges */
@@ -567,11 +571,15 @@ dumpAlterDomain(FILE *output, PQLDomain *a, PQLDomain *b)
 	{
 		if (strcmp(a->owner, b->owner) != 0)
 		{
+			char	*owner = formatObjectIdentifier(b->owner);
+
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER DOMAIN %s.%s OWNER TO %s;",
 					schema2,
 					domname2,
-					b->owner);
+					owner);
+
+			free(owner);
 		}
 	}
 

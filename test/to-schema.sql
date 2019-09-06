@@ -1,5 +1,8 @@
 CREATE SCHEMA to_schema_1;
 CREATE SCHEMA same_schema_1;
+ALTER SCHEMA same_schema_1 OWNER TO "PGQ_same_role_4";
+CREATE SCHEMA "same_SCHEMA_2";
 
 GRANT USAGE ON SCHEMA same_schema_1 TO same_role_1;
 REVOKE ALL PRIVILEGES ON SCHEMA same_schema_1 FROM PUBLIC;
+GRANT USAGE ON SCHEMA "same_SCHEMA_2" TO "PGQ_same_role_4", PUBLIC;

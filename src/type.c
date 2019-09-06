@@ -1092,8 +1092,12 @@ dumpCreateBaseType(FILE *output, PQLBaseType *t)
 	/* owner */
 	if (options.owner)
 	{
+		char	*owner = formatObjectIdentifier(t->owner);
+
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema, typname, t->owner);
+		fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema, typname, owner);
+
+		free(owner);
 	}
 
 	/* privileges */
@@ -1162,8 +1166,12 @@ dumpCreateCompositeType(FILE *output, PQLCompositeType *t)
 	/* owner */
 	if (options.owner)
 	{
+		char	*owner = formatObjectIdentifier(t->owner);
+
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema, typname, t->owner);
+		fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema, typname, owner);
+
+		free(owner);
 	}
 
 	/* privileges */
@@ -1220,8 +1228,12 @@ dumpCreateEnumType(FILE *output, PQLEnumType *t)
 	/* owner */
 	if (options.owner)
 	{
+		char	*owner = formatObjectIdentifier(t->owner);
+
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema, typname, t->owner);
+		fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema, typname, owner);
+
+		free(owner);
 	}
 
 	/* privileges */
@@ -1302,8 +1314,12 @@ dumpCreateRangeType(FILE *output, PQLRangeType *t)
 	/* owner */
 	if (options.owner)
 	{
+		char	*owner = formatObjectIdentifier(t->owner);
+
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema, typname, t->owner);
+		fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema, typname, owner);
+
+		free(owner);
 	}
 
 	/* privileges */
@@ -1492,8 +1508,12 @@ dumpAlterBaseType(FILE *output, PQLBaseType *a, PQLBaseType *b)
 	{
 		if (strcmp(a->owner, b->owner) != 0)
 		{
+			char	*owner = formatObjectIdentifier(b->owner);
+
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema2, typname2, b->owner);
+			fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema2, typname2, owner);
+
+			free(owner);
 		}
 	}
 
@@ -1635,8 +1655,12 @@ dumpAlterCompositeType(FILE *output, PQLCompositeType *a, PQLCompositeType *b)
 	{
 		if (strcmp(a->owner, b->owner) != 0)
 		{
+			char	*owner = formatObjectIdentifier(b->owner);
+
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema2, typname2, b->owner);
+			fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema2, typname2, owner);
+
+			free(owner);
 		}
 	}
 
@@ -1778,8 +1802,12 @@ dumpAlterEnumType(FILE *output, PQLEnumType *a, PQLEnumType *b)
 	{
 		if (strcmp(a->owner, b->owner) != 0)
 		{
+			char	*owner = formatObjectIdentifier(b->owner);
+
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema2, typname2, b->owner);
+			fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema2, typname2, owner);
+
+			free(owner);
 		}
 	}
 
@@ -1921,8 +1949,12 @@ dumpAlterRangeType(FILE *output, PQLRangeType *a, PQLRangeType *b)
 	{
 		if (strcmp(a->owner, b->owner) != 0)
 		{
+			char	*owner = formatObjectIdentifier(b->owner);
+
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema2, typname2, b->owner);
+			fprintf(output, "ALTER TYPE %s.%s OWNER TO %s;", schema2, typname2, owner);
+
+			free(owner);
 		}
 	}
 

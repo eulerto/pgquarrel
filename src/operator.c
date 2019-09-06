@@ -706,12 +706,16 @@ dumpCreateOperator(FILE *output, PQLOperator *o)
 	/* owner */
 	if (options.owner)
 	{
+		char	*owner = formatObjectIdentifier(o->owner);
+
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER OPERATOR %s.%s(%s,%s) OWNER TO %s;",
 				schema, oprname,
 				(o->lefttype) ? o->lefttype : "NONE",
 				(o->righttype) ? o->righttype : "NONE",
-				o->owner);
+				owner);
+
+		free(owner);
 	}
 
 	free(schema);
@@ -801,11 +805,15 @@ dumpCreateOperatorClass(FILE *output, PQLOperatorClass *c)
 	/* owner */
 	if (options.owner)
 	{
+		char	*owner = formatObjectIdentifier(c->owner);
+
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER OPERATOR CLASS %s.%s USING %s OWNER TO %s;",
 				schema, opcname,
 				c->accessmethod,
-				c->owner);
+				owner);
+
+		free(owner);
 	}
 
 	free(schema);
@@ -842,11 +850,15 @@ dumpCreateOperatorFamily(FILE *output, PQLOperatorFamily *f)
 	/* owner */
 	if (options.owner)
 	{
+		char	*owner = formatObjectIdentifier(f->owner);
+
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER OPERATOR FAMILY %s.%s USING %s OWNER TO %s;",
 				schema, opfname,
 				f->accessmethod,
-				f->owner);
+				owner);
+
+		free(owner);
 	}
 
 	free(schema);
@@ -930,13 +942,17 @@ dumpAlterOperator(FILE *output, PQLOperator *a, PQLOperator *b)
 	{
 		if (strcmp(a->owner, b->owner) != 0)
 		{
+			char	*owner = formatObjectIdentifier(b->owner);
+
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER OPERATOR %s.%s(%s,%s) OWNER TO %s;",
 					schema2,
 					oprname2,
 					(b->lefttype) ? b->lefttype : "NONE",
 					(b->righttype) ? b->righttype : "NONE",
-					b->owner);
+					owner);
+
+			free(owner);
 		}
 	}
 
@@ -1056,12 +1072,16 @@ dumpAlterOperatorClass(FILE *output, PQLOperatorClass *a, PQLOperatorClass *b)
 	{
 		if (strcmp(a->owner, b->owner) != 0)
 		{
+			char	*owner = formatObjectIdentifier(b->owner);
+
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER OPERATOR CLASS %s.%s USING %s OWNER TO %s;",
 					schema2,
 					opcname2,
 					b->accessmethod,
-					b->owner);
+					owner);
+
+			free(owner);
 		}
 	}
 
@@ -1210,12 +1230,16 @@ dumpAlterOperatorFamily(FILE *output, PQLOperatorFamily *a,
 	{
 		if (strcmp(a->owner, b->owner) != 0)
 		{
+			char	*owner = formatObjectIdentifier(b->owner);
+
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER OPERATOR CLASS %s.%s USING %s OWNER TO %s;",
 					schema2,
 					opfname2,
 					b->accessmethod,
-					b->owner);
+					owner);
+
+			free(owner);
 		}
 	}
 

@@ -430,6 +430,7 @@ dumpGrant(FILE *output, int objecttype, PQLObject *a, char *privs,
 {
 	char	*schema;
 	char	*objname;
+	char	*owner;
 
 	char	*p;
 
@@ -439,6 +440,11 @@ dumpGrant(FILE *output, int objecttype, PQLObject *a, char *privs,
 
 	schema = NULL;
 	objname = formatObjectIdentifier(a->objectname);
+
+	if (strcmp(grantee, "PUBLIC") == 0)
+		owner = strdup(grantee);
+	else
+		owner = formatObjectIdentifier(grantee);
 
 	p = formatPrivileges(privs, cols);
 
@@ -494,7 +500,7 @@ dumpGrant(FILE *output, int objecttype, PQLObject *a, char *privs,
 				schema,
 				objname,
 				args,
-				grantee);
+				owner);
 	}
 	else if (objecttype == PGQ_DATABASE || objecttype == PGQ_FOREIGN_DATA_WRAPPER ||
 			 objecttype == PGQ_FOREIGN_SERVER || objecttype == PGQ_LANGUAGE ||
@@ -503,7 +509,7 @@ dumpGrant(FILE *output, int objecttype, PQLObject *a, char *privs,
 		/* there are some objects that are not schema-qualified */
 		fprintf(output, " %s TO %s;",
 				objname,
-				grantee);
+				owner);
 	}
 	else
 	{
@@ -512,13 +518,14 @@ dumpGrant(FILE *output, int objecttype, PQLObject *a, char *privs,
 		fprintf(output, " %s.%s TO %s;",
 				schema,
 				objname,
-				grantee);
+				owner);
 	}
 
 	free(p);
 	free(objname);
 	if (schema)
 		free(schema);
+	free(owner);
 }
 
 void
@@ -527,6 +534,7 @@ dumpRevoke(FILE *output, int objecttype, PQLObject *a, char *privs,
 {
 	char	*schema;
 	char	*objname;
+	char	*owner;
 
 	char	*p;
 
@@ -536,6 +544,10 @@ dumpRevoke(FILE *output, int objecttype, PQLObject *a, char *privs,
 
 	schema = NULL;
 	objname = formatObjectIdentifier(a->objectname);
+	if (strcmp(grantee, "PUBLIC") == 0)
+		owner = strdup(grantee);
+	else
+		owner = formatObjectIdentifier(grantee);
 
 	p = formatPrivileges(privs, cols);
 
@@ -591,7 +603,7 @@ dumpRevoke(FILE *output, int objecttype, PQLObject *a, char *privs,
 				schema,
 				objname,
 				args,
-				grantee);
+				owner);
 	}
 	else if (objecttype == PGQ_DATABASE || objecttype == PGQ_FOREIGN_DATA_WRAPPER ||
 			 objecttype == PGQ_FOREIGN_SERVER || objecttype == PGQ_LANGUAGE ||
@@ -600,7 +612,7 @@ dumpRevoke(FILE *output, int objecttype, PQLObject *a, char *privs,
 		/* there are some objects that are not schema-qualified */
 		fprintf(output, " %s FROM %s;",
 				objname,
-				grantee);
+				owner);
 	}
 	else
 	{
@@ -609,13 +621,14 @@ dumpRevoke(FILE *output, int objecttype, PQLObject *a, char *privs,
 		fprintf(output, " %s.%s FROM %s;",
 				schema,
 				objname,
-				grantee);
+				owner);
 	}
 
 	free(p);
 	free(objname);
 	if (schema)
 		free(schema);
+	free(owner);
 }
 
 void
