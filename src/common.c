@@ -20,6 +20,7 @@
 #include "parser/keywords.h"
 #endif
 
+#if PG_VERSION_NUM < 90600
 #define	PG_KEYWORD(a,b,c) {a,0,c},
 
 const ScanKeyword PQLScanKeywords[] =
@@ -28,6 +29,7 @@ const ScanKeyword PQLScanKeywords[] =
 };
 
 const int NumPQLScanKeywords = lengthof(PQLScanKeywords);
+#endif
 
 
 static const char *logLevelTag[] =
@@ -92,7 +94,11 @@ compareNamesAndRelations(PQLObject *a, PQLObject *b, char *aname, char *bname)
 	return c;
 }
 
-/* borrowed from src/backend/parser/kwlookup.c */
+#if PG_VERSION_NUM < 90600
+/*
+ * This function was copied from postgres source code because it is not
+ * available in a library. This is true for version 9.5 or prior.
+ */
 const ScanKeyword *
 ScanKeywordLookup(const char *text,
 				  const ScanKeyword *keywords,
@@ -145,6 +151,7 @@ ScanKeywordLookup(const char *text,
 
 	return NULL;
 }
+#endif		/* <= 9.5 */
 
 /*
  * Quote an identifier iif necessary. For quoting, consider the SQL rules and
@@ -182,13 +189,26 @@ formatObjectIdentifier(char *s)
 
 	if (!need_quotes)
 	{
-		/* ScanKeywordLookup() was copied from postgres source code */
+#if PG_VERSION_NUM >= 120000
+		int kwnum = ScanKeywordLookup(s, &ScanKeywords);
+
+		if (kwnum >= 0 && ScanKeywordCategories[kwnum] != UNRESERVED_KEYWORD)
+			need_quotes = true;
+#elif PG_VERSION_NUM >= 90600
 		const ScanKeyword *keyword = ScanKeywordLookup(s,
-									 PQLScanKeywords,
-									 NumPQLScanKeywords);
+														 ScanKeywords,
+														 NumScanKeywords);
 
 		if (keyword != NULL && keyword->category != UNRESERVED_KEYWORD)
 			need_quotes = true;
+#else
+		const ScanKeyword *keyword = ScanKeywordLookup(s,
+														 PQLScanKeywords,
+														 NumPQLScanKeywords);
+
+		if (keyword != NULL && keyword->category != UNRESERVED_KEYWORD)
+			need_quotes = true;
+#endif
 	}
 
 	if (!need_quotes)
