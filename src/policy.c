@@ -128,7 +128,7 @@ dumpCreatePolicy(FILE *output, PQLPolicy *p)
 	char	*polname = formatObjectIdentifier(p->polname);
 	char	*schema = formatObjectIdentifier(p->table.schemaname);
 	char	*tabname = formatObjectIdentifier(p->table.objectname);
-	char	*cmd;
+	char	*cmd = NULL;
 
 	if (p->cmd == '*')
 		cmd = strdup("");
@@ -141,7 +141,10 @@ dumpCreatePolicy(FILE *output, PQLPolicy *p)
 	else if (p->cmd == 'd')
 		cmd = strdup(" FOR DELETE");
 	else
+	{
 		logError("bogus value in pg_policy.polcmd (%c) in policy %s", p->cmd, p->polname);
+		return;
+	}
 
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE POLICY %s;", p->polname);
