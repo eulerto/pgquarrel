@@ -117,9 +117,9 @@ GRANT INSERT, UPDATE (b, c) ON TABLE to_table_2 TO same_role_2;
 --) PARTITION BY RANGE (a);
 
 CREATE TABLE same_cities (
-id serial,
+abbrev char(2) not null,
 description varchar(80) not null,
-abbrev char(2) not null
+id serial
 ) PARTITION BY LIST (abbrev);
 
 CREATE TABLE same_cities_north PARTITION OF same_cities FOR VALUES IN ('AC', 'AM', 'AP', 'PA', 'RO', 'RR', 'TO') PARTITION BY LIST (abbrev);
