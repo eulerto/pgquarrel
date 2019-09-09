@@ -24,7 +24,7 @@ COVERAGE=0
 VALGRIND=0
 STOPAFTERTESTS=1
 
-CLUSTERPATH=/tmp
+CLUSTERPATH=${CLUSTERPATH:-"/tmp"}
 ###############################################
 # CHANGE STOPS HERE
 ###############################################
@@ -41,8 +41,8 @@ if [ ! -z "$2" ]; then
 fi
 PGDIR2="pg$PGV2"
 
-PGPATH1=/home/euler/$PGDIR1/bin
-PGPATH2=/home/euler/$PGDIR2/bin
+PGPATH1=$HOME/$PGDIR1/bin
+PGPATH2=$HOME/$PGDIR2/bin
 
 
 TESTWD=`pwd`
