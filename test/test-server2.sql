@@ -55,3 +55,5 @@ CREATE EXTENSION file_fdw;
 \i to-statistics.sql
 
 --\i to-user-mapping.sql
+
+\i to-publication.sql

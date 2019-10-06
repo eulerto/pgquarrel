@@ -34,6 +34,8 @@ add_executable(pgquarrel
 	src/operator.h
 	src/policy.c
 	src/policy.h
+	src/publication.c
+	src/publication.h
 	src/privileges.c
 	src/privileges.h
 	src/quarrel.c

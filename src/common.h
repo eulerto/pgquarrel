@@ -79,6 +79,7 @@ typedef struct QuarrelGeneralOptions
 	bool			matview;
 	bool			operator;
 	bool			policy;
+	bool			publication;
 	bool			rule;
 	bool			schema;
 	bool			sequence;
