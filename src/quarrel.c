@@ -23,6 +23,7 @@
  * operator class: partial
  * operator family: partial
  * policy: partial
+ * publication: partial
  * revoke: complete
  * rule: partial
  * schema: partial
@@ -43,7 +44,6 @@
  * ~~~~~~~~~~~~~
  * foreign table
  * procedure
- * publication
  * subscription
  * transform
  *
@@ -79,6 +79,7 @@
 #include "matview.h"
 #include "operator.h"
 #include "policy.h"
+#include "publication.h"
 #include "rule.h"
 #include "schema.h"
 #include "sequence.h"
@@ -109,7 +110,7 @@ PQLStatistic		qstat = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-							 0, 0
+							 0, 0, 0, 0
 					  };
 
 FILE				*fout;			/* output file */
@@ -147,6 +148,7 @@ static void quarrelMaterializedViews();
 static void quarrelOperators();
 static void quarrelOperatorFamilies();
 static void quarrelOperatorClasses();
+static void quarrelPublications();
 static void quarrelPolicies();
 static void quarrelRules();
 static void quarrelSchemas();
@@ -252,6 +254,8 @@ help(void)
 		   (opts.general.owner) ? "true" : "false");
 	printf("      --policy=BOOL             policy (default: %s)\n",
 		   (opts.general.policy) ? "true" : "false");
+	printf("      --publication=BOOL             publication (default: %s)\n",
+		   (opts.general.publication) ? "true" : "false");
 	printf("      --privileges=BOOL         privileges (default: %s)\n",
 		   (opts.general.privileges) ? "true" : "false");
 	printf("      --rule=BOOL               rule (default: %s)\n",
@@ -328,6 +332,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 	options->general.matview = true;			/* general - materialized-view */
 	options->general.operator = false;			/* general - operator */
 	options->general.policy = false;			/* general - policy */
+	options->general.publication = false;		/* general - publication */
 	options->general.rule = false;				/* general - rule */
 	options->general.schema = true;				/* general - schema */
 	options->general.sequence = true;			/* general - sequence */
@@ -514,6 +519,10 @@ loadConfig(const char *cf, QuarrelOptions *options)
 		if (mini_file_get_value(config, "general", "policy") != NULL)
 			options->general.operator = parseBoolean("policy", mini_file_get_value(config,
 										"general", "policy"));
+
+		if (mini_file_get_value(config, "general", "publication") != NULL)
+			options->general.publication = parseBoolean("publication", mini_file_get_value(config,
+										"general", "publication"));
 
 		if (mini_file_get_value(config, "general", "rule") != NULL)
 			options->general.rule = parseBoolean("rule", mini_file_get_value(config,
@@ -2286,6 +2295,102 @@ quarrelOperatorClasses()
 
 	freeOperatorClasses(opclasses1, nopclasses1);
 	freeOperatorClasses(opclasses2, nopclasses2);
+}
+
+static void
+quarrelPublications()
+{
+	PQLPublication		*publications1 = NULL;		/* target */
+	PQLPublication		*publications2 = NULL;		/* source */
+	int			npublications1 = 0;		/* # of publications */
+	int			npublications2 = 0;
+	int			i, j;
+
+	publications1 = getPublications(conn1, &npublications1);
+	publications2 = getPublications(conn2, &npublications2);
+
+	for (i = 0; i < npublications1; i++)
+		logNoise("server1: %s", publications1[i].pubname);
+
+	for (i = 0; i < npublications2; i++)
+		logNoise("server2: %s", publications2[i].pubname);
+
+	/*
+	 * We have two sorted lists. Let's figure out which elements are not in the
+	 * other list.
+	 * We have two sorted lists. The strategy is transverse both lists only once
+	 * to figure out publications not presented in the other list.
+	 */
+	i = j = 0;
+	while (i < npublications1 || j < npublications2)
+	{
+		/* End of publications1 list. Print publications2 list until its end. */
+		if (i == npublications1)
+		{
+			logDebug("publication %s: server2", publications2[j].pubname);
+
+			getPublicationTables(conn2, &publications2[j]);
+			if (options.securitylabels)
+				getPublicationSecurityLabels(conn2, &publications2[j]);
+
+			dumpCreatePublication(fpre, &publications2[j]);
+
+			j++;
+			qstat.pubadded++;
+		}
+		/* End of publications2 list. Print publications1 list until its end. */
+		else if (j == npublications2)
+		{
+			logDebug("publication %s: server1", publications1[i].pubname);
+
+			dumpDropPublication(fpost, &publications1[i]);
+
+			i++;
+			qstat.pubremoved++;
+		}
+		else if (strcmp(publications1[i].pubname, publications2[j].pubname) == 0)
+		{
+			logDebug("publication %s: server1 server2", publications1[i].pubname);
+
+			getPublicationTables(conn1, &publications1[i]);
+			getPublicationTables(conn2, &publications2[j]);
+			if (options.securitylabels)
+			{
+				getPublicationSecurityLabels(conn1, &publications1[i]);
+				getPublicationSecurityLabels(conn2, &publications2[j]);
+			}
+
+			dumpAlterPublication(fpre, &publications1[i], &publications2[j]);
+
+			i++;
+			j++;
+		}
+		else if (strcmp(publications1[i].pubname, publications2[j].pubname) < 0)
+		{
+			logDebug("publication %s: server1", publications1[i].pubname);
+
+			dumpDropPublication(fpost, &publications1[i]);
+
+			i++;
+			qstat.pubremoved++;
+		}
+		else if (strcmp(publications1[i].pubname, publications2[j].pubname) > 0)
+		{
+			logDebug("publication %s: server2", publications2[j].pubname);
+
+			getPublicationTables(conn2, &publications2[j]);
+			if (options.securitylabels)
+				getPublicationSecurityLabels(conn2, &publications2[j]);
+
+			dumpCreatePublication(fpre, &publications2[j]);
+
+			j++;
+			qstat.pubadded++;
+		}
+	}
+
+	freePublications(publications1, npublications1);
+	freePublications(publications2, npublications2);
 }
 
 static void
@@ -4068,6 +4173,7 @@ int main(int argc, char *argv[])
 		{"operator", required_argument, NULL, 23},
 		{"owner", required_argument, NULL, 24},
 		{"privileges", required_argument, NULL, 25},
+		{"publication", required_argument, NULL, 40},
 		{"rule", required_argument, NULL, 26},
 		{"schema", required_argument, NULL, 27},
 		{"security-labels", required_argument, NULL, 28},
@@ -4301,6 +4407,10 @@ int main(int argc, char *argv[])
 				topts.promptpassword = false;
 				target_prompt_given = true;
 				break;
+			case 40:
+				gopts.publication = parseBoolean("publication", optarg);
+				gopts_given.publication = true;
+				break;
 			default:
 				fprintf(stderr, "Try \"%s --help\" for more information.\n", PGQ_NAME);
 				exit(EXIT_FAILURE);
@@ -4368,6 +4478,8 @@ int main(int argc, char *argv[])
 		options.privileges = gopts.privileges;
 	if (gopts_given.rule)
 		options.rule = gopts.rule;
+	if (gopts_given.publication)
+		options.publication = gopts.publication;
 	if (gopts_given.schema)
 		options.schema = gopts.schema;
 	if (gopts_given.securitylabels)
@@ -4554,6 +4666,8 @@ int main(int argc, char *argv[])
 		quarrelTriggers();
 	if (options.rule)
 		quarrelRules();
+	if (options.publication)
+		quarrelPublications();
 	if (options.policy)
 		quarrelPolicies();
 	if (options.eventtrigger)

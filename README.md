@@ -226,7 +226,7 @@ Features
 	</tr>
 	<tr>
 		<td>PUBLICATION</td>
-		<td>not implemented</td>
+		<td>partial</td>
 		<td></td>
 	</tr>
 	<tr>
@@ -317,6 +317,7 @@ The following command-line options are provided (all are optional):
 * `materialized-view`: materialized view comparison (default: true).
 * `operator`: operator comparison (default: false).
 * `policy`: policy comparison (default: false).
+* `publication`: publication comparison (default: false).
 * `owner`: owner comparison (default: false).
 * `privileges`: privileges comparison (default: false).
 * `rule`: rule comparison (default: false).
@@ -360,6 +361,7 @@ language = false
 materialized-view = true
 operator = false
 policy = false
+publication = false
 rule = false
 schema = true
 sequence = true
