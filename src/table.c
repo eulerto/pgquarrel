@@ -43,7 +43,7 @@
  */
 #include "table.h"
 
-
+static void sortTableAttributes(PQLTable **t);
 static void getParentTables(PGconn *c, PQLTable *t);
 static void dumpAddColumn(FILE *output, PQLTable *t, int i);
 static void dumpRemoveColumn(FILE *output, PQLTable *t, int i);
@@ -61,6 +61,29 @@ static void dumpAddFK(FILE *output, PQLTable *t, int i);
 static void dumpRemoveFK(FILE *output, PQLTable *t, int i);
 static void dumpAttachPartition(FILE *output, PQLTable *a);
 static void dumpDetachPartition(FILE *output, PQLTable *a);
+
+static void
+sortTableAttributes(PQLTable **t)
+{
+	PQLTable *tmp;
+	tmp = (PQLTable *) malloc(sizeof(PQLTable));
+	tmp->attributes = (PQLAttribute *) malloc((*t)->nattributes * sizeof(PQLAttribute));
+
+	for (int i = 0; i < (*t)->nattributes; i++)
+	{
+		for (int j = 0; j < (*t)->nattributes; j++)
+		{
+			if ((*t)->attributes[j].attnum > (*t)->attributes[i].attnum)
+			{
+				tmp->attributes[0] = (*t)->attributes[i];
+
+				(*t)->attributes[i] = (*t)->attributes[j];
+
+				(*t)->attributes[j] = tmp->attributes[0];
+			}
+		}
+	}
+}
 
 PQLTable *
 getTables(PGconn *c, int *n)
@@ -1060,6 +1083,9 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 	int		i;
 	bool	hasatts = false;
 
+	/*sort attributes*/
+	sortTableAttributes(&t);
+
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE %sTABLE %s.%s ", t->unlogged ? "UNLOGGED " : "", schema,
 			tabname);
@@ -1094,7 +1120,7 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 		hasatts = true;
 
 		/* attribute name and type */
-		fprintf(output, "%s %s", t->attributes[i].attname, t->attributes[i].atttypname);
+		fprintf(output, "\t%s %s", t->attributes[i].attname, t->attributes[i].atttypname);
 
 		/* collate */
 		/* XXX schema-qualified? */
