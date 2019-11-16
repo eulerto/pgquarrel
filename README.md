@@ -231,7 +231,7 @@ Features
 	</tr>
 	<tr>
 		<td>SUBSCRIPTION</td>
-		<td>not implemented</td>
+		<td>partial</td>
 		<td></td>
 	</tr>
 	<tr>
@@ -325,6 +325,7 @@ The following command-line options are provided (all are optional):
 * `security-labels`: security labels comparison (default: false).
 * `sequence`: sequence comparison (default: true).
 * `statistics`: statistics comparison (default: false).
+* `subscription`: subscription comparison (default: false).
 * `table`: table comparison (default: true).
 * `text-search`: text search comparison (default: false).
 * `trigger`: trigger comparison (default: true).
@@ -366,6 +367,7 @@ rule = false
 schema = true
 sequence = true
 statistics = false
+subscription = false
 table = true
 text-search = false
 trigger = true
