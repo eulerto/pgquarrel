@@ -526,7 +526,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 										"general", "operator"));
 
 		if (mini_file_get_value(config, "general", "policy") != NULL)
-			options->general.operator = parseBoolean("policy", mini_file_get_value(config,
+			options->general.policy = parseBoolean("policy", mini_file_get_value(config,
 										"general", "policy"));
 
 		if (mini_file_get_value(config, "general", "procedure") != NULL)
