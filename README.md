@@ -176,7 +176,7 @@ Features
 	</tr>
 	<tr>
 		<td>FOREIGN TABLE</td>
-		<td>not implemented</td>
+		<td>partial</td>
 		<td></td>
 	</tr>
 	<tr>
@@ -311,6 +311,7 @@ The following command-line options are provided (all are optional):
 * `event-trigger`: event trigger comparison (default: false).
 * `extension`: extension comparison (default: false).
 * `fdw`: foreign data wrapper comparison (default: false).
+* `foreign-table`: foreign table comparison (default: false).
 * `function`: function comparison (default: true).
 * `index`: index comparison (default: true).
 * `language`: language comparison (default: false).
@@ -357,6 +358,7 @@ domain = true
 event-trigger = false
 extension = false
 fdw = false
+foreign-table = false
 function = true
 index = true
 language = false

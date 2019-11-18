@@ -73,6 +73,7 @@ typedef struct QuarrelGeneralOptions
 	bool			eventtrigger;
 	bool			extension;
 	bool			fdw;
+	bool			foreigntable;
 	bool			function;
 	bool			index;
 	bool			language;
@@ -136,6 +137,7 @@ typedef struct PQLAttribute
 	char		*attstorage;
 	bool		defstorage;
 	char		*attoptions;
+	char		*attfdwoptions;
 	char		*comment;
 	char		*acl;
 

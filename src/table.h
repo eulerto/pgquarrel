@@ -17,6 +17,7 @@ typedef struct PQLTable
 	PQLObject		obj;
 	bool			unlogged;
 	char			*tbspcname;
+	char			kind;
 
 	/* do not load iif table will be dropped */
 	PQLAttribute	*attributes;
@@ -43,13 +44,17 @@ typedef struct PQLTable
 	PQLObject		reloftype;
 
 	/* partitioning */
-	bool			partitioned;		/* partitioned table? */
 	bool			partition;			/* partition? */
 	char			*partitionkey;		/* partitioned table has */
 	char			*partitionbound;	/* partition has */
 
+	/* inheritance */
 	PQLObject		*parent;
 	int				nparent;
+
+	/* foreign table */
+	char			*servername;
+	char			*ftoptions;
 
 	char			*comment;
 	char			*owner;
@@ -60,7 +65,10 @@ typedef struct PQLTable
 	int				nseclabels;
 } PQLTable;
 
-PQLTable *getTables(PGconn *c, int *n);
+PQLTable *getRegularTables(PGconn *c, int *n);
+PQLTable *getForeignTables(PGconn *c, int *n);
+
+void getForeignTableProperties(PGconn *c, PQLTable *t, int n);
 void getTableAttributes(PGconn *c, PQLTable *t);
 void getOwnedBySequences(PGconn *c, PQLTable *t);
 void getCheckConstraints(PGconn *c, PQLTable *t, int n);

@@ -22,6 +22,8 @@ CREATE EXTENSION file_fdw;
 
 \i dellstore.sql
 
+\i to-server.sql
+
 \i to-table.sql
 
 \i to-index.sql
@@ -49,8 +51,6 @@ CREATE EXTENSION file_fdw;
 \i to-matview.sql
 
 \i to-fdw.sql
-
-\i to-server.sql
 
 \i to-statistics.sql
 

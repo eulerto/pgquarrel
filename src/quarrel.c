@@ -14,6 +14,7 @@
  * event trigger: complete
  * extension: partial
  * foreign data wrapper: complete
+ * foreign table: partial
  * function: partial
  * grant: complete
  * index: partial
@@ -44,7 +45,6 @@
  *
  *  UNSUPPORTED
  * ~~~~~~~~~~~~~
- * foreign table
  * transform
  *
  *  UNCERTAIN
@@ -111,7 +111,7 @@ PQLStatistic		qstat = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-							 0, 0, 0, 0, 0, 0, 0, 0
+							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 					  };
 
 FILE				*fout;			/* output file */
@@ -142,6 +142,7 @@ static void quarrelEventTriggers();
 static void quarrelExtensions();
 static void quarrelForeignDataWrappers();
 static void quarrelForeignServers();
+static void quarrelForeignTables();
 static void quarrelFunctions();
 static void quarrelIndexes();
 static void quarrelLanguages();
@@ -243,6 +244,8 @@ help(void)
 		   (opts.general.extension) ? "true" : "false");
 	printf("      --fdw=BOOL                foreign data wrapper (default: %s)\n",
 		   (opts.general.fdw) ? "true" : "false");
+	printf("      --foreign-table=BOOL              foreign table (default: %s)\n",
+		   (opts.general.foreigntable) ? "true" : "false");
 	printf("      --function=BOOL           function (default: %s)\n",
 		   (opts.general.function) ? "true" : "false");
 	printf("      --index=BOOL              index (default: %s)\n",
@@ -333,6 +336,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 	options->general.eventtrigger = false;		/* general - event-trigger */
 	options->general.extension = false;			/* general - extension */
 	options->general.fdw = false;				/* general - fdw */
+	options->general.foreigntable = false;		/* general - foreign table */
 	options->general.function = true;			/* general - function */
 	options->general.index = true;				/* general - index */
 	options->general.language = false;			/* general - language */
@@ -503,6 +507,10 @@ loadConfig(const char *cf, QuarrelOptions *options)
 		if (mini_file_get_value(config, "general", "fdw") != NULL)
 			options->general.fdw = parseBoolean("fdw", mini_file_get_value(config,
 												"general", "fdw"));
+
+		if (mini_file_get_value(config, "general", "foreign-table") != NULL)
+			options->general.foreigntable = parseBoolean("foreign-table", mini_file_get_value(config,
+												"general", "foreign-table"));
 
 		if (mini_file_get_value(config, "general", "function") != NULL)
 			options->general.function = parseBoolean("function", mini_file_get_value(config,
@@ -3081,6 +3089,114 @@ quarrelSubscriptions()
 }
 
 static void
+quarrelForeignTables()
+{
+	PQLTable	*tables1 = NULL;	/* target */
+	PQLTable	*tables2 = NULL;	/* source */
+	int			ntables1 = 0;		/* # of tables */
+	int			ntables2 = 0;
+	int			i, j;
+
+	tables1 = getForeignTables(conn1, &ntables1);
+	getForeignTableProperties(conn1, tables1, ntables1);
+	getCheckConstraints(conn1, tables1, ntables1);
+
+	tables2 = getForeignTables(conn2, &ntables2);
+	getForeignTableProperties(conn2, tables2, ntables2);
+	getCheckConstraints(conn2, tables2, ntables2);
+
+	for (i = 0; i < ntables1; i++)
+		logNoise("server1: %s.%s %u", tables1[i].obj.schemaname,
+				 tables1[i].obj.objectname, tables1[i].obj.oid);
+
+	for (i = 0; i < ntables2; i++)
+		logNoise("server2: %s.%s %u", tables2[i].obj.schemaname,
+				 tables2[i].obj.objectname, tables2[i].obj.oid);
+
+	/*
+	 * We have two sorted lists. Let's figure out which elements are not in the
+	 * other list.
+	 * We have two sorted lists. The strategy is transverse both lists only once
+	 * to figure out relations not presented in the other list.
+	 */
+	i = j = 0;
+	while (i < ntables1 || j < ntables2)
+	{
+		/* End of tables1 list. Print tables2 list until its end. */
+		if (i == ntables1)
+		{
+			logDebug("foreign table %s.%s: server2", tables2[j].obj.schemaname,
+					 tables2[j].obj.objectname);
+
+			getTableAttributes(conn2, &tables2[j]);
+			if (options.securitylabels)
+				getTableSecurityLabels(conn2, &tables2[j]);
+
+			dumpCreateTable(fpre, fpost, &tables2[j]);
+
+			j++;
+			qstat.ftableadded++;
+		}
+		/* End of tables2 list. Print tables1 list until its end. */
+		else if (j == ntables2)
+		{
+			logDebug("foreign table %s.%s: server1", tables1[i].obj.schemaname,
+					 tables1[i].obj.objectname);
+
+			dumpDropTable(fpost, &tables1[i]);
+
+			i++;
+			qstat.ftableremoved++;
+		}
+		else if (compareRelations(&tables1[i].obj, &tables2[j].obj) == 0)
+		{
+			logDebug("foreign table %s.%s: server1 server2", tables1[i].obj.schemaname,
+					 tables1[i].obj.objectname);
+
+			getTableAttributes(conn1, &tables1[i]);
+			getTableAttributes(conn2, &tables2[j]);
+			if (options.securitylabels)
+			{
+				getTableSecurityLabels(conn1, &tables1[i]);
+				getTableSecurityLabels(conn2, &tables2[j]);
+			}
+
+			dumpAlterTable(fpre, &tables1[i], &tables2[j]);
+
+			i++;
+			j++;
+		}
+		else if (compareRelations(&tables1[i].obj, &tables2[j].obj) < 0)
+		{
+			logDebug("foreign table %s.%s: server1", tables1[i].obj.schemaname,
+					 tables1[i].obj.objectname);
+
+			dumpDropTable(fpost, &tables1[i]);
+
+			i++;
+			qstat.ftableremoved++;
+		}
+		else if (compareRelations(&tables1[i].obj, &tables2[j].obj) > 0)
+		{
+			logDebug("foreign table %s.%s: server2", tables2[j].obj.schemaname,
+					 tables2[j].obj.objectname);
+
+			getTableAttributes(conn2, &tables2[j]);
+			if (options.securitylabels)
+				getTableSecurityLabels(conn2, &tables2[j]);
+
+			dumpCreateTable(fpre, fpost, &tables2[j]);
+
+			j++;
+			qstat.ftableadded++;
+		}
+	}
+
+	freeTables(tables1, ntables1);
+	freeTables(tables2, ntables2);
+}
+
+static void
 quarrelTables()
 {
 	PQLTable	*tables1 = NULL;	/* target */
@@ -3089,12 +3205,12 @@ quarrelTables()
 	int			ntables2 = 0;
 	int			i, j;
 
-	tables1 = getTables(conn1, &ntables1);
+	tables1 = getRegularTables(conn1, &ntables1);
 	getCheckConstraints(conn1, tables1, ntables1);
 	getFKConstraints(conn1, tables1, ntables1);
 	getPKConstraints(conn1, tables1, ntables1);
 
-	tables2 = getTables(conn2, &ntables2);
+	tables2 = getRegularTables(conn2, &ntables2);
 	getCheckConstraints(conn2, tables2, ntables2);
 	getFKConstraints(conn2, tables2, ntables2);
 	getPKConstraints(conn2, tables2, ntables2);
@@ -4391,6 +4507,7 @@ int main(int argc, char *argv[])
 		{"event-trigger", required_argument, NULL, 16},
 		{"extension", required_argument, NULL, 17},
 		{"fdw", required_argument, NULL, 18},
+		{"foreign-table", required_argument, NULL, 43},
 		{"function", required_argument, NULL, 19},
 		{"index", required_argument, NULL, 20},
 		{"language", required_argument, NULL, 21},
@@ -4646,6 +4763,10 @@ int main(int argc, char *argv[])
 				gopts.procedure = parseBoolean("procedure", optarg);
 				gopts_given.procedure = true;
 				break;
+			case 43:
+				gopts.foreigntable = parseBoolean("foreign-table", optarg);
+				gopts_given.foreigntable = true;
+				break;
 			default:
 				fprintf(stderr, "Try \"%s --help\" for more information.\n", PGQ_NAME);
 				exit(EXIT_FAILURE);
@@ -4697,6 +4818,8 @@ int main(int argc, char *argv[])
 		options.extension = gopts.extension;
 	if (gopts_given.fdw)
 		options.fdw = gopts.fdw;
+	if (gopts_given.foreigntable)
+		options.fdw = gopts.foreigntable;
 	if (gopts_given.function)
 		options.function = gopts.function;
 	if (gopts_given.index)
@@ -4897,6 +5020,8 @@ int main(int argc, char *argv[])
 		quarrelFunctions();
 	if (options.procedure)
 		quarrelProcedures();
+	if (options.foreigntable)
+		quarrelForeignTables();
 	if (options.aggregate)
 		quarrelAggregates();
 	if (options.view)

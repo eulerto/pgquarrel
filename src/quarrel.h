@@ -47,6 +47,8 @@ typedef struct PQLStatistic
 	int		extensionremoved;
 	int		fdwadded;
 	int		fdwremoved;
+	int		ftableadded;
+	int		ftableremoved;
 	int		functionadded;
 	int		functionremoved;
 	int		indexadded;
