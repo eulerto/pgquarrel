@@ -256,12 +256,12 @@ $ make
     </tr>
     <tr>
         <td>PUBLICATION</td>
-        <td>not implemented</td>
+        <td>partial</td>
         <td></td>
     </tr>
     <tr>
         <td>SUBSCRIPTION</td>
-        <td>not implemented</td>
+        <td>partial</td>
         <td></td>
     </tr>
     <tr>
@@ -276,7 +276,7 @@ $ make
     </tr>
     <tr>
         <td>PROCEDURE</td>
-        <td>not implemented</td>
+        <td>partial</td>
         <td></td>
     </tr>
     <tr>
@@ -350,12 +350,15 @@ $ make
 	<li><i>operator</i>: operator comparison (default: false).</li>
 	<li><i>owner</i>: owner comparison (default: false).</li>
 	<li><i>policy</i>: policy comparison (default: false).</li>
+	<li><i>procedure</i>: procedure comparison (default: true).</li>
 	<li><i>privileges</i>: privileges comparison (default: false).</li>
+	<li><i>publication</i>: publication comparison (default: false).</li>
 	<li><i>rule</i>: rule comparison (default: false).</li>
 	<li><i>schema</i>: schema comparison (default: true).</li>
 	<li><i>security-labels</i>: security labels comparison (default: false).</li>
 	<li><i>sequence</i>: sequence comparison (default: true).</li>
 	<li><i>statistics</i>: statistics comparison (default: false).</li>
+	<li><i>subscription</i>: subscription comparison (default: false).</li>
 	<li><i>table</i>: table comparison (default: true).</li>
 	<li><i>text-search</i>: text search comparison (default: false).</li>
 	<li><i>trigger</i>: trigger comparison (default: true).</li>
@@ -393,10 +396,13 @@ language = false
 materialized-view = true
 operator = false
 policy = false
+procedure = true
+publication = false
 rule = false
 schema = true
 sequence = true
 statistics = false
+subscription = false
 table = true
 text-search = false
 trigger = true
@@ -432,7 +438,7 @@ $ ./run-test.sh 11 11 init
 <a id="license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h1>
 
 <blockquote>
-<p>Copyright © 2015-2018 Euler Taveira de Oliveira
+<p>Copyright © 2015-2019 Euler Taveira de Oliveira
 All rights reserved.</p>
 
 <p>Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</p>
