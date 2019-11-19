@@ -63,6 +63,8 @@ typedef struct PQLStatistic
 	int		opclassremoved;
 	int		poladded;
 	int		polremoved;
+	int		procadded;
+	int		procremoved;
 	int		pubadded;
 	int		pubremoved;
 	int		ruleadded;
@@ -75,6 +77,8 @@ typedef struct PQLStatistic
 	int		serverremoved;
 	int		stxadded;
 	int		stxremoved;
+	int		subadded;
+	int		subremoved;
 	int		tableadded;
 	int		tableremoved;
 	int		tsconfigadded;

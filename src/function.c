@@ -3,7 +3,7 @@
  * pgquarrel -- comparing database schemas
  *
  * function.c
- *     Generate FUNCTION commands
+ *     Generate FUNCTION/PROCEDURE commands
  *
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * CREATE FUNCTION
@@ -11,10 +11,17 @@
  * ALTER FUNCTION
  * COMMENT ON FUNCTION
  *
+ * CREATE PROCEDURE
+ * DROP PROCEDURE
+ * ALTER PROCEDURE
+ * COMMENT ON PROCEDURE
+ *
  * TODO
  *
  * ALTER FUNCTION ... RENAME TO
  * ALTER FUNCTION ... SET SCHEMA
+ * ALTER PROCEDURE ... RENAME TO
+ * ALTER PROCEDURE ... SET SCHEMA
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
  * Copyright (c) 2015-2018, Euler Taveira
@@ -25,39 +32,52 @@
 
 
 PQLFunction *
-getFunctions(PGconn *c, int *n)
+getProcFunctions(PGconn *c, int *n, char t)
 {
 	PQLFunction	*f;
 	PGresult	*res;
 	int			i;
 
-	logNoise("function: server version: %d", PQserverVersion(c));
+	if (t == 'f')
+		logNoise("function: server version: %d", PQserverVersion(c));
+	else if (t == 'p')
+		logNoise("procedure: server version: %d", PQserverVersion(c));
+	else
+	{
+		logError("type is not a function/procedure");
+		exit(EXIT_FAILURE);
+	}
 
+	/* prokind is new in 11 */
 	if (PQserverVersion(c) >= 110000)
 	{
-		res = PQexec(c,
-					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_identity_arguments(p.oid) as funciargs, pg_get_function_result(p.oid) as funcresult, prokind = 'w' AS proiswindow, provolatile, proisstrict, prosecdef, proleakproof, array_to_string(proconfig, ',') AS proconfig, proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_identity_arguments(p.oid)");
+		if (t == 'f')
+			res = PQexec(c,
+					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_identity_arguments(p.oid) as funciargs, pg_get_function_result(p.oid) as funcresult, prokind, provolatile, proisstrict, prosecdef, proleakproof, array_to_string(proconfig, ',') AS proconfig, proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE prokind IN ('f', 'w') AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_identity_arguments(p.oid)");
+		else if (t == 'p')
+			res = PQexec(c,
+					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_identity_arguments(p.oid) as funciargs, pg_get_function_result(p.oid) as funcresult, prokind, provolatile, proisstrict, prosecdef, proleakproof, array_to_string(proconfig, ',') AS proconfig, proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE prokind = 'p' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_identity_arguments(p.oid)");
 	}
 	/* parallel is new in 9.6 ('u'nsafe is the default) */
 	else if (PQserverVersion(c) >= 90600)
 	{
 		res = PQexec(c,
-					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_identity_arguments(p.oid) as funciargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, proleakproof, array_to_string(proconfig, ',') AS proconfig, proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_identity_arguments(p.oid)");
+					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_identity_arguments(p.oid) as funciargs, pg_get_function_result(p.oid) as funcresult, CASE WHEN proisagg THEN 'a' WHEN proiswindow THEN 'w' ELSE 'f' AS prokind, provolatile, proisstrict, prosecdef, proleakproof, array_to_string(proconfig, ',') AS proconfig, proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_identity_arguments(p.oid)");
 	}
 	else if (PQserverVersion(c) >= 90200)	/* proleakproof is new in 9.2 */
 	{
 		res = PQexec(c,
-					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_identity_arguments(p.oid) as funciargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, proleakproof, array_to_string(proconfig, ',') AS proconfig, 'u' AS proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_identity_arguments(p.oid)");
+					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_identity_arguments(p.oid) as funciargs, pg_get_function_result(p.oid) as funcresult, CASE WHEN proisagg THEN 'a' WHEN proiswindow THEN 'w' ELSE 'f' AS prokind, provolatile, proisstrict, prosecdef, proleakproof, array_to_string(proconfig, ',') AS proconfig, 'u' AS proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_identity_arguments(p.oid)");
 	}
 	else if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
 		res = PQexec(c,
-					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_identity_arguments(p.oid) as funciargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, false AS proleakproof, array_to_string(proconfig, ',') AS proconfig, 'u' AS proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_identity_arguments(p.oid)");
+					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_identity_arguments(p.oid) as funciargs, pg_get_function_result(p.oid) as funcresult, CASE WHEN proisagg THEN 'a' WHEN proiswindow THEN 'w' ELSE 'f' AS prokind, provolatile, proisstrict, prosecdef, false AS proleakproof, array_to_string(proconfig, ',') AS proconfig, 'u' AS proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_identity_arguments(p.oid)");
 	}
 	else
 	{
 		res = PQexec(c,
-					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_identity_arguments(p.oid) as funciargs, pg_get_function_result(p.oid) as funcresult, proiswindow, provolatile, proisstrict, prosecdef, false AS proleakproof, array_to_string(proconfig, ',') AS proconfig, 'u' AS proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY nspname, proname, pg_get_function_identity_arguments(p.oid)");
+					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_identity_arguments(p.oid) as funciargs, pg_get_function_result(p.oid) as funcresult, CASE WHEN proisagg THEN 'a' WHEN proiswindow THEN 'w' ELSE 'f' AS prokind, NULL AS prokind, provolatile, proisstrict, prosecdef, false AS proleakproof, array_to_string(proconfig, ',') AS proconfig, 'u' AS proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY nspname, proname, pg_get_function_identity_arguments(p.oid)");
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -75,7 +95,10 @@ getFunctions(PGconn *c, int *n)
 	else
 		f = NULL;
 
-	logDebug("number of functions in server: %d", *n);
+	if (t == 'f')
+		logDebug("number of functions in server: %d", *n);
+	else if (t == 'p')
+		logDebug("number of procedures in server: %d", *n);
 
 	for (i = 0; i < *n; i++)
 	{
@@ -90,8 +113,8 @@ getFunctions(PGconn *c, int *n)
 		f[i].body = strdup(PQgetvalue(res, i, PQfnumber(res, "prosrc")));
 		f[i].returntype = strdup(PQgetvalue(res, i, PQfnumber(res, "funcresult")));
 		f[i].language = strdup(PQgetvalue(res, i, PQfnumber(res, "lanname")));
+		f[i].kind = PQgetvalue(res, i, PQfnumber(res, "prokind"))[0];
 		f[i].funcvolatile = PQgetvalue(res, i, PQfnumber(res, "provolatile"))[0];
-		f[i].iswindow = (PQgetvalue(res, i, PQfnumber(res, "proiswindow"))[0] == 't');
 		f[i].isstrict = (PQgetvalue(res, i, PQfnumber(res, "proisstrict"))[0] == 't');
 		f[i].secdefiner = (PQgetvalue(res, i, PQfnumber(res, "prosecdef"))[0] == 't');
 		f[i].leakproof = (PQgetvalue(res, i, PQfnumber(res, "proleakproof"))[0] == 't');
@@ -132,8 +155,12 @@ getFunctions(PGconn *c, int *n)
 		f[i].nseclabels = 0;
 		f[i].seclabels = NULL;
 
-		logDebug("function \"%s\".\"%s\"(%s)", f[i].obj.schemaname, f[i].obj.objectname,
-				 f[i].arguments);
+		if (t == 'f')
+			logDebug("function \"%s\".\"%s\"(%s)", f[i].obj.schemaname, f[i].obj.objectname,
+					 f[i].arguments);
+		else
+			logDebug("procedure \"%s\".\"%s\"(%s)", f[i].obj.schemaname, f[i].obj.objectname,
+					 f[i].arguments);
 	}
 
 	PQclear(res);
@@ -162,7 +189,7 @@ compareFunctions(PQLFunction *a, PQLFunction *b)
 }
 
 void
-getFunctionSecurityLabels(PGconn *c, PQLFunction *f)
+getProcFunctionSecurityLabels(PGconn *c, PQLFunction *f, char t)
 {
 	char		query[200];
 	PGresult	*res;
@@ -195,8 +222,12 @@ getFunctionSecurityLabels(PGconn *c, PQLFunction *f)
 	else
 		f->seclabels = NULL;
 
-	logDebug("number of security labels in function \"%s\".\"%s\"(%s): %d",
-			 f->obj.schemaname, f->obj.objectname, f->arguments, f->nseclabels);
+	if (t == 'f')
+		logDebug("number of security labels in function \"%s\".\"%s\"(%s): %d",
+				 f->obj.schemaname, f->obj.objectname, f->arguments, f->nseclabels);
+	else
+		logDebug("number of security labels in procedure \"%s\".\"%s\"(%s): %d",
+				 f->obj.schemaname, f->obj.objectname, f->arguments, f->nseclabels);
 
 	for (i = 0; i < f->nseclabels; i++)
 	{
@@ -263,75 +294,110 @@ freeFunctions(PQLFunction *f, int n)
 }
 
 void
-dumpDropFunction(FILE *output, PQLFunction *f)
+dumpDropProcFunction(FILE *output, PQLFunction *f, char t)
 {
 	char	*schema = formatObjectIdentifier(f->obj.schemaname);
 	char	*funcname = formatObjectIdentifier(f->obj.objectname);
+	char	*kind;
+
+	if (t == 'f')
+		kind = strdup("FUNCTION");
+	else if (t == 'p')
+		kind = strdup("PROCEDURE");
+	else
+	{
+		logError("type is not a function/procedure");
+		exit(EXIT_FAILURE);
+	}
 
 	fprintf(output, "\n\n");
-	fprintf(output, "DROP FUNCTION %s.%s(%s);",
+	fprintf(output, "DROP %s %s.%s(%s);",
+			kind,
 			schema,
 			funcname,
 			f->iarguments);
 
+	free(kind);
 	free(schema);
 	free(funcname);
 }
+
 void
-dumpCreateFunction(FILE *output, PQLFunction *f, bool orreplace)
+dumpCreateProcFunction(FILE *output, PQLFunction *f, bool orreplace, char t)
 {
 	char	*schema = formatObjectIdentifier(f->obj.schemaname);
 	char	*funcname = formatObjectIdentifier(f->obj.objectname);
+	char	*kind;
 
-	fprintf(output, "\n\n");
-	fprintf(output, "CREATE %sFUNCTION %s.%s(%s) RETURNS %s",
-			orreplace ? "OR REPLACE " : "",
-			schema, funcname, f->arguments, f->returntype);
-	fprintf(output, "\n    LANGUAGE %s", f->language);
-	if (f->iswindow)
-		fprintf(output, " WINDOW");
-	if (f->funcvolatile == 'i')
-		fprintf(output, " IMMUTABLE");
-	else if (f->funcvolatile == 's')
-		fprintf(output, " STABLE");
-	else if (f->funcvolatile == 'v')
-		fprintf(output, " VOLATILE");
-	else	/* can't happen */
-		logError("unrecognized volatile value for function %s.%s(%s)",
-				 schema, funcname, f->arguments);
-
-	if (f->isstrict)
-		fprintf(output, " STRICT");
-	if (f->secdefiner)
-		fprintf(output, " SECURITY DEFINER");
-	if (f->leakproof)
-		fprintf(output, " LEAKPROOF");
-
-	/*
-	 * Since PARALLEL UNSAFE (u) is the default, consider 'u' in old versions
-	 * (<= 9.5) because default is not printed and makes it easy to compare
-	 * different versions.
-	 */
-	if (f->parallel == 's')
-		fprintf(output, " PARALLEL SAFE");
-	else if (f->parallel == 'r')
-		fprintf(output, " PARALLEL RESTRICTED");
-	else if (f->parallel == 'u')	/* PARALLEL UNSAFE is the default */
-		;
-
-	if ((strcmp(f->language, "internal") == 0) || (strcmp(f->language, "c") == 0))
-	{
-		if (strcmp(f->cost, "1") != 0)
-			fprintf(output, " COST %s", f->cost);
-	}
+	if (t == 'f')
+		kind = strdup("FUNCTION");
+	else if (t == 'p')
+		kind = strdup("PROCEDURE");
 	else
 	{
-		if (strcmp(f->cost, "100") != 0)
-			fprintf(output, " COST %s", f->cost);
+		logError("type is not a function/procedure");
+		exit(EXIT_FAILURE);
 	}
 
-	if (strcmp(f->rows, "0") != 0)
-		fprintf(output, " ROWS %s", f->rows);
+	fprintf(output, "\n\n");
+	fprintf(output, "CREATE%s %s %s.%s(%s)",
+			orreplace ? " OR REPLACE" : "",
+			kind, schema, funcname, f->arguments);
+
+	/* only function has RETURNS clause */
+	if (t == 'f')
+		fprintf(output, " RETURNS %s", f->returntype);
+
+	fprintf(output, "\n    LANGUAGE %s", f->language);
+
+	/* function properties */
+	if (t == 'f')
+	{
+		if (f->kind == 'w')
+			fprintf(output, " WINDOW");
+		if (f->funcvolatile == 'i')
+			fprintf(output, " IMMUTABLE");
+		else if (f->funcvolatile == 's')
+			fprintf(output, " STABLE");
+		else if (f->funcvolatile == 'v')
+			fprintf(output, " VOLATILE");
+		else	/* can't happen */
+			logError("unrecognized volatile value for function %s.%s(%s)",
+					 schema, funcname, f->arguments);
+
+		if (f->isstrict)
+			fprintf(output, " STRICT");
+		if (f->secdefiner)
+			fprintf(output, " SECURITY DEFINER");
+		if (f->leakproof)
+			fprintf(output, " LEAKPROOF");
+
+		/*
+		 * Since PARALLEL UNSAFE (u) is the default, consider 'u' in old versions
+		 * (<= 9.5) because default is not printed and makes it easy to compare
+		 * different versions.
+		 */
+		if (f->parallel == 's')
+			fprintf(output, " PARALLEL SAFE");
+		else if (f->parallel == 'r')
+			fprintf(output, " PARALLEL RESTRICTED");
+		else if (f->parallel == 'u')	/* PARALLEL UNSAFE is the default */
+			;
+
+		if ((strcmp(f->language, "internal") == 0) || (strcmp(f->language, "c") == 0))
+		{
+			if (strcmp(f->cost, "1") != 0)
+				fprintf(output, " COST %s", f->cost);
+		}
+		else
+		{
+			if (strcmp(f->cost, "100") != 0)
+				fprintf(output, " COST %s", f->cost);
+		}
+
+		if (strcmp(f->rows, "0") != 0)
+			fprintf(output, " ROWS %s", f->rows);
+	}
 
 	if (f->configparams != NULL)
 	{
@@ -366,7 +432,8 @@ dumpCreateFunction(FILE *output, PQLFunction *f, bool orreplace)
 	if (options.comment && f->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON FUNCTION %s.%s(%s) IS %s;",
+		fprintf(output, "COMMENT ON %s %s.%s(%s) IS %s;",
+				kind,
 				schema,
 				funcname,
 				f->iarguments,
@@ -381,8 +448,9 @@ dumpCreateFunction(FILE *output, PQLFunction *f, bool orreplace)
 		for (i = 0; i < f->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS %s;",
+			fprintf(output, "SECURITY LABEL FOR %s ON %s %s.%s(%s) IS %s;",
 					f->seclabels[i].provider,
+					kind,
 					schema,
 					funcname,
 					f->iarguments,
@@ -396,7 +464,8 @@ dumpCreateFunction(FILE *output, PQLFunction *f, bool orreplace)
 		char	*owner = formatObjectIdentifier(f->owner);
 
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER FUNCTION %s.%s(%s) OWNER TO %s;",
+		fprintf(output, "ALTER %s %s.%s(%s) OWNER TO %s;",
+				kind,
 				schema,
 				funcname,
 				f->iarguments,
@@ -408,57 +477,39 @@ dumpCreateFunction(FILE *output, PQLFunction *f, bool orreplace)
 	/* privileges */
 	/* XXX second f->obj isn't used. Add an invalid PQLObject? */
 	if (options.privileges)
-		dumpGrantAndRevoke(output, PGQ_FUNCTION, &f->obj, &f->obj, NULL, f->acl,
-						   f->iarguments, NULL);
+	{
+		if (t == 'f')
+			dumpGrantAndRevoke(output, PGQ_FUNCTION, &f->obj, &f->obj, NULL, f->acl,
+							   f->iarguments, NULL);
+		else if (t == 'p')
+			dumpGrantAndRevoke(output, PGQ_PROCEDURE, &f->obj, &f->obj, NULL, f->acl,
+							   f->iarguments, NULL);
+	}
 
+	free(kind);
 	free(schema);
 	free(funcname);
 }
 
 void
-dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
+dumpAlterProcFunction(FILE *output, PQLFunction *a, PQLFunction *b, char t)
 {
 	char	*schema1 = formatObjectIdentifier(a->obj.schemaname);
 	char	*funcname1 = formatObjectIdentifier(a->obj.objectname);
 	char	*schema2 = formatObjectIdentifier(b->obj.schemaname);
 	char	*funcname2 = formatObjectIdentifier(b->obj.objectname);
+	char	*kind;
 
 	bool	printalter = true;
 
-	if (a->funcvolatile != b->funcvolatile)
+	if (t == 'f')
+		kind = strdup("FUNCTION");
+	else if (t == 'p')
+		kind = strdup("PROCEDURE");
+	else
 	{
-		if (printalter)
-		{
-			fprintf(output, "\n\n");
-			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b->iarguments);
-		}
-		printalter = false;
-
-		if (b->funcvolatile == 'i')
-			fprintf(output, " IMMUTABLE");
-		else if (b->funcvolatile == 's')
-			fprintf(output, " STABLE");
-		else if (b->funcvolatile == 'v')
-			fprintf(output, " VOLATILE");
-		else
-			logError("volatile cannot be '%s'", b->funcvolatile);
-	}
-
-	if (a->isstrict != b->isstrict)
-	{
-		if (printalter)
-		{
-			fprintf(output, "\n\n");
-			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b->iarguments);
-		}
-		printalter = false;
-
-		if (b->isstrict)
-			fprintf(output, " STRICT");
-		else
-			fprintf(output, "CALLED ON NULL INPUT");
+		logError("type is not a function/procedure");
+		exit(EXIT_FAILURE);
 	}
 
 	if (a->secdefiner != b->secdefiner)
@@ -466,8 +517,8 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 		if (printalter)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b->iarguments);
+			fprintf(output, "ALTER %s %s.%s(%s)",
+					kind, schema2, funcname2, b->iarguments);
 		}
 		printalter = false;
 
@@ -477,67 +528,107 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 			fprintf(output, " SECURITY INVOKER");
 	}
 
-	/* FIXME leakproof new in 9.2 */
-	if (a->leakproof != b->leakproof)
+	/* function properties */
+	if (t == 'f')
 	{
-		if (printalter)
+		if (a->funcvolatile != b->funcvolatile)
 		{
-			fprintf(output, "\n\n");
-			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b->iarguments);
+			if (printalter)
+			{
+				fprintf(output, "\n\n");
+				fprintf(output, "ALTER %s %s.%s(%s)",
+						kind, schema2, funcname2, b->iarguments);
+			}
+			printalter = false;
+
+			if (b->funcvolatile == 'i')
+				fprintf(output, " IMMUTABLE");
+			else if (b->funcvolatile == 's')
+				fprintf(output, " STABLE");
+			else if (b->funcvolatile == 'v')
+				fprintf(output, " VOLATILE");
+			else
+				logError("volatile cannot be '%s'", b->funcvolatile);
 		}
-		printalter = false;
 
-		if (b->leakproof)
-			fprintf(output, " LEAKPROOF");
-		else
-			fprintf(output, " NOT LEAKPROOF");
-	}
-
-	if (a->parallel != b->parallel)
-	{
-		if (printalter)
+		if (a->isstrict != b->isstrict)
 		{
-			fprintf(output, "\n\n");
-			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b->iarguments);
+			if (printalter)
+			{
+				fprintf(output, "\n\n");
+				fprintf(output, "ALTER %s %s.%s(%s)",
+						kind, schema2, funcname2, b->iarguments);
+			}
+			printalter = false;
+
+			if (b->isstrict)
+				fprintf(output, " STRICT");
+			else
+				fprintf(output, "CALLED ON NULL INPUT");
 		}
-		printalter = false;
 
-		if (b->parallel == 's')
-			fprintf(output, " PARALLEL SAFE");
-		else if (b->parallel == 'r')
-			fprintf(output, " PARALLEL RESTRICTED");
-		else if (b->parallel == 'u')
-			fprintf(output, " PARALLEL UNSAFE");
-		else
-			logError("parallel cannot be '%c'", b->parallel);
-	}
-
-	if (strcmp(a->cost, b->cost) != 0)
-	{
-		if (printalter)
+		/* FIXME leakproof new in 9.2 */
+		if (a->leakproof != b->leakproof)
 		{
-			fprintf(output, "\n\n");
-			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b->iarguments);
+			if (printalter)
+			{
+				fprintf(output, "\n\n");
+				fprintf(output, "ALTER %s %s.%s(%s)",
+						kind, schema2, funcname2, b->iarguments);
+			}
+			printalter = false;
+
+			if (b->leakproof)
+				fprintf(output, " LEAKPROOF");
+			else
+				fprintf(output, " NOT LEAKPROOF");
 		}
-		printalter = false;
 
-		fprintf(output, " COST %s", b->cost);
-	}
-
-	if (strcmp(a->rows, b->rows) != 0)
-	{
-		if (printalter)
+		if (a->parallel != b->parallel)
 		{
-			fprintf(output, "\n\n");
-			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b->iarguments);
-		}
-		printalter = false;
+			if (printalter)
+			{
+				fprintf(output, "\n\n");
+				fprintf(output, "ALTER %s %s.%s(%s)",
+						kind, schema2, funcname2, b->iarguments);
+			}
+			printalter = false;
 
-		fprintf(output, " ROWS %s", b->rows);
+			if (b->parallel == 's')
+				fprintf(output, " PARALLEL SAFE");
+			else if (b->parallel == 'r')
+				fprintf(output, " PARALLEL RESTRICTED");
+			else if (b->parallel == 'u')
+				fprintf(output, " PARALLEL UNSAFE");
+			else
+				logError("parallel cannot be '%c'", b->parallel);
+		}
+
+		if (strcmp(a->cost, b->cost) != 0)
+		{
+			if (printalter)
+			{
+				fprintf(output, "\n\n");
+				fprintf(output, "ALTER %s %s.%s(%s)",
+						kind, schema2, funcname2, b->iarguments);
+			}
+			printalter = false;
+
+			fprintf(output, " COST %s", b->cost);
+		}
+
+		if (strcmp(a->rows, b->rows) != 0)
+		{
+			if (printalter)
+			{
+				fprintf(output, "\n\n");
+				fprintf(output, "ALTER %s %s.%s(%s)",
+						kind, schema2, funcname2, b->iarguments);
+			}
+			printalter = false;
+
+			fprintf(output, " ROWS %s", b->rows);
+		}
 	}
 
 	/* configuration parameters */
@@ -546,8 +637,8 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 		if (printalter)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b->iarguments);
+			fprintf(output, "ALTER %s %s.%s(%s)",
+					kind, schema2, funcname2, b->iarguments);
 		}
 		printalter = false;
 
@@ -560,8 +651,8 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 		if (printalter)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b->iarguments);
+			fprintf(output, "ALTER %s %s.%s(%s)",
+					kind, schema2, funcname2, b->iarguments);
 		}
 		printalter = false;
 
@@ -599,8 +690,8 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 		if (printalter)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER FUNCTION %s.%s(%s)",
-					schema2, funcname2, b->iarguments);
+			fprintf(output, "ALTER %s %s.%s(%s)",
+					kind, schema2, funcname2, b->iarguments);
 		}
 		printalter = false;
 
@@ -685,7 +776,12 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 		fprintf(output, ";");
 
 	if (strcmp(a->body, b->body) != 0)
-		dumpCreateFunction(output, b, true);
+	{
+		if (t == 'f')
+			dumpCreateFunction(output, b, true);
+		else
+			dumpCreateProcedure(output, b, true);
+	}
 
 	/* comment */
 	if (options.comment)
@@ -695,14 +791,14 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON FUNCTION %s.%s(%s) IS %s;",
-					schema2, funcname2, b->iarguments, b->comment);
+			fprintf(output, "COMMENT ON %s %s.%s(%s) IS %s;",
+					kind, schema2, funcname2, b->iarguments, b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON FUNCTION %s.%s(%s) IS NULL;",
-					schema2, funcname2, b->iarguments);
+			fprintf(output, "COMMENT ON %s %s.%s(%s) IS NULL;",
+					kind, schema2, funcname2, b->iarguments);
 		}
 	}
 
@@ -716,8 +812,8 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS %s;",
-						b->seclabels[i].provider,
+				fprintf(output, "SECURITY LABEL FOR %s ON %s %s.%s(%s) IS %s;",
+						b->seclabels[i].provider, kind,
 						schema2, funcname2, b->iarguments, b->seclabels[i].label);
 			}
 		}
@@ -728,8 +824,8 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 			for (i = 0; i < a->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS NULL;",
-						a->seclabels[i].provider,
+				fprintf(output, "SECURITY LABEL FOR %s ON %s %s.%s(%s) IS NULL;",
+						a->seclabels[i].provider, kind,
 						schema1, funcname1, a->iarguments);
 			}
 		}
@@ -743,16 +839,16 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS %s;",
-							b->seclabels[j].provider,
+					fprintf(output, "SECURITY LABEL FOR %s ON %s %s.%s(%s) IS %s;",
+							b->seclabels[j].provider, kind,
 							schema2, funcname2, b->iarguments, b->seclabels[j].label);
 					j++;
 				}
 				else if (j == b->nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS NULL;",
-							a->seclabels[i].provider,
+					fprintf(output, "SECURITY LABEL FOR %s ON %s %s.%s(%s) IS NULL;",
+							a->seclabels[i].provider, kind,
 							schema1, funcname1, a->iarguments);
 					i++;
 				}
@@ -761,8 +857,8 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
-						fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS %s;",
-								b->seclabels[j].provider,
+						fprintf(output, "SECURITY LABEL FOR %s ON %s %s.%s(%s) IS %s;",
+								b->seclabels[j].provider, kind,
 								schema2, funcname2, b->iarguments, b->seclabels[j].label);
 					}
 					i++;
@@ -771,16 +867,16 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) < 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS NULL;",
-							a->seclabels[i].provider,
+					fprintf(output, "SECURITY LABEL FOR %s ON %s %s.%s(%s) IS NULL;",
+							a->seclabels[i].provider, kind,
 							schema1, funcname1, a->iarguments);
 					i++;
 				}
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON FUNCTION %s.%s(%s) IS %s;",
-							b->seclabels[j].provider,
+					fprintf(output, "SECURITY LABEL FOR %s ON %s %s.%s(%s) IS %s;",
+							b->seclabels[j].provider, kind,
 							schema2, funcname2, b->iarguments, b->seclabels[j].label);
 					j++;
 				}
@@ -796,8 +892,8 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 			char	*owner = formatObjectIdentifier(b->owner);
 
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER FUNCTION %s.%s(%s) OWNER TO %s;",
-					schema2, funcname2, b->iarguments, owner);
+			fprintf(output, "ALTER %s %s.%s(%s) OWNER TO %s;",
+					kind, schema2, funcname2, b->iarguments, owner);
 
 			free(owner);
 		}
@@ -807,12 +903,79 @@ dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 	if (options.privileges)
 	{
 		if (a->acl != NULL || b->acl != NULL)
-			dumpGrantAndRevoke(output, PGQ_FUNCTION, &a->obj, &b->obj, a->acl, b->acl,
-							   a->iarguments, NULL);
+		{
+			if (t == 'f')
+				dumpGrantAndRevoke(output, PGQ_FUNCTION, &a->obj, &b->obj, a->acl, b->acl,
+								   a->iarguments, NULL);
+			else if (t == 'p')
+				dumpGrantAndRevoke(output, PGQ_PROCEDURE, &a->obj, &b->obj, a->acl, b->acl,
+								   a->iarguments, NULL);
+		}
 	}
 
+	free(kind);
 	free(schema1);
 	free(funcname1);
 	free(schema2);
 	free(funcname2);
+}
+
+PQLFunction *
+getFunctions(PGconn *c, int *n)
+{
+	return getProcFunctions(c, n, 'f');
+}
+
+PQLFunction *
+getProcedures(PGconn *c, int *n)
+{
+	return getProcFunctions(c, n, 'p');
+}
+
+void
+getFunctionSecurityLabels(PGconn *c, PQLFunction *f)
+{
+	return getProcFunctionSecurityLabels(c, f, 'f');
+}
+
+void
+getProcedureSecurityLabels(PGconn *c, PQLFunction *f)
+{
+	return getProcFunctionSecurityLabels(c, f, 'p');
+}
+
+void
+dumpDropFunction(FILE *output, PQLFunction *f)
+{
+	return dumpDropProcFunction(output, f, 'f');
+}
+
+void
+dumpDropProcedure(FILE *output, PQLFunction *f)
+{
+	return dumpDropProcFunction(output, f, 'p');
+}
+
+void
+dumpCreateFunction(FILE *output, PQLFunction *f, bool orreplace)
+{
+	return dumpCreateProcFunction(output, f, orreplace, 'f');
+}
+
+void
+dumpCreateProcedure(FILE *output, PQLFunction *f, bool orreplace)
+{
+	return dumpCreateProcFunction(output, f, orreplace, 'p');
+}
+
+void
+dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
+{
+	return dumpAlterProcFunction(output, a, b, 'f');
+}
+
+void
+dumpAlterProcedure(FILE *output, PQLFunction *a, PQLFunction *b)
+{
+	return dumpAlterProcFunction(output, a, b, 'p');
 }

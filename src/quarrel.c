@@ -23,6 +23,7 @@
  * operator class: partial
  * operator family: partial
  * policy: partial
+ * procedure: partial
  * publication: partial
  * revoke: complete
  * rule: partial
@@ -30,6 +31,7 @@
  * security label: partial
  * sequence: partial
  * server: complete
+ * subscription: partial
  * table: partial
  * trigger: partial
  * type: partial
@@ -43,8 +45,6 @@
  *  UNSUPPORTED
  * ~~~~~~~~~~~~~
  * foreign table
- * procedure
- * subscription
  * transform
  *
  *  UNCERTAIN
@@ -85,6 +85,7 @@
 #include "sequence.h"
 #include "server.h"
 #include "statistics.h"
+#include "subscription.h"
 #include "table.h"
 #include "textsearch.h"
 #include "trigger.h"
@@ -110,7 +111,7 @@ PQLStatistic		qstat = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-							 0, 0, 0, 0
+							 0, 0, 0, 0, 0, 0, 0, 0
 					  };
 
 FILE				*fout;			/* output file */
@@ -150,10 +151,12 @@ static void quarrelOperatorFamilies();
 static void quarrelOperatorClasses();
 static void quarrelPublications();
 static void quarrelPolicies();
+static void quarrelProcedures();
 static void quarrelRules();
 static void quarrelSchemas();
 static void quarrelSequences();
 static void quarrelStatistics();
+static void quarrelSubscriptions();
 static void quarrelTables();
 static void quarrelTextSearchConfigs();
 static void quarrelTextSearchDicts();
@@ -258,6 +261,8 @@ help(void)
 		   (opts.general.publication) ? "true" : "false");
 	printf("      --privileges=BOOL         privileges (default: %s)\n",
 		   (opts.general.privileges) ? "true" : "false");
+	printf("      --procedure=BOOL         procedure (default: %s)\n",
+		   (opts.general.procedure) ? "true" : "false");
 	printf("      --rule=BOOL               rule (default: %s)\n",
 		   (opts.general.rule) ? "true" : "false");
 	printf("      --schema=BOOL             schema (default: %s)\n",
@@ -268,6 +273,8 @@ help(void)
 		   (opts.general.sequence) ? "true" : "false");
 	printf("      --statistics=BOOL         statistics (default: %s)\n",
 		   (opts.general.statistics) ? "true" : "false");
+	printf("      --subscription=BOOL       subscription (default: %s)\n",
+		   (opts.general.subscription) ? "true" : "false");
 	printf("      --table=BOOL              table (default: %s)\n",
 		   (opts.general.table) ? "true" : "false");
 	printf("      --text-search=BOOL        text search (default: %s)\n",
@@ -332,11 +339,13 @@ loadConfig(const char *cf, QuarrelOptions *options)
 	options->general.matview = true;			/* general - materialized-view */
 	options->general.operator = false;			/* general - operator */
 	options->general.policy = false;			/* general - policy */
+	options->general.procedure = true;			/* general - procedure */
 	options->general.publication = false;		/* general - publication */
 	options->general.rule = false;				/* general - rule */
 	options->general.schema = true;				/* general - schema */
 	options->general.sequence = true;			/* general - sequence */
 	options->general.statistics = false;		/* general - statistics */
+	options->general.subscription = false;		/* general - subscription */
 	options->general.table = true;				/* general - table */
 	options->general.textsearch = false;		/* general - text-search */
 	options->general.trigger = true;			/* general - trigger */
@@ -517,8 +526,12 @@ loadConfig(const char *cf, QuarrelOptions *options)
 										"general", "operator"));
 
 		if (mini_file_get_value(config, "general", "policy") != NULL)
-			options->general.operator = parseBoolean("policy", mini_file_get_value(config,
+			options->general.policy = parseBoolean("policy", mini_file_get_value(config,
 										"general", "policy"));
+
+		if (mini_file_get_value(config, "general", "procedure") != NULL)
+			options->general.procedure = parseBoolean("procedure", mini_file_get_value(config,
+										"general", "procedure"));
 
 		if (mini_file_get_value(config, "general", "publication") != NULL)
 			options->general.publication = parseBoolean("publication", mini_file_get_value(config,
@@ -540,6 +553,11 @@ loadConfig(const char *cf, QuarrelOptions *options)
 			options->general.statistics = parseBoolean("statistics",
 										  mini_file_get_value(config,
 												  "general", "statistics"));
+
+		if (mini_file_get_value(config, "general", "subscription") != NULL)
+			options->general.subscription = parseBoolean("subscription",
+										  mini_file_get_value(config,
+												  "general", "subscription"));
 
 		if (mini_file_get_value(config, "general", "table") != NULL)
 			options->general.table = parseBoolean("table", mini_file_get_value(config,
@@ -2298,6 +2316,117 @@ quarrelOperatorClasses()
 }
 
 static void
+quarrelProcedures()
+{
+	PQLFunction	*procedures1 = NULL;	/* target */
+	PQLFunction	*procedures2 = NULL;	/* source */
+	int			nprocedures1 = 0;		/* # of procedures */
+	int			nprocedures2 = 0;
+	int			i, j;
+
+	procedures1 = getProcedures(conn1, &nprocedures1);
+	procedures2 = getProcedures(conn2, &nprocedures2);
+
+	for (i = 0; i < nprocedures1; i++)
+		logNoise("server1: %s.%s(%s) %s", procedures1[i].obj.schemaname,
+				 procedures1[i].obj.objectname, procedures1[i].arguments,
+				 procedures1[i].returntype);
+
+	for (i = 0; i < nprocedures2; i++)
+		logNoise("server2: %s.%s(%s) %s", procedures2[i].obj.schemaname,
+				 procedures2[i].obj.objectname, procedures2[i].arguments,
+				 procedures2[i].returntype);
+
+	/*
+	 * We have two sorted lists. Let's figure out which elements are not in the
+	 * other list.
+	 * We have two sorted lists. The strategy is transverse both lists only once
+	 * to figure out relations not presented in the other list.
+	 */
+	i = j = 0;
+	while (i < nprocedures1 || j < nprocedures2)
+	{
+		/* End of procedures1 list. Print procedures2 list until its end. */
+		if (i == nprocedures1)
+		{
+			logDebug("procedure %s.%s(%s): server2", procedures2[j].obj.schemaname,
+					 procedures2[j].obj.objectname, procedures2[j].arguments);
+
+			if (options.securitylabels)
+				getProcedureSecurityLabels(conn2, &procedures2[j]);
+
+			dumpCreateProcedure(fpre, &procedures2[j], false);
+
+			j++;
+			qstat.procadded++;
+		}
+		/* End of procedures2 list. Print procedures1 list until its end. */
+		else if (j == nprocedures2)
+		{
+			logDebug("procedure %s.%s(%s): server1", procedures1[i].obj.schemaname,
+					 procedures1[i].obj.objectname, procedures1[i].arguments);
+
+			dumpDropProcedure(fpost, &procedures1[i]);
+
+			i++;
+			qstat.procremoved++;
+		}
+		else if (compareFunctions(&procedures1[i], &procedures2[j]) == 0)
+		{
+			logDebug("procedure %s.%s(%s): server1 server2", procedures1[i].obj.schemaname,
+					 procedures1[i].obj.objectname, procedures1[i].arguments);
+
+			if (options.securitylabels)
+			{
+				getProcedureSecurityLabels(conn1, &procedures1[i]);
+				getProcedureSecurityLabels(conn2, &procedures2[j]);
+			}
+
+			/*
+			 * When we change return type we have to recreate the procedure
+			 * because there is no ALTER FUNCTION command for it.
+			 */
+			if (strcmp(procedures1[i].returntype, procedures2[j].returntype) == 0)
+				dumpAlterProcedure(fpre, &procedures1[i], &procedures2[j]);
+			else
+			{
+				dumpDropProcedure(fpre, &procedures1[i]);
+				dumpCreateProcedure(fpre, &procedures2[j], false);
+			}
+
+			i++;
+			j++;
+		}
+		else if (compareFunctions(&procedures1[i], &procedures2[j]) < 0)
+		{
+			logDebug("procedure %s.%s(%s): server1", procedures1[i].obj.schemaname,
+					 procedures1[i].obj.objectname, procedures1[i].arguments);
+
+			dumpDropProcedure(fpost, &procedures1[i]);
+
+			i++;
+			qstat.procremoved++;
+		}
+		else if (compareFunctions(&procedures1[i], &procedures2[j]) > 0)
+		{
+			logDebug("procedure %s.%s(%s): server2", procedures2[j].obj.schemaname,
+					 procedures2[j].obj.objectname, procedures2[j].arguments);
+
+			if (options.securitylabels)
+				getProcedureSecurityLabels(conn2, &procedures2[j]);
+
+			dumpCreateProcedure(fpre, &procedures2[j], false);
+
+			j++;
+			qstat.procadded++;
+		}
+	}
+
+	freeFunctions(procedures1, nprocedures1);
+	freeFunctions(procedures2, nprocedures2);
+}
+
+static void
 quarrelPublications()
 {
 	PQLPublication		*publications1 = NULL;		/* target */
@@ -2853,6 +2982,102 @@ quarrelStatistics()
 
 	freeStatistics(statistics1, nstatistics1);
 	freeStatistics(statistics2, nstatistics2);
+}
+
+static void
+quarrelSubscriptions()
+{
+	PQLSubscription		*subscriptions1 = NULL;		/* target */
+	PQLSubscription		*subscriptions2 = NULL;		/* source */
+	int			nsubscriptions1 = 0;		/* # of subscriptions */
+	int			nsubscriptions2 = 0;
+	int			i, j;
+
+	subscriptions1 = getSubscriptions(conn1, &nsubscriptions1);
+	subscriptions2 = getSubscriptions(conn2, &nsubscriptions2);
+
+	for (i = 0; i < nsubscriptions1; i++)
+		logNoise("server1: %s", subscriptions1[i].subname);
+
+	for (i = 0; i < nsubscriptions2; i++)
+		logNoise("server2: %s", subscriptions2[i].subname);
+
+	/*
+	 * We have two sorted lists. Let's figure out which elements are not in the
+	 * other list.
+	 * We have two sorted lists. The strategy is transverse both lists only once
+	 * to figure out subscriptions not presented in the other list.
+	 */
+	i = j = 0;
+	while (i < nsubscriptions1 || j < nsubscriptions2)
+	{
+		/* End of subscriptions1 list. Print subscriptions2 list until its end. */
+		if (i == nsubscriptions1)
+		{
+			logDebug("subscription %s: server2", subscriptions2[j].subname);
+
+			getSubscriptionPublications(conn2, &subscriptions2[j]);
+			if (options.securitylabels)
+				getSubscriptionSecurityLabels(conn2, &subscriptions2[j]);
+
+			dumpCreateSubscription(fpre, &subscriptions2[j]);
+
+			j++;
+			qstat.subadded++;
+		}
+		/* End of subscriptions2 list. Print subscriptions1 list until its end. */
+		else if (j == nsubscriptions2)
+		{
+			logDebug("subscription %s: server1", subscriptions1[i].subname);
+
+			dumpDropSubscription(fpost, &subscriptions1[i]);
+
+			i++;
+			qstat.subremoved++;
+		}
+		else if (strcmp(subscriptions1[i].subname, subscriptions2[j].subname) == 0)
+		{
+			logDebug("subscription %s: server1 server2", subscriptions1[i].subname);
+
+			getSubscriptionPublications(conn1, &subscriptions1[i]);
+			getSubscriptionPublications(conn2, &subscriptions2[j]);
+			if (options.securitylabels)
+			{
+				getSubscriptionSecurityLabels(conn1, &subscriptions1[i]);
+				getSubscriptionSecurityLabels(conn2, &subscriptions2[j]);
+			}
+
+			dumpAlterSubscription(fpre, &subscriptions1[i], &subscriptions2[j]);
+
+			i++;
+			j++;
+		}
+		else if (strcmp(subscriptions1[i].subname, subscriptions2[j].subname) < 0)
+		{
+			logDebug("subscription %s: server1", subscriptions1[i].subname);
+
+			dumpDropSubscription(fpost, &subscriptions1[i]);
+
+			i++;
+			qstat.subremoved++;
+		}
+		else if (strcmp(subscriptions1[i].subname, subscriptions2[j].subname) > 0)
+		{
+			logDebug("subscription %s: server2", subscriptions2[j].subname);
+
+			getSubscriptionPublications(conn2, &subscriptions2[j]);
+			if (options.securitylabels)
+				getSubscriptionSecurityLabels(conn2, &subscriptions2[j]);
+
+			dumpCreateSubscription(fpre, &subscriptions2[j]);
+
+			j++;
+			qstat.subadded++;
+		}
+	}
+
+	freeSubscriptions(subscriptions1, nsubscriptions1);
+	freeSubscriptions(subscriptions2, nsubscriptions2);
 }
 
 static void
@@ -4173,12 +4398,14 @@ int main(int argc, char *argv[])
 		{"operator", required_argument, NULL, 23},
 		{"owner", required_argument, NULL, 24},
 		{"privileges", required_argument, NULL, 25},
+		{"procedure", required_argument, NULL, 42},
 		{"publication", required_argument, NULL, 40},
 		{"rule", required_argument, NULL, 26},
 		{"schema", required_argument, NULL, 27},
 		{"security-labels", required_argument, NULL, 28},
 		{"sequence", required_argument, NULL, 29},
 		{"statistics", required_argument, NULL, 30},
+		{"subscription", required_argument, NULL, 41},
 		{"table", required_argument, NULL, 31},
 		{"text-search", required_argument, NULL, 32},
 		{"trigger", required_argument, NULL, 33},
@@ -4411,6 +4638,14 @@ int main(int argc, char *argv[])
 				gopts.publication = parseBoolean("publication", optarg);
 				gopts_given.publication = true;
 				break;
+			case 41:
+				gopts.subscription = parseBoolean("subscription", optarg);
+				gopts_given.subscription = true;
+				break;
+			case 42:
+				gopts.procedure = parseBoolean("procedure", optarg);
+				gopts_given.procedure = true;
+				break;
 			default:
 				fprintf(stderr, "Try \"%s --help\" for more information.\n", PGQ_NAME);
 				exit(EXIT_FAILURE);
@@ -4476,6 +4711,8 @@ int main(int argc, char *argv[])
 		options.owner = gopts.owner;
 	if (gopts_given.privileges)
 		options.privileges = gopts.privileges;
+	if (gopts_given.procedure)
+		options.procedure = gopts.procedure;
 	if (gopts_given.rule)
 		options.rule = gopts.rule;
 	if (gopts_given.publication)
@@ -4488,6 +4725,8 @@ int main(int argc, char *argv[])
 		options.sequence = gopts.sequence;
 	if (gopts_given.statistics)
 		options.statistics = gopts.statistics;
+	if (gopts_given.subscription)
+		options.subscription = gopts.subscription;
 	if (gopts_given.table)
 		options.table = gopts.table;
 	if (gopts_given.textsearch)
@@ -4656,6 +4895,8 @@ int main(int argc, char *argv[])
 		quarrelIndexes();
 	if (options.function)
 		quarrelFunctions();
+	if (options.procedure)
+		quarrelProcedures();
 	if (options.aggregate)
 		quarrelAggregates();
 	if (options.view)
@@ -4668,6 +4909,8 @@ int main(int argc, char *argv[])
 		quarrelRules();
 	if (options.publication)
 		quarrelPublications();
+	if (options.subscription)
+		quarrelSubscriptions();
 	if (options.policy)
 		quarrelPolicies();
 	if (options.eventtrigger)

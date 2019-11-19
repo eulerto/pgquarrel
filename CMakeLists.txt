@@ -50,6 +50,8 @@ add_executable(pgquarrel
 	src/server.h
 	src/statistics.c
 	src/statistics.h
+	src/subscription.c
+	src/subscription.h
 	src/table.c
 	src/table.h
 	src/textsearch.c
