@@ -289,12 +289,12 @@ The following command-line options are provided (all are optional):
 * `single-transaction (-t)`: output changes as a single transaction.
 * `temp-directory`: use this directory as a temporary area ( default: /tmp).
 * `verbose (-v)`: verbose mode.
-* `source-dbname`: source database name.
+* `source-dbname`: source database name or connection string ( `keyword = value` strings or URIs).
 * `source-host`: source host name.
 * `source-port`: source port.
 * `source-username`: source user name.
 * `source-no-password`: never prompt for password.
-* `target-dbname`: target database name.
+* `target-dbname`: target database name or connection string ( `keyword = value` strings or URIs).
 * `target-host`: target host name.
 * `target-port`: target port.
 * `target-username`: target user name.

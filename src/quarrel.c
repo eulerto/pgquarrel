@@ -286,13 +286,13 @@ help(void)
 	printf("      --view=BOOL               view (default: %s)\n",
 		   (opts.general.view) ? "true" : "false");
 	printf("\nSource options:\n");
-	printf("      --source-dbname=DBNAME    database name\n");
+	printf("      --source-dbname=DBNAME    database name or connection string\n");
 	printf("      --source-host=HOSTNAME    server host or socket directory\n");
 	printf("      --source-port=PORT        server port\n");
 	printf("      --source-username=NAME    user name\n");
 	printf("      --source-no-password      never prompt for password\n");
 	printf("\nTarget options:\n");
-	printf("      --target-dbname=DBNAME    database name\n");
+	printf("      --target-dbname=DBNAME    database name or connection string\n");
 	printf("      --target-host=HOSTNAME    server host or socket directory\n");
 	printf("      --target-port=PORT        server port\n");
 	printf("      --target-username=NAME    user name\n");
@@ -723,7 +723,7 @@ connectDatabase(QuarrelDatabaseOptions opt)
 	keywords[3] = "password";
 	values[3] = opt.password;
 	keywords[4] = "dbname";
-	values[4] = opt.dbname;
+	values[4] = opt.dbname;		/* database name or connection string */
 	keywords[5] = "fallback_application_name";
 	values[5] = PGQ_NAME;
 	keywords[6] = values[6] = NULL;
