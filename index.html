@@ -206,7 +206,7 @@ $ make
     </tr>
     <tr>
         <td>FOREIGN TABLE</td>
-        <td>not implemented</td>
+        <td>partial</td>
         <td></td>
     </tr>
     <tr>
@@ -271,7 +271,7 @@ $ make
     </tr>
     <tr>
         <td>TRANSFORM</td>
-        <td>not implemented</td>
+        <td>complete</td>
         <td></td>
     </tr>
     <tr>
@@ -343,6 +343,7 @@ $ make
 	<li><i>event-trigger</i>: event trigger comparison (default: false).</li>
 	<li><i>extension</i>: extension comparison (default: false).</li>
 	<li><i>fdw</i>: foreign data wrapper comparison (default: false).</li>
+	<li><i>foreign table</i>: foreign table comparison (default: false).</li>
 	<li><i>function</i>: function comparison (default: true).</li>
 	<li><i>index</i>: index comparison (default: true).</li>
 	<li><i>language</i>: language comparison (default: false).</li>
@@ -361,6 +362,7 @@ $ make
 	<li><i>subscription</i>: subscription comparison (default: false).</li>
 	<li><i>table</i>: table comparison (default: true).</li>
 	<li><i>text-search</i>: text search comparison (default: false).</li>
+	<li><i>transform</i>: transform comparison (default: false).</li>
 	<li><i>trigger</i>: trigger comparison (default: true).</li>
 	<li><i>type</i>: type comparison (default: true).</li>
 	<li><i>view</i>: view comparison (default: true).</li>
@@ -390,6 +392,7 @@ domain = true
 event-trigger = false
 extension = false
 fdw = false
+foreign-table = false
 function = true
 index = true
 language = false
@@ -405,6 +408,7 @@ statistics = false
 subscription = false
 table = true
 text-search = false
+transform = false
 trigger = true
 type = true
 view = true
