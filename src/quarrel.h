@@ -91,6 +91,8 @@ typedef struct PQLStatistic
 	int		tsparserremoved;
 	int		tstemplateadded;
 	int		tstemplateremoved;
+	int		transformadded;
+	int		transformremoved;
 	int		trgadded;
 	int		trgremoved;
 	int		typeadded;

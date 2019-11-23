@@ -34,6 +34,7 @@
  * server: complete
  * subscription: partial
  * table: partial
+ * transform: complete
  * trigger: partial
  * type: partial
  * text search configuration: partial
@@ -45,7 +46,6 @@
  *
  *  UNSUPPORTED
  * ~~~~~~~~~~~~~
- * transform
  *
  *  UNCERTAIN
  * ~~~~~~~~~~~~~
@@ -88,6 +88,7 @@
 #include "subscription.h"
 #include "table.h"
 #include "textsearch.h"
+#include "transform.h"
 #include "trigger.h"
 #include "type.h"
 #include "usermapping.h"
@@ -111,7 +112,8 @@ PQLStatistic		qstat = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+							 0, 0
 					  };
 
 FILE				*fout;			/* output file */
@@ -163,6 +165,7 @@ static void quarrelTextSearchConfigs();
 static void quarrelTextSearchDicts();
 static void quarrelTextSearchParsers();
 static void quarrelTextSearchTemplates();
+static void quarrelTransforms();
 static void quarrelTriggers();
 static void quarrelBaseTypes();
 static void quarrelCompositeTypes();
@@ -282,6 +285,8 @@ help(void)
 		   (opts.general.table) ? "true" : "false");
 	printf("      --text-search=BOOL        text search (default: %s)\n",
 		   (opts.general.textsearch) ? "true" : "false");
+	printf("      --transform=BOOL            transform (default: %s)\n",
+		   (opts.general.transform) ? "true" : "false");
 	printf("      --trigger=BOOL            trigger (default: %s)\n",
 		   (opts.general.trigger) ? "true" : "false");
 	printf("      --type=BOOL               type (default: %s)\n",
@@ -352,6 +357,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 	options->general.subscription = false;		/* general - subscription */
 	options->general.table = true;				/* general - table */
 	options->general.textsearch = false;		/* general - text-search */
+	options->general.transform = false;			/* general - transform */
 	options->general.trigger = true;			/* general - trigger */
 	options->general.type = true;				/* general - type */
 	options->general.view = true;				/* general - view */
@@ -575,6 +581,10 @@ loadConfig(const char *cf, QuarrelOptions *options)
 			options->general.textsearch = parseBoolean("text-search",
 										  mini_file_get_value(config,
 												  "general", "text-search"));
+
+		if (mini_file_get_value(config, "general", "transform") != NULL)
+			options->general.transform = parseBoolean("transform", mini_file_get_value(config,
+													"general", "transform"));
 
 		if (mini_file_get_value(config, "general", "trigger") != NULL)
 			options->general.trigger = parseBoolean("trigger", mini_file_get_value(config,
@@ -3667,6 +3677,86 @@ quarrelTextSearchTemplates()
 }
 
 static void
+quarrelTransforms()
+{
+	PQLTransform	*transforms1 = NULL;		/* target */
+	PQLTransform	*transforms2 = NULL;		/* source */
+	int				ntransforms1 = 0;		/* # of transforms */
+	int				ntransforms2 = 0;
+	int				i, j;
+
+	transforms1 = getTransforms(conn1, &ntransforms1);
+	transforms2 = getTransforms(conn2, &ntransforms2);
+
+	for (i = 0; i < ntransforms1; i++)
+		logNoise("server1: transform for %s.%s language %s", transforms1[i].trftype.schemaname, transforms1[i].trftype.objectname, transforms1[i].languagename);
+
+	for (i = 0; i < ntransforms2; i++)
+		logNoise("server2: transform for %s.%s language %s", transforms2[i].trftype.schemaname, transforms2[i].trftype.objectname, transforms2[i].languagename);
+
+	/*
+	 * We have two sorted lists. Let's figure out which elements are not in the
+	 * other list.
+	 * We have two sorted lists. The strategy is transverse both lists only once
+	 * to figure out transforms not presented in the other list.
+	 */
+	i = j = 0;
+	while (i < ntransforms1 || j < ntransforms2)
+	{
+		/* End of transforms1 list. Print transforms2 list until its end. */
+		if (i == ntransforms1)
+		{
+			logDebug("transform for %s.%s language %s: server2", transforms2[i].trftype.schemaname, transforms2[i].trftype.objectname, transforms2[i].languagename);
+
+			dumpCreateTransform(fpre, &transforms2[j]);
+
+			j++;
+			qstat.transformadded++;
+		}
+		/* End of transforms2 list. Print transforms1 list until its end. */
+		else if (j == ntransforms2)
+		{
+			logDebug("transform for %s.%s language %s: server1", transforms1[i].trftype.schemaname, transforms1[i].trftype.objectname, transforms1[i].languagename);
+
+			dumpDropTransform(fpost, &transforms1[i]);
+
+			i++;
+			qstat.transformremoved++;
+		}
+		else if (compareNamesAndRelations(&transforms1[i].trftype, &transforms2[j].trftype, transforms1[i].languagename, transforms2[j].languagename) == 0)
+		{
+			logDebug("transform for %s.%s language %s: server1 server2", transforms1[i].trftype.schemaname, transforms1[i].trftype.objectname, transforms1[i].languagename);
+
+			dumpAlterTransform(fpre, &transforms1[i], &transforms2[j]);
+
+			i++;
+			j++;
+		}
+		else if (compareNamesAndRelations(&transforms1[i].trftype, &transforms2[j].trftype, transforms1[i].languagename, transforms2[j].languagename) < 0)
+		{
+			logDebug("transform for %s.%s language %s: server1", transforms1[i].trftype.schemaname, transforms1[i].trftype.objectname, transforms1[i].languagename);
+
+			dumpDropTransform(fpost, &transforms1[i]);
+
+			i++;
+			qstat.transformremoved++;
+		}
+		else if (compareNamesAndRelations(&transforms1[i].trftype, &transforms2[j].trftype, transforms1[i].languagename, transforms2[j].languagename) > 0)
+		{
+			logDebug("transform for %s.%s language %s: server2", transforms2[i].trftype.schemaname, transforms2[i].trftype.objectname, transforms2[i].languagename);
+
+			dumpCreateTransform(fpre, &transforms2[j]);
+
+			j++;
+			qstat.transformadded++;
+		}
+	}
+
+	freeTransforms(transforms1, ntransforms1);
+	freeTransforms(transforms2, ntransforms2);
+}
+
+static void
 quarrelTriggers()
 {
 	PQLTrigger	*triggers1 = NULL;	/* target */
@@ -4525,6 +4615,7 @@ int main(int argc, char *argv[])
 		{"subscription", required_argument, NULL, 41},
 		{"table", required_argument, NULL, 31},
 		{"text-search", required_argument, NULL, 32},
+		{"transform", required_argument, NULL, 44},
 		{"trigger", required_argument, NULL, 33},
 		{"type", required_argument, NULL, 34},
 		{"view", required_argument, NULL, 35},
@@ -4767,6 +4858,10 @@ int main(int argc, char *argv[])
 				gopts.foreigntable = parseBoolean("foreign-table", optarg);
 				gopts_given.foreigntable = true;
 				break;
+			case 44:
+				gopts.transform = parseBoolean("transform", optarg);
+				gopts_given.transform = true;
+				break;
 			default:
 				fprintf(stderr, "Try \"%s --help\" for more information.\n", PGQ_NAME);
 				exit(EXIT_FAILURE);
@@ -4854,6 +4949,8 @@ int main(int argc, char *argv[])
 		options.table = gopts.table;
 	if (gopts_given.textsearch)
 		options.textsearch = gopts.textsearch;
+	if (gopts_given.transform)
+		options.transform = gopts.transform;
 	if (gopts_given.trigger)
 		options.trigger = gopts.trigger;
 	if (gopts_given.type)
@@ -5047,6 +5144,8 @@ int main(int argc, char *argv[])
 		quarrelTextSearchDicts();
 		quarrelTextSearchConfigs();
 	}
+	if (options.transform)
+		quarrelTransforms();
 	if (options.statistics)
 		quarrelStatistics();
 

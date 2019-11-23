@@ -241,7 +241,7 @@ Features
 	</tr>
 	<tr>
 		<td>TRANSFORM</td>
-		<td>not implemented</td>
+		<td>complete</td>
 		<td></td>
 	</tr>
 	<tr>
@@ -330,6 +330,7 @@ The following command-line options are provided (all are optional):
 * `subscription`: subscription comparison (default: false).
 * `table`: table comparison (default: true).
 * `text-search`: text search comparison (default: false).
+* `transform`: transform comparison (default: false).
 * `trigger`: trigger comparison (default: true).
 * `type`: type comparison (default: true).
 * `view`: view comparison (default: true).
@@ -374,6 +375,7 @@ statistics = false
 subscription = false
 table = true
 text-search = false
+transform = false
 trigger = true
 type = true
 view = true
