@@ -32,8 +32,8 @@ UNIX based Operating Systems
 Before installing **pgquarrel**, you should have PostgreSQL 9.0+ installed (including the header files). If PostgreSQL is not in your search path add -DCMAKE_PREFIX_PATH=/path/to/pgsql to the cmake command.
 
 ```
-$ tar -zxf pgquarrel-0.5.0.tgz
-$ cd pgquarrel-0.5.0
+$ tar -zxf pgquarrel-0.6.0.tgz
+$ cd pgquarrel-0.6.0
 $ cmake .
 $ make
 ```
@@ -400,7 +400,7 @@ Regression Tests
 
 ```
 $ # adjust test/run-test.sh
-$ cd pgquarrel-0.5.0/test
+$ cd pgquarrel-0.6.0/test
 $ # test using 11 on both clusters
 $ ./run-test.sh 11 11 init
 ```
