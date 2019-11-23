@@ -935,47 +935,47 @@ getProcedures(PGconn *c, int *n)
 void
 getFunctionSecurityLabels(PGconn *c, PQLFunction *f)
 {
-	return getProcFunctionSecurityLabels(c, f, 'f');
+	getProcFunctionSecurityLabels(c, f, 'f');
 }
 
 void
 getProcedureSecurityLabels(PGconn *c, PQLFunction *f)
 {
-	return getProcFunctionSecurityLabels(c, f, 'p');
+	getProcFunctionSecurityLabels(c, f, 'p');
 }
 
 void
 dumpDropFunction(FILE *output, PQLFunction *f)
 {
-	return dumpDropProcFunction(output, f, 'f');
+	dumpDropProcFunction(output, f, 'f');
 }
 
 void
 dumpDropProcedure(FILE *output, PQLFunction *f)
 {
-	return dumpDropProcFunction(output, f, 'p');
+	dumpDropProcFunction(output, f, 'p');
 }
 
 void
 dumpCreateFunction(FILE *output, PQLFunction *f, bool orreplace)
 {
-	return dumpCreateProcFunction(output, f, orreplace, 'f');
+	dumpCreateProcFunction(output, f, orreplace, 'f');
 }
 
 void
 dumpCreateProcedure(FILE *output, PQLFunction *f, bool orreplace)
 {
-	return dumpCreateProcFunction(output, f, orreplace, 'p');
+	dumpCreateProcFunction(output, f, orreplace, 'p');
 }
 
 void
 dumpAlterFunction(FILE *output, PQLFunction *a, PQLFunction *b)
 {
-	return dumpAlterProcFunction(output, a, b, 'f');
+	dumpAlterProcFunction(output, a, b, 'f');
 }
 
 void
 dumpAlterProcedure(FILE *output, PQLFunction *a, PQLFunction *b)
 {
-	return dumpAlterProcFunction(output, a, b, 'p');
+	dumpAlterProcFunction(output, a, b, 'p');
 }
