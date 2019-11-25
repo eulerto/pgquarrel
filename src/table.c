@@ -3,7 +3,7 @@
  * pgquarrel -- comparing database schemas
  *
  * table.c
- *     Generate TABLE commands
+ *     Generate TABLE / FOREIGN TABLE commands
  *
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * CREATE TABLE
@@ -13,12 +13,19 @@
  * COMMENT ON COLUMN
  * COMMENT ON CONSTRAINT
  *
+ * CREATE FOREIGN TABLE
+ * DROP FOREIGN TABLE
+ * ALTER FOREIGN TABLE
+ * COMMENT ON FOREIGN TABLE
+ *
  * TODO
  *
  * CREATE TABLE ... INHERITS
  * CREATE TABLE ... TABLESPACE
  * CREATE TABLE ... EXCLUDE
  * CREATE TABLE ... GENERATED ... AS IDENTITY
+ *
+ * CREATE FOREIGN TABLE ... INHERITS
  *
  * ALTER TABLE ... RENAME COLUMN ... TO
  * ALTER TABLE ... RENAME CONSTRAINT ... TO
@@ -35,6 +42,12 @@
  * ALTER TABLE ... OF type_name
  * ALTER TABLE ... SET TABLESPACE
  * ALTER TABLE ... ALTER COLUMN ... ADD GENERATED
+ *
+ * ALTER FOREIGN TABLE ... RENAME COLUMN ... TO
+ * ALTER FOREIGN TABLE ... RENAME TO
+ * ALTER FOREIGN TABLE ... SET SCHEMA TO
+ * ALTER FOREIGN TABLE ... INHERIT parent_table
+ * ALTER FOREIGN TABLE ... NOINHERIT parent_table
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
  * Copyright (c) 2015-2018, Euler Taveira
@@ -43,7 +56,15 @@
  */
 #include "table.h"
 
+
+#define	PGQ_IS_REGULAR_TABLE(ptr) (ptr == 'r')
+#define	PGQ_IS_PARTITIONED_TABLE(ptr) (ptr == 'p')
+#define	PGQ_IS_FOREIGN_TABLE(ptr) (ptr == 'f')
+#define	PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(ptr) \
+	(PGQ_IS_REGULAR_TABLE(ptr) || PGQ_IS_PARTITIONED_TABLE(ptr))
+
 static void sortTableAttributes(PQLTable **t);
+static PQLTable *getTables(PGconn *c, int *n, char k);
 static void getParentTables(PGconn *c, PQLTable *t);
 static void dumpAddColumn(FILE *output, PQLTable *t, int i);
 static void dumpRemoveColumn(FILE *output, PQLTable *t, int i);
@@ -86,13 +107,24 @@ sortTableAttributes(PQLTable **t)
 }
 
 PQLTable *
-getTables(PGconn *c, int *n)
+getTables(PGconn *c, int *n, char k)
 {
 	PQLTable	*t;
 	PGresult	*res;
 	int			i;
+	char		*kind;
 
-	logNoise("table: server version: %d", PQserverVersion(c));
+	if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(k))
+		kind = strdup("table");
+	else if (PGQ_IS_FOREIGN_TABLE(k))
+		kind = strdup("foreign table");
+	else
+	{
+		logError("kind is not a regular, partitioned or foreign table");
+		exit(EXIT_FAILURE);
+	}
+
+	logNoise("%s: server version: %d", kind, PQserverVersion(c));
 
 	/* FIXME relpersistence (9.1)? */
 	/*
@@ -100,23 +132,55 @@ getTables(PGconn *c, int *n)
 	 */
 	if (PQserverVersion(c) >= 100000)
 	{
-		res = PQexec(c,
+		if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(k))
+		{
+			res = PQexec(c,
 					 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, relreplident, reloftype, o.nspname AS typnspname, y.typname, c.relispartition, pg_get_partkeydef(c.oid) AS partitionkeydef, pg_get_expr(c.relpartbound, c.oid) AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind IN ('r', 'p') AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
+		}
+		else if (PGQ_IS_FOREIGN_TABLE(k))
+		{
+			res = PQexec(c,
+					 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, relreplident, reloftype, o.nspname AS typnspname, y.typname, c.relispartition, pg_get_partkeydef(c.oid) AS partitionkeydef, pg_get_expr(c.relpartbound, c.oid) AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'f' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
+		}
 	}
 	else if (PQserverVersion(c) >= 90400)
 	{
-		res = PQexec(c,
+		if (PGQ_IS_REGULAR_TABLE(k))
+		{
+			res = PQexec(c,
 					 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, relreplident, reloftype, o.nspname AS typnspname, y.typname, false AS relispartition, NULL AS partitionkeydef, NULL AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
+		}
+		else if (PGQ_IS_FOREIGN_TABLE(k))
+		{
+			res = PQexec(c,
+					 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, relreplident, reloftype, o.nspname AS typnspname, y.typname, false AS relispartition, NULL AS partitionkeydef, NULL AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'f' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
+		}
 	}
 	else if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
-		res = PQexec(c,
+		if (PGQ_IS_REGULAR_TABLE(k))
+		{
+			res = PQexec(c,
 					 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, 'v' AS relreplident, reloftype, o.nspname AS typnspname, y.typname, false AS relispartition, NULL AS partitionkeydef, NULL AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
+		}
+		else if (PGQ_IS_FOREIGN_TABLE(k))
+		{
+			res = PQexec(c,
+					 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, 'v' AS relreplident, reloftype, o.nspname AS typnspname, y.typname, false AS relispartition, NULL AS partitionkeydef, NULL AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'f' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
+		}
 	}
 	else
 	{
-		res = PQexec(c,
+		if (PGQ_IS_REGULAR_TABLE(k))
+		{
+			res = PQexec(c,
 					 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, 'p' AS relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, 'v' AS relreplident, 0 AS reloftype, NULL AS typnspname, NULL AS typname, false AS relispartition, NULL AS partitionkeydef, NULL AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, relname");
+		}
+		else
+		{
+			logError("this version does not support foreign table");
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -134,7 +198,7 @@ getTables(PGconn *c, int *n)
 	else
 		t = NULL;
 
-	logDebug("number of tables in server: %d", *n);
+	logDebug("number of %ss in server: %d", kind, *n);
 
 	for (i = 0; i < *n; i++)
 	{
@@ -143,6 +207,7 @@ getTables(PGconn *c, int *n)
 		t[i].obj.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		t[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		t[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "relname")));
+		t[i].kind = PQgetvalue(res, i, PQfnumber(res, "relkind"))[0];
 		if (PQgetisnull(res, i, PQfnumber(res, "tablespacename")))
 			t[i].tbspcname = NULL;
 		else
@@ -213,8 +278,7 @@ getTables(PGconn *c, int *n)
 											   "typname")));
 		}
 
-		t[i].partitioned = (PQgetvalue(res, i, PQfnumber(res, "relkind"))[0] == 'p');
-		if (t[i].partitioned)
+		if (PGQ_IS_PARTITIONED_TABLE(t[i].kind))
 			t[i].partitionkey = strdup(PQgetvalue(res, i, PQfnumber(res,
 												  "partitionkeydef")));
 		else
@@ -236,6 +300,14 @@ getTables(PGconn *c, int *n)
 		}
 
 		/*
+		 * Foreign table properties are not assigned here (see
+		 * getForeignTableProperties), but default values are essential to
+		 * avoid having trouble in freeTables.
+		 */
+		t[i].servername = NULL;
+		t[i].ftoptions = NULL;
+
+		/*
 		 * Security labels are not assigned here (see getTableSecurityLabels),
 		 * but default values are essential to avoid having trouble in
 		 * freeTables.
@@ -243,12 +315,25 @@ getTables(PGconn *c, int *n)
 		t[i].nseclabels = 0;
 		t[i].seclabels = NULL;
 
-		logDebug("table \"%s\".\"%s\"", t[i].obj.schemaname, t[i].obj.objectname);
+		logDebug("%s \"%s\".\"%s\"", kind, t[i].obj.schemaname, t[i].obj.objectname);
 	}
 
 	PQclear(res);
+	free(kind);
 
 	return t;
+}
+
+PQLTable *
+getRegularTables(PGconn *c, int *n)
+{
+	return getTables(c, n, 'r');
+}
+
+PQLTable *
+getForeignTables(PGconn *c, int *n)
+{
+	return getTables(c, n, 'f');
 }
 
 static void
@@ -315,12 +400,82 @@ getParentTables(PGconn *c, PQLTable *t)
 }
 
 void
+getForeignTableProperties(PGconn *c, PQLTable *t, int n)
+{
+	char		*query;
+	int			nquery;
+	PGresult	*res;
+	int			i;
+
+	for (i = 0; i < n; i++)
+	{
+		query = NULL;
+		nquery = 0;
+		/* determine how many characters will be written by snprintf */
+		nquery = snprintf(query, nquery,
+						  "SELECT s.srvname, array_to_string(f.ftoptions, ', ') AS ftoptions FROM pg_foreign_table f INNER JOIN pg_foreign_server s ON (f.ftserver = s.oid) WHERE f.ftrelid = %u",
+						  t[i].obj.oid);
+
+		nquery++;
+		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
+		snprintf(query, nquery,
+				 "SELECT s.srvname, array_to_string(f.ftoptions, ', ') AS ftoptions FROM pg_foreign_table f INNER JOIN pg_foreign_server s ON (f.ftserver = s.oid) WHERE f.ftrelid = %u",
+				 t[i].obj.oid);
+
+		logNoise("foreign table: query size: %d ; query: %s", nquery, query);
+
+		res = PQexec(c, query);
+
+		free(query);
+
+		if (PQresultStatus(res) != PGRES_TUPLES_OK)
+		{
+			logError("query failed: %s", PQresultErrorMessage(res));
+			PQclear(res);
+			PQfinish(c);
+			/* XXX leak another connection? */
+			exit(EXIT_FAILURE);
+		}
+
+		if (PQntuples(res) == 1)
+		{
+			t[i].servername = strdup(PQgetvalue(res, 0, PQfnumber(res, "srvname")));
+			if (PQgetisnull(res, 0, PQfnumber(res, "ftoptions")))
+				t->ftoptions = NULL;
+			else
+				t[i].ftoptions = strdup(PQgetvalue(res, 0, PQfnumber(res, "ftoptions")));
+		}
+		else
+		{
+			logError("foreign table \"%s\".\"%s\" has more than one entry", t[i].obj.schemaname, t[i].obj.objectname);
+			PQclear(res);
+			PQfinish(c);
+			/* XXX leak another connection? */
+			exit(EXIT_FAILURE);
+		}
+
+		PQclear(res);
+	}
+}
+
+void
 getCheckConstraints(PGconn *c, PQLTable *t, int n)
 {
 	char		*query;
 	int			nquery;
 	PGresult	*res;
 	int			i, j;
+	char		*kind;
+
+	if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(t->kind))
+		kind = strdup("table");
+	else if (PGQ_IS_FOREIGN_TABLE(t->kind))
+		kind = strdup("foreign table");
+	else
+	{
+		logError("kind is not a regular, partitioned or foreign table");
+		exit(EXIT_FAILURE);
+	}
 
 	for (i = 0; i < n; i++)
 	{
@@ -339,7 +494,7 @@ getCheckConstraints(PGconn *c, PQLTable *t, int n)
 				 "SELECT conname, pg_get_constraintdef(c.oid) AS condef, obj_description(c.oid, 'pg_constraint') AS description FROM pg_constraint c WHERE conrelid = %u AND contype = 'c' ORDER BY conname",
 				 t[i].obj.oid);
 
-		logNoise("table: query size: %d ; query: %s", nquery, query);
+		logNoise("%s: query size: %d ; query: %s", kind, nquery, query);
 
 		res = PQexec(c, query);
 
@@ -360,8 +515,9 @@ getCheckConstraints(PGconn *c, PQLTable *t, int n)
 		else
 			t[i].check = NULL;
 
-		logDebug("number of check constraints in table \"%s\".\"%s\": %d",
-				 t[i].obj.schemaname, t[i].obj.objectname, t[i].ncheck);
+		logDebug("number of check constraints in %s \"%s\".\"%s\": %d",
+				 	kind, t[i].obj.schemaname, t[i].obj.objectname, t[i].ncheck);
+
 		for (j = 0; j < t[i].ncheck; j++)
 		{
 			char	*withoutescape;
@@ -387,6 +543,8 @@ getCheckConstraints(PGconn *c, PQLTable *t, int n)
 
 		PQclear(res);
 	}
+
+	free(kind);
 }
 
 void
@@ -538,36 +696,62 @@ getTableAttributes(PGconn *c, PQLTable *t)
 	int			nquery = 0;
 	PGresult	*res;
 	int			i;
+	char		*kind;
 
-	if (PQserverVersion(c) >= 90100)	/* support for collation */
+	if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(t->kind))
+		kind = strdup("table");
+	else if (PGQ_IS_FOREIGN_TABLE(t->kind))
+		kind = strdup("foreign table");
+	else
+	{
+		logError("kind is not a regular, partitioned or foreign table");
+		exit(EXIT_FAILURE);
+	}
+
+	if (PQserverVersion(c) >= 90200)	/* support for foreign table attribute options */
 	{
 		/* determine how many characters will be written by snprintf */
 		nquery = snprintf(query, nquery,
-						  "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, attacl FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
+						  "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, array_to_string(attfdwoptions, ', ') AS attfdwoptions, attacl FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
 						  t->obj.oid);
 
 		nquery++;
 		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
 		snprintf(query, nquery,
-				 "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, attacl FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
+				 "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, array_to_string(attfdwoptions, ', ') AS attfdwoptions, attacl FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
 				 t->obj.oid);
 
-		logNoise("table: query size: %d ; query: %s", nquery, query);
+		logNoise("%s: query size: %d ; query: %s", kind, nquery, query);
+	}
+	else if (PQserverVersion(c) >= 90100)	/* support for collation */
+	{
+		/* determine how many characters will be written by snprintf */
+		nquery = snprintf(query, nquery,
+						  "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, NULL AS attfdwoptions, attacl FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
+						  t->obj.oid);
+
+		nquery++;
+		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
+		snprintf(query, nquery,
+				 "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, NULL AS attfdwoptions, attacl FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
+				 t->obj.oid);
+
+		logNoise("%s: query size: %d ; query: %s", kind, nquery, query);
 	}
 	else
 	{
 		/* determine how many characters will be written by snprintf */
 		nquery = snprintf(query, nquery,
-						  "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, NULL AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, attacl FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
+						  "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, NULL AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, NULL AS attfdwoptions, attacl FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
 						  t->obj.oid);
 
 		nquery++;
 		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
 		snprintf(query, nquery,
-				 "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, NULL AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, attacl FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
+				 "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, NULL AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, NULL AS attfdwoptions, attacl FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
 				 t->obj.oid);
 
-		logNoise("table: query size: %d ; query: %s", nquery, query);
+		logNoise("%s: query size: %d ; query: %s", kind, nquery, query);
 	}
 
 	res = PQexec(c, query);
@@ -589,15 +773,24 @@ getTableAttributes(PGconn *c, PQLTable *t)
 	else
 		t->attributes = NULL;
 
-	logDebug("number of attributes in table \"%s\".\"%s\": %d", t->obj.schemaname,
-			 t->obj.objectname, t->nattributes);
+	if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(t->kind))
+	{
+		logDebug("number of attributes in table \"%s\".\"%s\": %d", t->obj.schemaname,
+				 t->obj.objectname, t->nattributes);
 
-	if (t->reloptions)
-		logDebug("table \"%s\".\"%s\": reloptions: %s", t->obj.schemaname,
-				 t->obj.objectname, t->reloptions);
-	else
-		logDebug("table \"%s\".\"%s\": no reloptions", t->obj.schemaname,
-				 t->obj.objectname);
+		/* reloptions is only available for regular tables */
+		if (t->reloptions)
+			logDebug("table \"%s\".\"%s\": reloptions: %s", t->obj.schemaname,
+					 t->obj.objectname, t->reloptions);
+		else
+			logDebug("table \"%s\".\"%s\": no reloptions", t->obj.schemaname,
+					 t->obj.objectname);
+	}
+	else if (PGQ_IS_FOREIGN_TABLE(t->kind))
+	{
+		logDebug("number of attributes in foreign table \"%s\".\"%s\": %d", t->obj.schemaname,
+				 t->obj.objectname, t->nattributes);
+	}
 
 	for (i = 0; i < t->nattributes; i++)
 	{
@@ -659,6 +852,13 @@ getTableAttributes(PGconn *c, PQLTable *t)
 			t->attributes[i].attoptions = strdup(PQgetvalue(res, i, PQfnumber(res,
 												 "attoptions")));
 
+		/* attribute FDW options */
+		if (PQgetisnull(res, i, PQfnumber(res, "attfdwoptions")))
+			t->attributes[i].attfdwoptions = NULL;
+		else
+			t->attributes[i].attfdwoptions = strdup(PQgetvalue(res, i, PQfnumber(res,
+												 "attfdwoptions")));
+
 		/* attribute ACL */
 		if (PQgetisnull(res, i, PQfnumber(res, "attacl")))
 			t->attributes[i].acl = NULL;
@@ -713,13 +913,13 @@ getTableAttributes(PGconn *c, PQLTable *t)
 
 		/* determine how many characters will be written by snprintf */
 		nquery = snprintf(query, nquery,
-						  "SELECT c.relname AS  idxname FROM pg_index i INNER JOIN pg_class c ON (i.indexrelid = c.oid) WHERE indrelid = %u AND indisreplident",
+						  "SELECT c.relname AS idxname FROM pg_index i INNER JOIN pg_class c ON (i.indexrelid = c.oid) WHERE indrelid = %u AND indisreplident",
 						  t->obj.oid);
 
 		nquery++;
 		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
 		snprintf(query, nquery,
-				 "SELECT c.relname AS  idxname FROM pg_index i INNER JOIN pg_class c ON (i.indexrelid = c.oid) WHERE indrelid = %u AND indisreplident",
+				 "SELECT c.relname AS idxname FROM pg_index i INNER JOIN pg_class c ON (i.indexrelid = c.oid) WHERE indrelid = %u AND indisreplident",
 				 t->obj.oid);
 
 		logNoise("table: query size: %d ; query: %s", nquery, query);
@@ -757,6 +957,17 @@ getTableSecurityLabels(PGconn *c, PQLTable *t)
 	char		query[200];
 	PGresult	*res;
 	int			i;
+	char		*kind;
+
+	if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(t->kind))
+		kind = strdup("table");
+	else if (PGQ_IS_FOREIGN_TABLE(t->kind))
+		kind = strdup("foreign table");
+	else
+	{
+		logError("kind is not a regular, partitioned or foreign table");
+		exit(EXIT_FAILURE);
+	}
 
 	if (PQserverVersion(c) < 90100)
 	{
@@ -785,8 +996,8 @@ getTableSecurityLabels(PGconn *c, PQLTable *t)
 	else
 		t->seclabels = NULL;
 
-	logDebug("number of security labels in table \"%s\".\"%s\": %d",
-			 t->obj.schemaname, t->obj.objectname, t->nseclabels);
+	logDebug("number of security labels in %s \"%s\".\"%s\": %d",
+			 kind, t->obj.schemaname, t->obj.objectname, t->nseclabels);
 
 	for (i = 0; i < t->nseclabels; i++)
 	{
@@ -835,8 +1046,8 @@ getTableSecurityLabels(PGconn *c, PQLTable *t)
 		else
 			t->attributes[i].seclabels = NULL;
 
-		logDebug("number of security labels in table \"%s\".\"%s\" attribute \"%s\": %d",
-				 t->obj.schemaname, t->obj.objectname,
+		logDebug("number of security labels in %s \"%s\".\"%s\" attribute \"%s\": %d",
+				 kind, t->obj.schemaname, t->obj.objectname,
 				 t->attributes[i].attname, t->attributes[i].nseclabels);
 
 		for (j = 0; j < t->attributes[i].nseclabels; j++)
@@ -859,6 +1070,8 @@ getTableSecurityLabels(PGconn *c, PQLTable *t)
 
 		PQclear(res);
 	}
+
+	free(kind);
 }
 
 void
@@ -889,6 +1102,10 @@ freeTables(PQLTable *t, int n)
 				free(t[i].partitionkey);
 			if (t[i].partitionbound)
 				free(t[i].partitionbound);
+			if (t[i].servername)
+				free(t[i].servername);
+			if (t[i].ftoptions)
+				free(t[i].ftoptions);
 			if (t[i].comment)
 				PQfreemem(t[i].comment);
 			if (t[i].acl)
@@ -1063,10 +1280,22 @@ dumpDropTable(FILE *output, PQLTable *t)
 {
 	char	*schema = formatObjectIdentifier(t->obj.schemaname);
 	char	*tabname = formatObjectIdentifier(t->obj.objectname);
+	char	*kind;
+
+	if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(t->kind))
+		kind = strdup("TABLE");
+	else if (PGQ_IS_FOREIGN_TABLE(t->kind))
+		kind = strdup("FOREIGN TABLE");
+	else
+	{
+		logError("table is not regular, partitioned or foreign");
+		exit(EXIT_FAILURE);
+	}
 
 	fprintf(output, "\n\n");
-	fprintf(output, "DROP TABLE %s.%s;", schema, tabname);
+	fprintf(output, "DROP %s %s.%s;", kind, schema, tabname);
 
+	free(kind);
 	free(schema);
 	free(tabname);
 }
@@ -1076,6 +1305,7 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 {
 	char	*schema = formatObjectIdentifier(t->obj.schemaname);
 	char	*tabname = formatObjectIdentifier(t->obj.objectname);
+	char	*kind;
 
 	char	*typeschema;
 	char	*typename;
@@ -1086,8 +1316,18 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 	/*sort attributes*/
 	sortTableAttributes(&t);
 
+	if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(t->kind))
+		kind = strdup("TABLE");
+	else if (PGQ_IS_FOREIGN_TABLE(t->kind))
+		kind = strdup("FOREIGN TABLE");
+	else
+	{
+		logError("table is not regular, partitioned or foreign");
+		exit(EXIT_FAILURE);
+	}
+
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE %sTABLE %s.%s ", t->unlogged ? "UNLOGGED " : "", schema,
+	fprintf(output, "CREATE %s%s %s.%s ", t->unlogged ? "UNLOGGED " : "", kind, schema,
 			tabname);
 
 	/* typed table */
@@ -1155,12 +1395,20 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 		fprintf(output, "(\n)");
 
 	/* partitioned table */
-	if (t->partitioned)
+	if (PGQ_IS_PARTITIONED_TABLE(t->kind))
 		fprintf(output, "\nPARTITION BY %s", t->partitionkey);
+
+	/* foreign server */
+	if (PGQ_IS_FOREIGN_TABLE(t->kind))
+		fprintf(output, "\nSERVER %s", t->servername);
 
 	/* reloptions */
 	if (t->reloptions != NULL)
 		fprintf(output, "\nWITH (%s)", t->reloptions);
+
+	/* foreign table options */
+	if (PGQ_IS_FOREIGN_TABLE(t->kind) && t->ftoptions != NULL)
+		fprintf(output, "\nOPTIONS (%s)", t->ftoptions);
 
 	fprintf(output, ";");
 
@@ -1169,7 +1417,7 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 		dumpAttachPartition(output2, t);
 
 	/* replica identity */
-	if (t->relreplident != 'v')		/* 'v' (void) means < 9.4 */
+	if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(t->kind) && t->relreplident != 'v')		/* 'v' (void) means < 9.4 */
 	{
 
 		switch (t->relreplident)
@@ -1249,7 +1497,7 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 		if (t->comment != NULL)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TABLE %s.%s IS %s;", schema, tabname, t->comment);
+			fprintf(output, "COMMENT ON %s %s.%s IS %s;", kind, schema, tabname, t->comment);
 		}
 
 		/* columns */
@@ -1318,8 +1566,8 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 			char	*attname = formatObjectIdentifier(t->attributes[i].attname);
 
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET (%s)", schema,
-					tabname, attname, t->attributes[i].attoptions);
+			fprintf(output, "ALTER %s ONLY %s.%s ALTER COLUMN %s SET (%s)", kind, schema,
+						tabname, attname, t->attributes[i].attoptions);
 
 			free(attname);
 		}
@@ -1331,8 +1579,9 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 		for (i = 0; i < t->nseclabels; i++)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS %s;",
+			fprintf(output, "SECURITY LABEL FOR %s ON %s %s.%s IS %s;",
 					t->seclabels[i].provider,
+					kind,
 					schema,
 					tabname,
 					t->seclabels[i].label);
@@ -1368,7 +1617,7 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 		char	*owner = formatObjectIdentifier(t->owner);
 
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TABLE %s.%s OWNER TO %s;", schema, tabname, owner);
+		fprintf(output, "ALTER %s %s.%s OWNER TO %s;", kind, schema, tabname, owner);
 
 		free(owner);
 	}
@@ -1395,6 +1644,7 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 		}
 	}
 
+	free(kind);
 	free(schema);
 	free(tabname);
 }
@@ -1405,9 +1655,20 @@ dumpAddColumn(FILE *output, PQLTable *t, int i)
 	char	*schema = formatObjectIdentifier(t->obj.schemaname);
 	char	*tabname = formatObjectIdentifier(t->obj.objectname);
 	char	*attname = formatObjectIdentifier(t->attributes[i].attname);
+	char	*kind;
+
+	if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(t->kind))
+		kind = strdup("TABLE");
+	else if (PGQ_IS_FOREIGN_TABLE(t->kind))
+		kind = strdup("FOREIGN TABLE");
+	else
+	{
+		logError("table is not regular, partitioned or foreign");
+		exit(EXIT_FAILURE);
+	}
 
 	fprintf(output, "\n\n");
-	fprintf(output, "ALTER TABLE ONLY %s.%s ADD COLUMN %s %s", schema, tabname,
+	fprintf(output, "ALTER %s ONLY %s.%s ADD COLUMN %s %s", kind, schema, tabname,
 			attname, t->attributes[i].atttypname);
 
 	/* collate */
@@ -1465,6 +1726,7 @@ dumpAddColumn(FILE *output, PQLTable *t, int i)
 		dumpGrantAndRevoke(output, PGQ_TABLE, &t->obj, &t->obj, NULL,
 						   t->attributes[i].acl, NULL, attname);
 
+	free(kind);
 	free(schema);
 	free(tabname);
 	free(attname);
@@ -1476,11 +1738,23 @@ dumpRemoveColumn(FILE *output, PQLTable *t, int i)
 	char	*schema = formatObjectIdentifier(t->obj.schemaname);
 	char	*tabname = formatObjectIdentifier(t->obj.objectname);
 	char	*attname = formatObjectIdentifier(t->attributes[i].attname);
+	char	*kind;
+
+	if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(t->kind))
+		kind = strdup("TABLE");
+	else if (PGQ_IS_FOREIGN_TABLE(t->kind))
+		kind = strdup("FOREIGN TABLE");
+	else
+	{
+		logError("table is not regular, partitioned or foreign");
+		exit(EXIT_FAILURE);
+	}
 
 	fprintf(output, "\n\n");
-	fprintf(output, "ALTER TABLE ONLY %s.%s DROP COLUMN %s;", schema, tabname,
+	fprintf(output, "ALTER %s ONLY %s.%s DROP COLUMN %s;", kind, schema, tabname,
 			attname);
 
+	free(kind);
 	free(schema);
 	free(tabname);
 	free(attname);
@@ -1495,6 +1769,17 @@ dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 	char	*schema2 = formatObjectIdentifier(b->obj.schemaname);
 	char	*tabname2 = formatObjectIdentifier(b->obj.objectname);
 	char	*attname2 = formatObjectIdentifier(b->attributes[j].attname);
+	char	*kind;
+
+	if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(b->kind))
+		kind = strdup("TABLE");
+	else if (PGQ_IS_FOREIGN_TABLE(b->kind))
+		kind = strdup("FOREIGN TABLE");
+	else
+	{
+		logError("table is not regular, partitioned or foreign");
+		exit(EXIT_FAILURE);
+	}
 
 	/*
 	 * Although we emit a command to change the type of the column of a table,
@@ -1510,8 +1795,8 @@ dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 	if (strcmp(a->attributes[i].atttypname, b->attributes[j].atttypname) != 0)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET DATA TYPE %s",
-				schema2, tabname2, attname2, b->attributes[j].atttypname);
+		fprintf(output, "ALTER %s ONLY %s.%s ALTER COLUMN %s SET DATA TYPE %s",
+				kind, schema2, tabname2, attname2, b->attributes[j].atttypname);
 
 		/* collate */
 		/* XXX schema-qualified? */
@@ -1525,14 +1810,14 @@ dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 	if (a->attributes[i].attdefexpr == NULL && b->attributes[j].attdefexpr != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET DEFAULT %s;",
-				schema2, tabname2, attname2, b->attributes[j].attdefexpr);
+		fprintf(output, "ALTER %s ONLY %s.%s ALTER COLUMN %s SET DEFAULT %s;",
+				kind, schema2, tabname2, attname2, b->attributes[j].attdefexpr);
 	}
 	else if (a->attributes[i].attdefexpr != NULL &&
 			 b->attributes[j].attdefexpr == NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s DROP DEFAULT;", schema2,
+		fprintf(output, "ALTER %s ONLY %s.%s ALTER COLUMN %s DROP DEFAULT;", kind, schema2,
 				tabname2, attname2);
 	}
 
@@ -1540,14 +1825,14 @@ dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 	if (!a->attributes[i].attnotnull && b->attributes[j].attnotnull)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET NOT NULL;", schema2,
+		fprintf(output, "ALTER %s ONLY %s.%s ALTER COLUMN %s SET NOT NULL;", kind, schema2,
 				tabname2, attname2);
 	}
 	else if (a->attributes[i].attnotnull && !b->attributes[j].attnotnull)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s DROP NOT NULL;",
-				schema2, tabname2, attname2);
+		fprintf(output, "ALTER %s ONLY %s.%s ALTER COLUMN %s DROP NOT NULL;",
+				kind, schema2, tabname2, attname2);
 	}
 
 	/* comment */
@@ -1680,6 +1965,7 @@ dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 		dumpGrantAndRevoke(output, PGQ_TABLE, &a->obj, &b->obj, a->attributes[i].acl,
 						   b->attributes[j].acl, NULL, attname1);
 
+	free(kind);
 	free(schema1);
 	free(tabname1);
 	free(attname1);
@@ -1694,14 +1980,26 @@ dumpAlterColumnSetStatistics(FILE *output, PQLTable *t, int i, bool force)
 	char	*schema = formatObjectIdentifier(t->obj.schemaname);
 	char	*tabname = formatObjectIdentifier(t->obj.objectname);
 	char	*attname = formatObjectIdentifier(t->attributes[i].attname);
+	char	*kind;
+
+	if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(t->kind))
+		kind = strdup("TABLE");
+	else if (PGQ_IS_FOREIGN_TABLE(t->kind))
+		kind = strdup("FOREIGN TABLE");
+	else
+	{
+		logError("table is not regular, partitioned or foreign");
+		exit(EXIT_FAILURE);
+	}
 
 	if (t->attributes[i].attstattarget != -1 || force)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET STATISTICS %d;",
-				schema, tabname, attname, t->attributes[i].attstattarget);
+		fprintf(output, "ALTER %s ONLY %s.%s ALTER COLUMN %s SET STATISTICS %d;",
+				kind, schema, tabname, attname, t->attributes[i].attstattarget);
 	}
 
+	free(kind);
 	free(schema);
 	free(tabname);
 	free(attname);
@@ -1713,14 +2011,26 @@ dumpAlterColumnSetStorage(FILE *output, PQLTable *t, int i, bool force)
 	char	*schema = formatObjectIdentifier(t->obj.schemaname);
 	char	*tabname = formatObjectIdentifier(t->obj.objectname);
 	char	*attname = formatObjectIdentifier(t->attributes[i].attname);
+	char	*kind;
+
+	if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(t->kind))
+		kind = strdup("TABLE");
+	else if (PGQ_IS_FOREIGN_TABLE(t->kind))
+		kind = strdup("FOREIGN TABLE");
+	else
+	{
+		logError("table is not regular, partitioned or foreign");
+		exit(EXIT_FAILURE);
+	}
 
 	if (!t->attributes[i].defstorage || force)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET STORAGE %s;",
-				schema, tabname, attname, t->attributes[i].attstorage);
+		fprintf(output, "ALTER %s ONLY %s.%s ALTER COLUMN %s SET STORAGE %s;",
+				kind, schema, tabname, attname, t->attributes[i].attstorage);
 	}
 
+	free(kind);
 	free(schema);
 	free(tabname);
 	free(attname);
@@ -1735,12 +2045,23 @@ dumpAlterColumnSetOptions(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 	char	*schema2 = formatObjectIdentifier(b->obj.schemaname);
 	char	*tabname2 = formatObjectIdentifier(b->obj.objectname);
 	char	*attname2 = formatObjectIdentifier(b->attributes[j].attname);
+	char	*kind;
+
+	if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(b->kind))
+		kind = strdup("TABLE");
+	else if (PGQ_IS_FOREIGN_TABLE(b->kind))
+		kind = strdup("FOREIGN TABLE");
+	else
+	{
+		logError("table is not regular, partitioned or foreign");
+		exit(EXIT_FAILURE);
+	}
 
 	if (a->attributes[i].attoptions == NULL && b->attributes[j].attoptions != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET (%s);", schema2,
-				tabname2, attname2, b->attributes[j].attoptions);
+		fprintf(output, "ALTER %s ONLY %s.%s ALTER COLUMN %s SET (%s);", kind,
+				schema2, tabname2, attname2, b->attributes[j].attoptions);
 	}
 	else if (a->attributes[i].attoptions != NULL &&
 			 b->attributes[j].attoptions == NULL)
@@ -1757,8 +2078,8 @@ dumpAlterColumnSetOptions(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 
 			resetlist = printOptions(rlist);
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s RESET (%s);", schema2,
-					tabname2, attname2, resetlist);
+			fprintf(output, "ALTER %s ONLY %s.%s ALTER COLUMN %s RESET (%s);", kind,
+					schema2, tabname2, attname2, resetlist);
 
 			free(resetlist);
 			freeStringList(rlist);
@@ -1780,8 +2101,8 @@ dumpAlterColumnSetOptions(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 
 			resetlist = printOptions(rlist);
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s RESET (%s);", schema2,
-					tabname2, attname2, resetlist);
+			fprintf(output, "ALTER %s ONLY %s.%s ALTER COLUMN %s RESET (%s);", kind,
+					schema2, tabname2, attname2, resetlist);
 
 			free(resetlist);
 			freeStringList(rlist);
@@ -1799,8 +2120,8 @@ dumpAlterColumnSetOptions(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 
 			setlist = printOptions(ilist);
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET (%s);", schema2,
-					tabname2, attname2, setlist);
+			fprintf(output, "ALTER %s ONLY %s.%s ALTER COLUMN %s SET (%s);", kind,
+					schema2, tabname2, attname2, setlist);
 
 			free(setlist);
 			freeStringList(ilist);
@@ -1817,14 +2138,15 @@ dumpAlterColumnSetOptions(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 
 			setlist = printOptions(slist);
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER TABLE ONLY %s.%s ALTER COLUMN %s SET (%s);", schema2,
-					tabname2, attname2, setlist);
+			fprintf(output, "ALTER %s ONLY %s.%s ALTER COLUMN %s SET (%s);", kind,
+					schema2, tabname2, attname2, setlist);
 
 			free(setlist);
 			freeStringList(slist);
 		}
 	}
 
+	free(kind);
 	free(schema2);
 	free(tabname2);
 	free(attname2);
@@ -1961,10 +2283,26 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 	char	*tabname1 = formatObjectIdentifier(a->obj.objectname);
 	char	*schema2 = formatObjectIdentifier(b->obj.schemaname);
 	char	*tabname2 = formatObjectIdentifier(b->obj.objectname);
+	char	*kind, *kindl;
+	int		i, j;
 
-	int i, j;
+	if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(b->kind))
+	{
+		kind = strdup("TABLE");
+		kindl = strdup("table");
+	}
+	else if (PGQ_IS_FOREIGN_TABLE(b->kind))
+	{
+		kind = strdup("FOREIGN TABLE");
+		kindl = strdup("foreign table");
+	}
+	else
+	{
+		logError("table is not regular, partitioned or foreign");
+		exit(EXIT_FAILURE);
+	}
 
-	/* regular table */
+	/* regular or foreign table */
 	if (a->reloftype.oid == InvalidOid && b->reloftype.oid == InvalidOid)
 	{
 		/* the attributes are sorted by name */
@@ -1977,8 +2315,8 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 			 */
 			if (i == a->nattributes)
 			{
-				logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) added",
-						 b->obj.schemaname, b->obj.objectname,
+				logDebug("%s \"%s\".\"%s\" attribute \"%s\" (%s) added",
+						 kindl, b->obj.schemaname, b->obj.objectname,
 						 b->attributes[j].attname, b->attributes[j].atttypname);
 
 				dumpAddColumn(output, b, j);
@@ -1994,7 +2332,7 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 			 */
 			else if (j == b->nattributes)
 			{
-				logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) removed", a->obj.schemaname,
+				logDebug("%s \"%s\".\"%s\" attribute \"%s\" (%s) removed", kindl, a->obj.schemaname,
 						 a->obj.objectname, a->attributes[i].attname, a->attributes[i].atttypname);
 
 				dumpRemoveColumn(output, a, i);
@@ -2048,8 +2386,8 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 			}
 			else if (strcmp(a->attributes[i].attname, b->attributes[j].attname) < 0)
 			{
-				logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) removed",
-						 a->obj.schemaname, a->obj.objectname,
+				logDebug("%s \"%s\".\"%s\" attribute \"%s\" (%s) removed",
+						 kindl, a->obj.schemaname, a->obj.objectname,
 						 a->attributes[i].attname, a->attributes[i].atttypname);
 
 				dumpRemoveColumn(output, a, i);
@@ -2057,8 +2395,8 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 			}
 			else if (strcmp(a->attributes[i].attname, b->attributes[j].attname) > 0)
 			{
-				logDebug("table \"%s\".\"%s\" attribute \"%s\" (%s) added",
-						 b->obj.schemaname, b->obj.objectname,
+				logDebug("%s \"%s\".\"%s\" attribute \"%s\" (%s) added",
+						 kindl, b->obj.schemaname, b->obj.objectname,
 						 b->attributes[j].attname, b->attributes[j].atttypname);
 
 				dumpAddColumn(output, b, j);
@@ -2080,8 +2418,8 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 			 */
 			if (i == a->nfk)
 			{
-				logDebug("table \"%s\".\"%s\" FK \"%s\" added",
-						 b->obj.schemaname, b->obj.objectname,
+				logDebug("%s \"%s\".\"%s\" FK \"%s\" added",
+						 kindl, b->obj.schemaname, b->obj.objectname,
 						 b->fk[j].conname);
 
 				dumpAddFK(output, b, j);
@@ -2094,7 +2432,7 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 			 */
 			else if (j == b->nfk)
 			{
-				logDebug("table \"%s\".\"%s\" FK \"%s\" removed", a->obj.schemaname,
+				logDebug("%s \"%s\".\"%s\" FK \"%s\" removed", kindl, a->obj.schemaname,
 						 a->obj.objectname, a->fk[i].conname);
 
 				dumpRemoveFK(output, a, i);
@@ -2105,8 +2443,8 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 				/* drop and create FK again if the definition does not match */
 				if (strcmp(a->fk[i].condef, b->fk[j].condef) != 0)
 				{
-					logDebug("table \"%s\".\"%s\" FK \"%s\" altered",
-							 b->obj.schemaname, b->obj.objectname,
+					logDebug("%s \"%s\".\"%s\" FK \"%s\" altered",
+							 kindl, b->obj.schemaname, b->obj.objectname,
 							 b->fk[j].conname);
 
 					dumpRemoveFK(output, a, i);
@@ -2118,8 +2456,8 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 			}
 			else if (strcmp(a->fk[i].conname, b->fk[j].conname) < 0)
 			{
-				logDebug("table \"%s\".\"%s\" FK \"%s\" removed",
-						 a->obj.schemaname, a->obj.objectname,
+				logDebug("%s \"%s\".\"%s\" FK \"%s\" removed",
+						 kindl, a->obj.schemaname, a->obj.objectname,
 						 a->fk[i].conname);
 
 				dumpRemoveFK(output, a, i);
@@ -2127,8 +2465,8 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 			}
 			else if (strcmp(a->fk[i].conname, b->fk[j].conname) > 0)
 			{
-				logDebug("table \"%s\".\"%s\" FK \"%s\" added",
-						 b->obj.schemaname, b->obj.objectname,
+				logDebug("%s \"%s\".\"%s\" FK \"%s\" added",
+						 kindl, b->obj.schemaname, b->obj.objectname,
 						 b->fk[j].conname);
 
 				dumpAddFK(output, b, j);
@@ -2140,16 +2478,16 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 		/* primary key */
 		if (a->pk.conname == NULL && b->pk.conname != NULL)
 		{
-			logDebug("table \"%s\".\"%s\" PK \"%s\" added",
-					 b->obj.schemaname, b->obj.objectname,
+			logDebug("%s \"%s\".\"%s\" PK \"%s\" added",
+					 kindl, b->obj.schemaname, b->obj.objectname,
 					 b->pk.conname);
 
 			dumpAddPK(output, b);
 		}
 		else if (a->pk.conname != NULL && b->pk.conname == NULL)
 		{
-			logDebug("table \"%s\".\"%s\" PK \"%s\" removed",
-					 a->obj.schemaname, a->obj.objectname,
+			logDebug("%s \"%s\".\"%s\" PK \"%s\" removed",
+					 kindl, a->obj.schemaname, a->obj.objectname,
 					 a->pk.conname);
 
 			dumpRemovePK(output, a);
@@ -2157,8 +2495,8 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 		else if (a->pk.conname != NULL && b->pk.conname != NULL &&
 				 strcmp(a->pk.condef, b->pk.condef) != 0)
 		{
-			logDebug("table \"%s\".\"%s\" PK \"%s\" altered",
-					 b->obj.schemaname, b->obj.objectname,
+			logDebug("%s \"%s\".\"%s\" PK \"%s\" altered",
+					 kindl, b->obj.schemaname, b->obj.objectname,
 					 b->pk.conname);
 
 			dumpRemovePK(output, a);
@@ -2193,12 +2531,12 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 	}
 
 	/* partitioned table cannot be converted to regular table and vice-versa */
-	if (a->partitioned && !b->partitioned)
+	if (PGQ_IS_REGULAR_TABLE(a->kind) && PGQ_IS_PARTITIONED_TABLE(b->kind))
 		logWarning("regular table %s.%s cannot be converted to partitioned table",
-				   schema2, tabname2);
-	else if (!a->partitioned && b->partitioned)
+				   schema1, tabname1);
+	else if (PGQ_IS_PARTITIONED_TABLE(a->kind) && PGQ_IS_REGULAR_TABLE(b->kind))
 		logWarning("partitioned table %s.%s cannot be converted to regular table",
-				   schema2, tabname2);
+				   schema1, tabname1);
 
 	/* partition */
 	if (!a->partition && b->partition)
@@ -2210,7 +2548,7 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 	if (a->reloptions == NULL && b->reloptions != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TABLE %s.%s SET (%s);", schema2, tabname2,
+		fprintf(output, "ALTER %s %s.%s SET (%s);", kind, schema2, tabname2,
 				b->reloptions);
 	}
 	else if (a->reloptions != NULL && b->reloptions == NULL)
@@ -2225,7 +2563,7 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 
 			resetlist = printOptions(rlist);
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER TABLE %s.%s RESET (%s);", schema2, tabname2, resetlist);
+			fprintf(output, "ALTER %s %s.%s RESET (%s);", kind, schema2, tabname2, resetlist);
 
 			free(resetlist);
 			freeStringList(rlist);
@@ -2244,7 +2582,7 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 
 			resetlist = printOptions(rlist);
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER TABLE %s.%s RESET (%s);", schema2, tabname2, resetlist);
+			fprintf(output, "ALTER %s %s.%s RESET (%s);", kind, schema2, tabname2, resetlist);
 
 			free(resetlist);
 			freeStringList(rlist);
@@ -2262,7 +2600,7 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 
 			setlist = printOptions(ilist);
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER TABLE %s.%s SET (%s);", schema2, tabname2, setlist);
+			fprintf(output, "ALTER %s %s.%s SET (%s);", kind, schema2, tabname2, setlist);
 
 			free(setlist);
 			freeStringList(ilist);
@@ -2279,7 +2617,7 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 
 			setlist = printOptions(slist);
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER TABLE %s.%s SET (%s);", schema2, tabname2, setlist);
+			fprintf(output, "ALTER %s %s.%s SET (%s);", kind, schema2, tabname2, setlist);
 
 			free(setlist);
 			freeStringList(slist);
@@ -2326,6 +2664,11 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 			}
 		}
 	}
+	else if (PGQ_IS_FOREIGN_TABLE(b->kind))
+	{
+		/* foreign tables doesn't have REPLICA IDENTITY */
+		;
+	}
 	else
 		logWarning("ignoring replica identity because some server does not support it");
 
@@ -2337,13 +2680,13 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TABLE %s.%s IS %s;", schema2, tabname2,
+			fprintf(output, "COMMENT ON %s %s.%s IS %s;", kind, schema2, tabname2,
 					b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON TABLE %s.%s IS NULL;", schema2, tabname2);
+			fprintf(output, "COMMENT ON %s %s.%s IS NULL;", kind, schema2, tabname2);
 		}
 	}
 
@@ -2355,8 +2698,9 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 			for (i = 0; i < b->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS %s;",
+				fprintf(output, "SECURITY LABEL FOR %s ON %s %s.%s IS %s;",
 						b->seclabels[i].provider,
+						kind,
 						schema2,
 						tabname2,
 						b->seclabels[i].label);
@@ -2367,8 +2711,9 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 			for (i = 0; i < a->nseclabels; i++)
 			{
 				fprintf(output, "\n\n");
-				fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS NULL;",
+				fprintf(output, "SECURITY LABEL FOR %s ON %s %s.%s IS NULL;",
 						a->seclabels[i].provider,
+						kind,
 						schema1,
 						tabname1);
 			}
@@ -2381,8 +2726,9 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 				if (i == a->nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS %s;",
+					fprintf(output, "SECURITY LABEL FOR %s ON %s %s.%s IS %s;",
 							b->seclabels[j].provider,
+							kind,
 							schema2,
 							tabname2,
 							b->seclabels[j].label);
@@ -2391,8 +2737,9 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 				else if (j == b->nseclabels)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS NULL;",
+					fprintf(output, "SECURITY LABEL FOR %s ON %s %s.%s IS NULL;",
 							a->seclabels[i].provider,
+							kind,
 							schema1,
 							tabname1);
 					i++;
@@ -2402,8 +2749,9 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 					if (strcmp(a->seclabels[i].label, b->seclabels[j].label) != 0)
 					{
 						fprintf(output, "\n\n");
-						fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS %s;",
+						fprintf(output, "SECURITY LABEL FOR %s ON %s %s.%s IS %s;",
 								b->seclabels[j].provider,
+								kind,
 								schema2,
 								tabname2,
 								b->seclabels[j].label);
@@ -2414,8 +2762,9 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) < 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS NULL;",
+					fprintf(output, "SECURITY LABEL FOR %s ON %s %s.%s IS NULL;",
 							a->seclabels[i].provider,
+							kind,
 							schema1,
 							tabname1);
 					i++;
@@ -2423,8 +2772,9 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 				else if (strcmp(a->seclabels[i].provider, b->seclabels[j].provider) > 0)
 				{
 					fprintf(output, "\n\n");
-					fprintf(output, "SECURITY LABEL FOR %s ON TABLE %s.%s IS %s;",
+					fprintf(output, "SECURITY LABEL FOR %s ON %s %s.%s IS %s;",
 							b->seclabels[j].provider,
+							kind,
 							schema2,
 							tabname2,
 							b->seclabels[j].label);
@@ -2442,7 +2792,7 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 			char	*owner = formatObjectIdentifier(b->owner);
 
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER TABLE %s.%s OWNER TO %s;", schema2, tabname2, owner);
+			fprintf(output, "ALTER %s %s.%s OWNER TO %s;", kind, schema2, tabname2, owner);
 
 			free(owner);
 		}
@@ -2456,6 +2806,8 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 							   NULL);
 	}
 
+	free(kind);
+	free(kindl);
 	free(schema1);
 	free(tabname1);
 	free(schema2);

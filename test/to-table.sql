@@ -143,3 +143,27 @@ CREATE TABLE same_cities_sc PARTITION OF same_cities_south (primary key(id)) FOR
 
 CREATE TABLE same_cities_to PARTITION OF same_cities_north (primary key(id)) FOR VALUES IN ('TO');
 ALTER TABLE same_cities_north DETACH PARTITION same_cities_to;
+
+--
+-- foreign table
+--
+CREATE FOREIGN TABLE same_foreign_table_1 (
+	a integer not null,
+	b text
+) SERVER server1;
+
+CREATE FOREIGN TABLE same_foreign_table_2 (
+	a integer not null,
+	b text not null,
+	c numeric(5,2)
+) SERVER server1;
+
+CREATE FOREIGN TABLE to_foreign_table_1 (
+	a integer not null,
+	b text,
+	c numeric(5,2),
+	d boolean
+) SERVER server1;
+
+COMMENT ON FOREIGN TABLE same_foreign_table_1 IS NULL;
+COMMENT ON FOREIGN TABLE same_foreign_table_2 IS 'this is a foreign table same_foreign_table_2';

@@ -22,7 +22,7 @@
 #include <port.h>				/* simple_prompt */
 
 #define PGQ_NAME			"pgquarrel"
-#define PGQ_VERSION			"0.5.0"
+#define PGQ_VERSION			"0.6.0"
 #define PGQ_SUPPORTED		90000	/* first supported version */
 #define PGQ_SUPPORTED_STR	"9.0.0"
 
@@ -47,6 +47,8 @@ typedef struct PQLStatistic
 	int		extensionremoved;
 	int		fdwadded;
 	int		fdwremoved;
+	int		ftableadded;
+	int		ftableremoved;
 	int		functionadded;
 	int		functionremoved;
 	int		indexadded;
@@ -89,6 +91,8 @@ typedef struct PQLStatistic
 	int		tsparserremoved;
 	int		tstemplateadded;
 	int		tstemplateremoved;
+	int		transformadded;
+	int		transformremoved;
 	int		trgadded;
 	int		trgremoved;
 	int		typeadded;

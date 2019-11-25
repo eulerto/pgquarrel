@@ -32,8 +32,8 @@ UNIX based Operating Systems
 Before installing **pgquarrel**, you should have PostgreSQL 9.0+ installed (including the header files). If PostgreSQL is not in your search path add -DCMAKE_PREFIX_PATH=/path/to/pgsql to the cmake command.
 
 ```
-$ tar -zxf pgquarrel-0.5.0.tgz
-$ cd pgquarrel-0.5.0
+$ tar -zxf pgquarrel-0.6.0.tgz
+$ cd pgquarrel-0.6.0
 $ cmake .
 $ make
 ```
@@ -176,7 +176,7 @@ Features
 	</tr>
 	<tr>
 		<td>FOREIGN TABLE</td>
-		<td>not implemented</td>
+		<td>partial</td>
 		<td></td>
 	</tr>
 	<tr>
@@ -241,7 +241,7 @@ Features
 	</tr>
 	<tr>
 		<td>TRANSFORM</td>
-		<td>not implemented</td>
+		<td>complete</td>
 		<td></td>
 	</tr>
 	<tr>
@@ -289,12 +289,12 @@ The following command-line options are provided (all are optional):
 * `single-transaction (-t)`: output changes as a single transaction.
 * `temp-directory`: use this directory as a temporary area ( default: /tmp).
 * `verbose (-v)`: verbose mode.
-* `source-dbname`: source database name.
+* `source-dbname`: source database name or connection string ( `keyword = value` strings or URIs).
 * `source-host`: source host name.
 * `source-port`: source port.
 * `source-username`: source user name.
 * `source-no-password`: never prompt for password.
-* `target-dbname`: target database name.
+* `target-dbname`: target database name or connection string ( `keyword = value` strings or URIs).
 * `target-host`: target host name.
 * `target-port`: target port.
 * `target-username`: target user name.
@@ -311,6 +311,7 @@ The following command-line options are provided (all are optional):
 * `event-trigger`: event trigger comparison (default: false).
 * `extension`: extension comparison (default: false).
 * `fdw`: foreign data wrapper comparison (default: false).
+* `foreign-table`: foreign table comparison (default: false).
 * `function`: function comparison (default: true).
 * `index`: index comparison (default: true).
 * `language`: language comparison (default: false).
@@ -329,6 +330,7 @@ The following command-line options are provided (all are optional):
 * `subscription`: subscription comparison (default: false).
 * `table`: table comparison (default: true).
 * `text-search`: text search comparison (default: false).
+* `transform`: transform comparison (default: false).
 * `trigger`: trigger comparison (default: true).
 * `type`: type comparison (default: true).
 * `view`: view comparison (default: true).
@@ -357,6 +359,7 @@ domain = true
 event-trigger = false
 extension = false
 fdw = false
+foreign-table = false
 function = true
 index = true
 language = false
@@ -372,6 +375,7 @@ statistics = false
 subscription = false
 table = true
 text-search = false
+transform = false
 trigger = true
 type = true
 view = true
@@ -396,7 +400,7 @@ Regression Tests
 
 ```
 $ # adjust test/run-test.sh
-$ cd pgquarrel-0.5.0/test
+$ cd pgquarrel-0.6.0/test
 $ # test using 11 on both clusters
 $ ./run-test.sh 11 11 init
 ```
