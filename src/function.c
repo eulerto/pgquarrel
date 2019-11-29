@@ -426,7 +426,35 @@ dumpCreateProcFunction(FILE *output, PQLFunction *f, bool orreplace, char t)
 		freeStringList(sl);
 	}
 
-	fprintf(output, "\nAS $$%s$$;", f->body);
+	/*
+	 * Determine if the function/procedure's body contains
+	 * a double dollar sign string ($$) and fill the the quote
+	 * string with X's until the quote string is not found in
+	 * the function body
+	 */
+	char *str;
+	char *dollarquote = "$$";
+	int counter = 1;
+
+	str = strstr(f->body, dollarquote);
+	while (str != NULL)
+	{
+		char *expandedquote = malloc(strlen(dollarquote) + 2);
+    strcpy(expandedquote, "$");
+
+		for (int i = 0; i < counter; i++)
+		{
+	    strcat(expandedquote, "X");
+		}
+
+		counter++;
+    strcat(expandedquote, "$");
+    dollarquote = expandedquote;
+
+		str = strstr(f->body, dollarquote);
+	};
+
+	fprintf(output, "\nAS %s%s%s;", dollarquote, f->body, dollarquote);
 
 	/* comment */
 	if (options.comment && f->comment != NULL)
