@@ -1457,8 +1457,8 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 		char	*attname = formatObjectIdentifier(t->attownedby[i]);
 
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER SEQUENCE %s.%s OWNED BY %s.%s;", seqschema, seqname,
-				tabname, attname);
+		fprintf(output, "ALTER SEQUENCE %s.%s OWNED BY %s.%s.%s;", seqschema, seqname,
+				schema, tabname, attname);
 
 		free(seqschema);
 		free(seqname);
