@@ -78,69 +78,69 @@ formatPrivileges(char *s, char *cols)
 			first_item = false;
 		else
 		{
-			strncpy(ptr, ", ", 2);
+			strncpy(ptr, ", ", 3);
 			ptr += 2;
 		}
 
 		switch (s[i])
 		{
 			case 'r':	/* SELECT */
-				strncpy(ptr, "SELECT", 6);
+				strncpy(ptr, "SELECT", 7);
 				ptr += 6;
 				break;
 			case 'U':	/* USAGE */
-				strncpy(ptr, "USAGE", 5);
+				strncpy(ptr, "USAGE", 6);
 				ptr += 5;
 				break;
 			case 'a':	/* INSERT */
-				strncpy(ptr, "INSERT", 6);
+				strncpy(ptr, "INSERT", 7);
 				ptr += 6;
 				break;
 			case 'x':	/* REFERENCES */
-				strncpy(ptr, "REFERENCES", 10);
+				strncpy(ptr, "REFERENCES", 11);
 				ptr += 10;
 				break;
 			case 'd':	/* DELETE */
-				strncpy(ptr, "DELETE", 6);
+				strncpy(ptr, "DELETE", 7);
 				ptr += 6;
 				break;
 			case 't':	/* TRIGGER */
-				strncpy(ptr, "TRIGGER", 7);
+				strncpy(ptr, "TRIGGER", 8);
 				ptr += 7;
 				break;
 			case 'D':	/* TRUNCATE */
-				strncpy(ptr, "TRUNCATE", 8);
+				strncpy(ptr, "TRUNCATE", 9);
 				ptr += 8;
 				break;
 			case 'w':	/* UPDATE */
-				strncpy(ptr, "UPDATE", 6);
+				strncpy(ptr, "UPDATE", 7);
 				ptr += 6;
 				break;
 			case 'X':	/* EXECUTE */
-				strncpy(ptr, "EXECUTE", 7);
+				strncpy(ptr, "EXECUTE", 8);
 				ptr += 7;
 				break;
 			case 'C':	/* CREATE */
-				strncpy(ptr, "CREATE", 6);
+				strncpy(ptr, "CREATE", 7);
 				ptr += 6;
 				break;
 			case 'c':	/* CONNECT */
-				strncpy(ptr, "CONNECT", 7);
+				strncpy(ptr, "CONNECT", 8);
 				ptr += 7;
 				break;
 			case 'T':	/* TEMPORARY */
-				strncpy(ptr, "TEMPORARY", 9);
+				strncpy(ptr, "TEMPORARY", 10);
 				ptr += 9;
 				break;
 		}
 
 		if (collen > 0)
 		{
-			strncpy(ptr, " (", 2);
+			strncpy(ptr, " (", 3);
 			ptr += 2;
 			strncpy(ptr, cols, collen);
 			ptr += collen;
-			strncpy(ptr, ")", 1);
+			strncpy(ptr, ")", 2);
 			ptr += 1;
 		}
 	}
