@@ -133,6 +133,7 @@ else()
 		if(EXISTS "${pgpath}/libpgcommon.lib")
 			set(LIBS ${LIBS} "${pgpath}/libpgcommon.lib")
 		endif()
+		set(PostgreSQL_LIBRARIES "${PostgreSQL_LIBRARY_DIRS}/libpq.dll")
 	else()
 #		execute_process(COMMAND ${PGCONFIG_PATH} --libdir RESULT_VARIABLE result OUTPUT_VARIABLE pgpath OUTPUT_STRIP_TRAILING_WHITESPACE)
 		if(EXISTS "${pgpath}/libpgport.a")
@@ -155,6 +156,7 @@ else()
 				set(LIBS ${LIBS} "${pgpath}/libpgcommon.a")
 			endif()
 		endif()
+		set(PostgreSQL_LIBRARIES "${PostgreSQL_LIBRARY_DIRS}/libpq.so")
 	endif()
 
 	# setup include directories
@@ -164,7 +166,6 @@ else()
 	set(PostgreSQL_INCLUDE_DIRS ${PostgreSQL_INCLUDE_DIRS} ${pgpath})
 
 	# setup libpq for linking into pgquarrel
-	set(PostgreSQL_LIBRARIES "pq")
 	include_directories(${PostgreSQL_INCLUDE_DIRS})
 endif(PostgreSQL_FOUND)
 
