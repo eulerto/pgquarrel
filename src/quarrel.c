@@ -247,7 +247,7 @@ help(void)
 		   (opts.general.extension) ? "true" : "false");
 	printf("      --fdw=BOOL                foreign data wrapper (default: %s)\n",
 		   (opts.general.fdw) ? "true" : "false");
-	printf("      --foreign-table=BOOL              foreign table (default: %s)\n",
+	printf("      --foreign-table=BOOL      foreign table (default: %s)\n",
 		   (opts.general.foreigntable) ? "true" : "false");
 	printf("      --function=BOOL           function (default: %s)\n",
 		   (opts.general.function) ? "true" : "false");
@@ -263,11 +263,11 @@ help(void)
 		   (opts.general.owner) ? "true" : "false");
 	printf("      --policy=BOOL             policy (default: %s)\n",
 		   (opts.general.policy) ? "true" : "false");
-	printf("      --publication=BOOL             publication (default: %s)\n",
+	printf("      --publication=BOOL        publication (default: %s)\n",
 		   (opts.general.publication) ? "true" : "false");
 	printf("      --privileges=BOOL         privileges (default: %s)\n",
 		   (opts.general.privileges) ? "true" : "false");
-	printf("      --procedure=BOOL         procedure (default: %s)\n",
+	printf("      --procedure=BOOL          procedure (default: %s)\n",
 		   (opts.general.procedure) ? "true" : "false");
 	printf("      --rule=BOOL               rule (default: %s)\n",
 		   (opts.general.rule) ? "true" : "false");
@@ -285,7 +285,7 @@ help(void)
 		   (opts.general.table) ? "true" : "false");
 	printf("      --text-search=BOOL        text search (default: %s)\n",
 		   (opts.general.textsearch) ? "true" : "false");
-	printf("      --transform=BOOL            transform (default: %s)\n",
+	printf("      --transform=BOOL          transform (default: %s)\n",
 		   (opts.general.transform) ? "true" : "false");
 	printf("      --trigger=BOOL            trigger (default: %s)\n",
 		   (opts.general.trigger) ? "true" : "false");
