@@ -163,9 +163,17 @@ else()
 	endif()
 
 	# setup include directories
-	execute_process(COMMAND ${PGCONFIG_PATH} --includedir OUTPUT_VARIABLE pgpath OUTPUT_STRIP_TRAILING_WHITESPACE)
-	set(PostgreSQL_INCLUDE_DIRS ${pgpath})
+	#
+	# Debian/Ubuntu have a central include path (/usr/include/postgresql) that
+	# contains the some last-version include files (such as pg_config.h).
+	# However, the same file is in another directory
+	# (/usr/include/postgresql/server/12) causing some warnings if you have
+	# multiple PostgreSQL versions installed. Include the specific include
+	# (--includedir-server) first to avoid those warnings.
+	#
 	execute_process(COMMAND ${PGCONFIG_PATH} --includedir-server OUTPUT_VARIABLE pgpath OUTPUT_STRIP_TRAILING_WHITESPACE)
+	set(PostgreSQL_INCLUDE_DIRS ${pgpath})
+	execute_process(COMMAND ${PGCONFIG_PATH} --includedir OUTPUT_VARIABLE pgpath OUTPUT_STRIP_TRAILING_WHITESPACE)
 	set(PostgreSQL_INCLUDE_DIRS ${PostgreSQL_INCLUDE_DIRS} ${pgpath})
 
 	# setup libpq for linking into pgquarrel
