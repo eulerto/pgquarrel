@@ -60,11 +60,37 @@
 <a id="unix-based-operating-systems" class="anchor" href="#unix-based-operating-systems" aria-hidden="true"><span class="octicon octicon-link"></span></a>UNIX based Operating Systems</h2>
 
 <p>Before installing <strong>pgquarrel</strong>, you should have PostgreSQL 9.0+ installed (including the header files). If PostgreSQL is not in your search path add -DCMAKE_PREFIX_PATH=/path/to/pgsql to the cmake command.</p>
+<p>Before installing <strong>pgquarrel</strong>, you should have PostgreSQL 9.0+ installed (including the header files). If PostgreSQL is not in your search path add <i>-DCMAKE_PREFIX_PATH=/path/to/pgsql</i> to cmake command. If you are using <a href="https://yum.postgresql.org">PostgreSQL yum repository</a>, install <i>postgresql12-devel</i> and add <i>-DCMAKE_PREFIX_PATH=/usr/pgsql-12</i> to cmake command. If you are using <a href="https://wiki.postgresql.org/wiki/Apt">PostgreSQL apt repository</a>, install <i>postgresql-server-dev-12</i> and add <i>-DCMAKE_PREFIX_PATH=/usr/lib/postgresql/12</i> to cmake command.
 
-<pre><code>$ tar -zxf pgquarrel-0.5.0.tgz
-$ cd pgquarrel-0.5.0
-$ cmake .
+If you compile PostgreSQL by yourself and install it in <i>/home/euler/pg12</i>:
+
+<pre><code>$ tar -zxf pgquarrel-0.6.0.tgz
+$ cd pgquarrel-0.6.0
+$ cmake -DCMAKE_INSTALL_PREFIX=$HOME/pgquarrel -DCMAKE_PREFIX_PATH=/home/euler/pg12 .
 $ make
+$ make install
+</code></pre>
+
+<p>If you are using <a href="https://yum.postgresql.org">PostgreSQL yum repository</a>:
+
+<pre><code>
+$ sudo yum install postgresql12-devel
+$ tar -zxf pgquarrel-0.6.0.tgz
+$ cd pgquarrel-0.6.0
+$ cmake -DCMAKE_INSTALL_PREFIX=$HOME/pgquarrel -DCMAKE_PREFIX_PATH=/usr/pgsql-12 .
+$ make
+$ make install
+</code></pre>
+
+If you are using <a href="https://wiki.postgresql.org/wiki/Apt">PostgreSQL apt repository</a>:
+
+<pre><code>
+$ sudo apt-get install postgresql-server-dev-12
+$ tar -zxf pgquarrel-0.6.0.tgz
+$ cd pgquarrel-0.6.0
+$ cmake -DCMAKE_INSTALL_PREFIX=$HOME/pgquarrel -DCMAKE_PREFIX_PATH=/usr/lib/postgresql/12 .
+$ make
+$ make install
 </code></pre>
 
 <h2>
