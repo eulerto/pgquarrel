@@ -79,7 +79,11 @@ if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -Wall -Wmissing-prototypes -Wpointer-arith -Wdeclaration-after-statement -Wendif-labels -fno-strict-aliasing -fwrapv -g")
 endif()
 
-find_package(PostgreSQL QUIET)
+# It does not accurately detect PostgreSQL headers and libraries
+# Let's rely on code introduced in commit 5ddf6a8e90947bba8e01f07a58cd6d20490aefb0
+# The code path (PostgreSQL_FOUND a few lines above) that uses it, won't be removed
+# since I hope some day CMake should fix the PostgreSQL detection code.
+#find_package(PostgreSQL QUIET)
 
 # check pg_config
 find_program(PGCONFIG_PATH NAMES pg_config)
