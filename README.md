@@ -29,14 +29,40 @@ $ git clone https://github.com/eulerto/pgquarrel.git
 UNIX based Operating Systems
 ----------------------------
 
-Before installing **pgquarrel**, you should have PostgreSQL 9.0+ installed (including the header files). If PostgreSQL is not in your search path add -DCMAKE_PREFIX_PATH=/path/to/pgsql to the cmake command.
+Before installing **pgquarrel**, you should have PostgreSQL 9.0+ installed (including the header files). If PostgreSQL is not in your search path add -DCMAKE_PREFIX_PATH=/path/to/pgsql to cmake command. If you are using [PostgreSQL yum repository](https://yum.postgresql.org), install `postgresql12-devel` and add `-DCMAKE_PREFIX_PATH=/usr/pgsql-12` to cmake command. If you are using [PostgreSQL apt repository](https://wiki.postgresql.org/wiki/Apt), install `postgresql-server-dev-12` and add `-DCMAKE_PREFIX_PATH=/usr/lib/postgresql/12` to cmake command.
+
+If you compile PostgreSQL by yourself and install it in `/home/euler/pg12`:
 
 ```
 $ tar -zxf pgquarrel-0.6.0.tgz
 $ cd pgquarrel-0.6.0
-$ cmake .
+$ cmake -DCMAKE_INSTALL_PREFIX=$HOME/pgquarrel -DCMAKE_PREFIX_PATH=/home/euler/pg12 .
 $ make
+$ make install
 ```
+
+If you are using [PostgreSQL yum repository](https://yum.postgresql.org):
+
+```
+$ sudo yum install postgresql12-devel
+$ tar -zxf pgquarrel-0.6.0.tgz
+$ cd pgquarrel-0.6.0
+$ cmake -DCMAKE_INSTALL_PREFIX=$HOME/pgquarrel -DCMAKE_PREFIX_PATH=/usr/pgsql-12 .
+$ make
+$ make install
+```
+
+If you are using [PostgreSQL apt repository](https://wiki.postgresql.org/wiki/Apt):
+
+```
+$ sudo apt-get install postgresql-server-dev-12
+$ tar -zxf pgquarrel-0.6.0.tgz
+$ cd pgquarrel-0.6.0
+$ cmake -DCMAKE_INSTALL_PREFIX=$HOME/pgquarrel -DCMAKE_PREFIX_PATH=/usr/lib/postgresql/12 .
+$ make
+$ make install
+```
+
 
 Windows
 -------
