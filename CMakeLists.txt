@@ -159,6 +159,14 @@ else()
 				set(LIBS ${LIBS} "${pgpath}/libpgcommon.a")
 			endif()
 		endif()
+
+		# FreeBSD requires libintl
+		if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+			if(EXISTS "${pgpath}/libintl.a")
+				set(LIBS ${LIBS} "${pgpath}/libintl.a")
+			endif()
+		endif()
+
 		set(PostgreSQL_LIBRARIES "${PostgreSQL_LIBRARY_DIRS}/libpq.so")
 	endif()
 
