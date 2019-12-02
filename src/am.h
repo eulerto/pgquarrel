@@ -31,7 +31,8 @@ PQLAccessMethod *getAccessMethods(PGconn *c, int *n);
 
 void dumpDropAccessMethod(FILE *output, PQLAccessMethod *a);
 void dumpCreateAccessMethod(FILE *output, PQLAccessMethod *a);
-void dumpAlterAccessMethod(FILE *output, PQLAccessMethod *a, PQLAccessMethod *b);
+void dumpAlterAccessMethod(FILE *output, PQLAccessMethod *a,
+						   PQLAccessMethod *b);
 
 void freeAccessMethods(PQLAccessMethod *a, int n);
 

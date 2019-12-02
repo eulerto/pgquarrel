@@ -257,7 +257,8 @@ getDomainSecurityLabels(PGconn *c, PQLDomain *d)
 		d->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
 		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
-		d->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		d->seclabels[i].label = PQescapeLiteral(c, withoutescape,
+												strlen(withoutescape));
 		if (d->seclabels[i].label == NULL)
 		{
 			logError("escaping label failed: %s", PQerrorMessage(c));

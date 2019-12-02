@@ -79,8 +79,11 @@ if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -Wall -Wmissing-prototypes -Wpointer-arith -Wdeclaration-after-statement -Wendif-labels -fno-strict-aliasing -fwrapv -g")
 endif()
 
-# cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_PREFIX_PATH=/home/euler/pg101 .
-find_package(PostgreSQL QUIET)
+# It does not accurately detect PostgreSQL headers and libraries
+# Let's rely on code introduced in commit 5ddf6a8e90947bba8e01f07a58cd6d20490aefb0
+# The code path (PostgreSQL_FOUND a few lines above) that uses it, won't be removed
+# since I hope some day CMake should fix the PostgreSQL detection code.
+#find_package(PostgreSQL QUIET)
 
 # check pg_config
 find_program(PGCONFIG_PATH NAMES pg_config)
@@ -133,6 +136,7 @@ else()
 		if(EXISTS "${pgpath}/libpgcommon.lib")
 			set(LIBS ${LIBS} "${pgpath}/libpgcommon.lib")
 		endif()
+		set(PostgreSQL_LIBRARIES "${PostgreSQL_LIBRARY_DIRS}/libpq.dll")
 	else()
 #		execute_process(COMMAND ${PGCONFIG_PATH} --libdir RESULT_VARIABLE result OUTPUT_VARIABLE pgpath OUTPUT_STRIP_TRAILING_WHITESPACE)
 		if(EXISTS "${pgpath}/libpgport.a")
@@ -155,16 +159,32 @@ else()
 				set(LIBS ${LIBS} "${pgpath}/libpgcommon.a")
 			endif()
 		endif()
+
+		# FreeBSD requires libintl
+		if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+			if(EXISTS "${pgpath}/libintl.a")
+				set(LIBS ${LIBS} "${pgpath}/libintl.a")
+			endif()
+		endif()
+
+		set(PostgreSQL_LIBRARIES "${PostgreSQL_LIBRARY_DIRS}/libpq.so")
 	endif()
 
 	# setup include directories
-	execute_process(COMMAND ${PGCONFIG_PATH} --includedir OUTPUT_VARIABLE pgpath OUTPUT_STRIP_TRAILING_WHITESPACE)
-	set(PostgreSQL_INCLUDE_DIRS ${pgpath})
+	#
+	# Debian/Ubuntu have a central include path (/usr/include/postgresql) that
+	# contains the some last-version include files (such as pg_config.h).
+	# However, the same file is in another directory
+	# (/usr/include/postgresql/server/12) causing some warnings if you have
+	# multiple PostgreSQL versions installed. Include the specific include
+	# (--includedir-server) first to avoid those warnings.
+	#
 	execute_process(COMMAND ${PGCONFIG_PATH} --includedir-server OUTPUT_VARIABLE pgpath OUTPUT_STRIP_TRAILING_WHITESPACE)
+	set(PostgreSQL_INCLUDE_DIRS ${pgpath})
+	execute_process(COMMAND ${PGCONFIG_PATH} --includedir OUTPUT_VARIABLE pgpath OUTPUT_STRIP_TRAILING_WHITESPACE)
 	set(PostgreSQL_INCLUDE_DIRS ${PostgreSQL_INCLUDE_DIRS} ${pgpath})
 
 	# setup libpq for linking into pgquarrel
-	set(PostgreSQL_LIBRARIES "pq")
 	include_directories(${PostgreSQL_INCLUDE_DIRS})
 endif(PostgreSQL_FOUND)
 

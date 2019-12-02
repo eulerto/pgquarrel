@@ -34,7 +34,8 @@ getTransforms(PGconn *c, int *n)
 		return NULL;
 	}
 
-	res = PQexec(c, "SELECT t.oid, n.nspname AS typschema, y.typname AS typname, (SELECT lanname FROM pg_language WHERE oid = t.trflang) AS lanname, p.oid AS fromsqloid, x.nspname AS fromsqlschema, p.proname AS fromsqlname, pg_get_function_arguments(t.trffromsql) AS fromsqlargs, q.oid AS tosqloid, z.nspname AS tosqlschema, q.proname AS tosqlname, pg_get_function_args(t.trftosql) AS tosqlargs, obj_description(t.oid, 'pg_transform') AS description FROM pg_transform t INNER JOIN pg_type y ON (t.trftype = y.oid) INNER JOIN pg_namespace n ON (n.oid = y.typnamespace) LEFT JOIN pg_proc p ON (t.trffromsql = p.oid) LEFT JOIN pg_namespace x ON (x.oid = p.pronamespace) LEFT JOIN pg_proc q ON (t.trftosql = q.oid) LEFT JOIN pg_namespace z ON (z.oid = q.pronamespace) ORDER BY typschema, typname, lanname");
+	res = PQexec(c,
+				 "SELECT t.oid, n.nspname AS typschema, y.typname AS typname, (SELECT lanname FROM pg_language WHERE oid = t.trflang) AS lanname, p.oid AS fromsqloid, x.nspname AS fromsqlschema, p.proname AS fromsqlname, pg_get_function_arguments(t.trffromsql) AS fromsqlargs, q.oid AS tosqloid, z.nspname AS tosqlschema, q.proname AS tosqlname, pg_get_function_args(t.trftosql) AS tosqlargs, obj_description(t.oid, 'pg_transform') AS description FROM pg_transform t INNER JOIN pg_type y ON (t.trftype = y.oid) INNER JOIN pg_namespace n ON (n.oid = y.typnamespace) LEFT JOIN pg_proc p ON (t.trffromsql = p.oid) LEFT JOIN pg_namespace x ON (x.oid = p.pronamespace) LEFT JOIN pg_proc q ON (t.trftosql = q.oid) LEFT JOIN pg_namespace z ON (z.oid = q.pronamespace) ORDER BY typschema, typname, lanname");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -58,7 +59,8 @@ getTransforms(PGconn *c, int *n)
 		char	*withoutescape;
 
 		t[i].trftype.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
-		t[i].trftype.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "typschema")));
+		t[i].trftype.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res,
+										 "typschema")));
 		t[i].trftype.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "typname")));
 		t[i].languagename = strdup(PQgetvalue(res, i, PQfnumber(res, "lanname")));
 
@@ -70,9 +72,12 @@ getTransforms(PGconn *c, int *n)
 		}
 		else
 		{
-			t[i].fromsql.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "fromsqloid")), NULL, 10);
-			t[i].fromsql.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "fromsqlschema")));
-			t[i].fromsql.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "fromsqlname")));
+			t[i].fromsql.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "fromsqloid")),
+									   NULL, 10);
+			t[i].fromsql.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res,
+											 "fromsqlschema")));
+			t[i].fromsql.objectname = strdup(PQgetvalue(res, i, PQfnumber(res,
+											 "fromsqlname")));
 			t[i].fromsqlargs = strdup(PQgetvalue(res, i, PQfnumber(res, "fromsqlargs")));
 		}
 
@@ -84,8 +89,10 @@ getTransforms(PGconn *c, int *n)
 		}
 		else
 		{
-			t[i].tosql.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "tosqloid")), NULL, 10);
-			t[i].tosql.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "tosqlschema")));
+			t[i].tosql.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "tosqloid")), NULL,
+									 10);
+			t[i].tosql.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res,
+										   "tosqlschema")));
 			t[i].tosql.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "tosqlname")));
 			t[i].tosqlargs = strdup(PQgetvalue(res, i, PQfnumber(res, "tosqlargs")));
 		}
@@ -106,7 +113,8 @@ getTransforms(PGconn *c, int *n)
 			}
 		}
 
-		logDebug("transform for type \"%s\".\"%s\" language \"%s\"", t[i].trftype.schemaname, t[i].trftype.objectname, t[i].languagename);
+		logDebug("transform for type \"%s\".\"%s\" language \"%s\"",
+				 t[i].trftype.schemaname, t[i].trftype.objectname, t[i].languagename);
 	}
 
 	PQclear(res);
@@ -154,7 +162,8 @@ dumpDropTransform(FILE *output, PQLTransform *t)
 	char	*langname = formatObjectIdentifier(t->languagename);
 
 	fprintf(output, "\n\n");
-	fprintf(output, "DROP TRANSFORM FOR %s.%s LANGUAGE %s;", typeschema, typename, langname);
+	fprintf(output, "DROP TRANSFORM FOR %s.%s LANGUAGE %s;", typeschema, typename,
+			langname);
 
 	free(typeschema);
 	free(typename);
@@ -173,7 +182,8 @@ dumpCreateTransform(FILE *output, PQLTransform *t)
 	char	*tosqlname = formatObjectIdentifier(t->tosql.objectname);
 
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE TRANSFORM FOR %s.%s LANGUAGE %s (", typeschema, typename, langname);
+	fprintf(output, "CREATE TRANSFORM FOR %s.%s LANGUAGE %s (", typeschema,
+			typename, langname);
 	if (t->fromsql.objectname != NULL)
 		fprintf(output, "FROM SQL WITH FUNCTION %s.%s", fromsqlschema, fromsqlname);
 	if (t->tosql.objectname != NULL)
@@ -184,7 +194,8 @@ dumpCreateTransform(FILE *output, PQLTransform *t)
 	if (options.comment && t->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON TRANSFORM FOR %s.%s LANGUAGE %s IS %s;", typeschema, typename, langname, t->comment);
+		fprintf(output, "COMMENT ON TRANSFORM FOR %s.%s LANGUAGE %s IS %s;", typeschema,
+				typename, langname, t->comment);
 	}
 
 	free(typeschema);

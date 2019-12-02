@@ -33,7 +33,8 @@ getAccessMethods(PGconn *c, int *n)
 		return NULL;
 	}
 
-	res = PQexec(c, "SELECT a.oid, a.amname, a.amtype, a.amhandler AS handleroid, n.nspname AS handlernspname, p.proname AS handlername, obj_description(a.oid, 'pg_am') AS description FROM pg_am a INNER JOIN pg_proc p ON (a.amhandler = p.oid) INNER JOIN pg_namespace n ON (p.pronamespace = n.oid) ORDER BY a.amname");
+	res = PQexec(c,
+				 "SELECT a.oid, a.amname, a.amtype, a.amhandler AS handleroid, n.nspname AS handlernspname, p.proname AS handlername, obj_description(a.oid, 'pg_am') AS description FROM pg_am a INNER JOIN pg_proc p ON (a.amhandler = p.oid) INNER JOIN pg_namespace n ON (p.pronamespace = n.oid) ORDER BY a.amname");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

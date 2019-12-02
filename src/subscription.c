@@ -127,12 +127,14 @@ getSubscriptionPublications(PGconn *c, PQLSubscription *s)
 
 	/* determine how many characters will be written by snprintf */
 	nquery = snprintf(query, nquery,
-						"SELECT unnest(subpublications) FROM pg_subscription s WHERE s.oid = %u ORDER BY 1", s->oid);
+					  "SELECT unnest(subpublications) FROM pg_subscription s WHERE s.oid = %u ORDER BY 1",
+					  s->oid);
 
 	nquery++;
 	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
 	snprintf(query, nquery,
-						"SELECT unnest(subpublications) AS pubname FROM pg_subscription s WHERE s.oid = %u ORDER BY 1", s->oid);
+			 "SELECT unnest(subpublications) AS pubname FROM pg_subscription s WHERE s.oid = %u ORDER BY 1",
+			 s->oid);
 
 	logNoise("subscription: query size: %d ; query: %s", nquery, query);
 
@@ -151,18 +153,21 @@ getSubscriptionPublications(PGconn *c, PQLSubscription *s)
 
 	s->npublications = PQntuples(res);
 	if (s->npublications > 0)
-		s->publications = (PQLSubPublication *) malloc(s->npublications * sizeof(PQLSubPublication));
+		s->publications = (PQLSubPublication *) malloc(s->npublications * sizeof(
+							  PQLSubPublication));
 	else
 		s->publications = NULL;
 
-	logDebug("number of publications in subscription \"%s\": %d", s->subname, s->npublications);
+	logDebug("number of publications in subscription \"%s\": %d", s->subname,
+			 s->npublications);
 
 	for (i = 0; i < s->npublications; i++)
 	{
 		s->publications[i].pubname = strdup(PQgetvalue(res, i, PQfnumber(res,
-											 "pubname")));
+											"pubname")));
 
-		logDebug("publication \"%s\" in subscription \"%s\"", s->publications[i].pubname, s->subname);
+		logDebug("publication \"%s\" in subscription \"%s\"",
+				 s->publications[i].pubname, s->subname);
 	}
 
 	PQclear(res);
@@ -196,7 +201,8 @@ getSubscriptionSecurityLabels(PGconn *c, PQLSubscription *s)
 	else
 		s->seclabels = NULL;
 
-	logDebug("number of security labels in subscription \"%s\": %d", s->subname, s->nseclabels);
+	logDebug("number of security labels in subscription \"%s\": %d", s->subname,
+			 s->nseclabels);
 
 	for (i = 0; i < s->nseclabels; i++)
 	{
@@ -205,7 +211,8 @@ getSubscriptionSecurityLabels(PGconn *c, PQLSubscription *s)
 		s->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
 		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
-		s->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		s->seclabels[i].label = PQescapeLiteral(c, withoutescape,
+												strlen(withoutescape));
 		if (s->seclabels[i].label == NULL)
 		{
 			logError("escaping label failed: %s", PQerrorMessage(c));
@@ -241,10 +248,8 @@ freeSubscriptions(PQLSubscription *s, int n)
 
 			/* publications */
 			for (j = 0; j < s[i].npublications; j++)
-			{
 				free(s[i].publications[j].pubname);
-			}
-			
+
 			if (s[i].publications)
 				free(s[i].publications);
 
@@ -281,7 +286,8 @@ dumpCreateSubscription(FILE *output, PQLSubscription *s)
 	int		i;
 
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE SUBSCRIPTION %s CONNECTION '%s' PUBLICATION ", subscriptionname, s->conninfo);
+	fprintf(output, "CREATE SUBSCRIPTION %s CONNECTION '%s' PUBLICATION ",
+			subscriptionname, s->conninfo);
 
 	for (i = 0; i < s->npublications; i++)
 	{
@@ -307,7 +313,8 @@ dumpCreateSubscription(FILE *output, PQLSubscription *s)
 	if (options.comment && s->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON SUBSCRIPTION %s IS %s;", subscriptionname, s->comment);
+		fprintf(output, "COMMENT ON SUBSCRIPTION %s IS %s;", subscriptionname,
+				s->comment);
 	}
 
 	/* security labels */
@@ -371,7 +378,8 @@ dumpAlterSubscription(FILE *output, PQLSubscription *a, PQLSubscription *b)
 	if (strcmp(a->conninfo, b->conninfo) != 0)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER SUBSCRIPTION %s CONNECTION '%s';", subscriptionname2, b->conninfo);
+		fprintf(output, "ALTER SUBSCRIPTION %s CONNECTION '%s';", subscriptionname2,
+				b->conninfo);
 	}
 
 	/* enable / disable */
@@ -389,9 +397,11 @@ dumpAlterSubscription(FILE *output, PQLSubscription *a, PQLSubscription *b)
 	{
 		fprintf(output, "\n\n");
 		if (b->synccommit)
-			fprintf(output, "ALTER SUBSCRIPTION %s SET (synchronous_commit = on);", subscriptionname2);
+			fprintf(output, "ALTER SUBSCRIPTION %s SET (synchronous_commit = on);",
+					subscriptionname2);
 		else
-			fprintf(output, "ALTER SUBSCRIPTION %s SET (synchronous_commit = off);", subscriptionname2);
+			fprintf(output, "ALTER SUBSCRIPTION %s SET (synchronous_commit = off);",
+					subscriptionname2);
 	}
 
 	if ((a->slotname == NULL && b->slotname != NULL) ||
@@ -399,12 +409,14 @@ dumpAlterSubscription(FILE *output, PQLSubscription *a, PQLSubscription *b)
 			 strcmp(a->slotname, b->slotname) != 0))
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER SUBSCRIPTION %s SET (slot_name = %s);", subscriptionname2, b->slotname);
+		fprintf(output, "ALTER SUBSCRIPTION %s SET (slot_name = %s);",
+				subscriptionname2, b->slotname);
 	}
 	else if (a->slotname != NULL && b->slotname == NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER SUBSCRIPTION %s SET (slot_name = NONE);", subscriptionname2);
+		fprintf(output, "ALTER SUBSCRIPTION %s SET (slot_name = NONE);",
+				subscriptionname2);
 	}
 
 
@@ -416,7 +428,8 @@ dumpAlterSubscription(FILE *output, PQLSubscription *a, PQLSubscription *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON SUBSCRIPTION %s IS %s;", subscriptionname2, b->comment);
+			fprintf(output, "COMMENT ON SUBSCRIPTION %s IS %s;", subscriptionname2,
+					b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
 		{

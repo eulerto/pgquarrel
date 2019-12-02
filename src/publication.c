@@ -45,12 +45,12 @@ getPublications(PGconn *c, int *n)
 	if (PQserverVersion(c) >= 110000)
 	{
 		res = PQexec(c,
-				 "SELECT p.oid, pubname, puballtables, pubinsert, pubupdate, pubdelete, pubtruncate, obj_description(p.oid, 'pg_publication') AS description, pg_get_userbyid(pubowner) AS pubowner FROM pg_publication p ORDER BY pubname");
+					 "SELECT p.oid, pubname, puballtables, pubinsert, pubupdate, pubdelete, pubtruncate, obj_description(p.oid, 'pg_publication') AS description, pg_get_userbyid(pubowner) AS pubowner FROM pg_publication p ORDER BY pubname");
 	}
 	else if (PQserverVersion(c) >= 100000)
 	{
 		res = PQexec(c,
-				 "SELECT p.oid, pubname, puballtables, pubinsert, pubupdate, pubdelete, false AS pubtruncate, obj_description(p.oid, 'pg_publication') AS description, pg_get_userbyid(pubowner) AS pubowner FROM pg_publication p ORDER BY pubname");
+					 "SELECT p.oid, pubname, puballtables, pubinsert, pubupdate, pubdelete, false AS pubtruncate, obj_description(p.oid, 'pg_publication') AS description, pg_get_userbyid(pubowner) AS pubowner FROM pg_publication p ORDER BY pubname");
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -80,7 +80,8 @@ getPublications(PGconn *c, int *n)
 		p[i].pubinsert = (PQgetvalue(res, i, PQfnumber(res, "pubinsert"))[0] == 't');
 		p[i].pubupdate = (PQgetvalue(res, i, PQfnumber(res, "pubupdate"))[0] == 't');
 		p[i].pubdelete = (PQgetvalue(res, i, PQfnumber(res, "pubdelete"))[0] == 't');
-		p[i].pubtruncate = (PQgetvalue(res, i, PQfnumber(res, "pubtruncate"))[0] == 't');
+		p[i].pubtruncate = (PQgetvalue(res, i, PQfnumber(res,
+									   "pubtruncate"))[0] == 't');
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			p[i].comment = NULL;
 		else
@@ -133,13 +134,13 @@ getPublicationTables(PGconn *c, PQLPublication *p)
 
 	/* determine how many characters will be written by snprintf */
 	nquery = snprintf(query, nquery,
-						"SELECT n.nspname, c.relname FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) INNER JOIN pg_publication_rel pr ON (c.oid = pr.prrelid) WHERE pr.prpubid = %u ORDER BY n.nspname, c.relname",
+					  "SELECT n.nspname, c.relname FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) INNER JOIN pg_publication_rel pr ON (c.oid = pr.prrelid) WHERE pr.prpubid = %u ORDER BY n.nspname, c.relname",
 					  p->oid);
 
 	nquery++;
 	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
 	snprintf(query, nquery,
-						"SELECT n.nspname, c.relname FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) INNER JOIN pg_publication_rel pr ON (c.oid = pr.prrelid) WHERE pr.prpubid = %u ORDER BY n.nspname, c.relname",
+			 "SELECT n.nspname, c.relname FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) INNER JOIN pg_publication_rel pr ON (c.oid = pr.prrelid) WHERE pr.prpubid = %u ORDER BY n.nspname, c.relname",
 			 p->oid);
 
 	logNoise("publication: query size: %d ; query: %s", nquery, query);
@@ -168,11 +169,12 @@ getPublicationTables(PGconn *c, PQLPublication *p)
 	for (i = 0; i < p->ntables; i++)
 	{
 		p->tables[i].schemaname = strdup(PQgetvalue(res, i, PQfnumber(res,
-											 "nspname")));
+										 "nspname")));
 		p->tables[i].objectname = strdup(PQgetvalue(res, i, PQfnumber(res,
-											 "relname")));
+										 "relname")));
 
-		logDebug("table \"%s\".\"%s\" in publication \"%s\"", p->tables[i].schemaname, p->tables[i].objectname, p->pubname);
+		logDebug("table \"%s\".\"%s\" in publication \"%s\"", p->tables[i].schemaname,
+				 p->tables[i].objectname, p->pubname);
 	}
 
 	PQclear(res);
@@ -206,7 +208,8 @@ getPublicationSecurityLabels(PGconn *c, PQLPublication *p)
 	else
 		p->seclabels = NULL;
 
-	logDebug("number of security labels in publication \"%s\": %d", p->pubname, p->nseclabels);
+	logDebug("number of security labels in publication \"%s\": %d", p->pubname,
+			 p->nseclabels);
 
 	for (i = 0; i < p->nseclabels; i++)
 	{
@@ -215,7 +218,8 @@ getPublicationSecurityLabels(PGconn *c, PQLPublication *p)
 		p->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
 		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
-		p->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		p->seclabels[i].label = PQescapeLiteral(c, withoutescape,
+												strlen(withoutescape));
 		if (p->seclabels[i].label == NULL)
 		{
 			logError("escaping label failed: %s", PQerrorMessage(c));
@@ -251,7 +255,7 @@ freePublications(PQLPublication *p, int n)
 				free(p[i].tables[j].schemaname);
 				free(p[i].tables[j].objectname);
 			}
-			
+
 			if (p[i].tables)
 				free(p[i].tables);
 
@@ -331,7 +335,8 @@ dumpCreatePublication(FILE *output, PQLPublication *p)
 			char	*schemaname = formatObjectIdentifier(p->tables[i].schemaname);
 			char	*tablename = formatObjectIdentifier(p->tables[i].objectname);
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER PUBLICATION %s ADD TABLE ONLY %s.%s;", publicationname, schemaname, tablename);
+			fprintf(output, "ALTER PUBLICATION %s ADD TABLE ONLY %s.%s;", publicationname,
+					schemaname, tablename);
 			free(schemaname);
 			free(tablename);
 		}
@@ -341,7 +346,8 @@ dumpCreatePublication(FILE *output, PQLPublication *p)
 	if (options.comment && p->comment != NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "COMMENT ON PUBLICATION %s IS %s;", publicationname, p->comment);
+		fprintf(output, "COMMENT ON PUBLICATION %s IS %s;", publicationname,
+				p->comment);
 	}
 
 	/* security labels */
@@ -445,7 +451,8 @@ dumpAlterPublication(FILE *output, PQLPublication *a, PQLPublication *b)
 				 strcmp(a->comment, b->comment) != 0))
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON PUBLICATION %s IS %s;", publicationname2, b->comment);
+			fprintf(output, "COMMENT ON PUBLICATION %s IS %s;", publicationname2,
+					b->comment);
 		}
 		else if (a->comment != NULL && b->comment == NULL)
 		{
@@ -566,7 +573,8 @@ dumpAddTable(FILE *output, PQLPublication *p, int i)
 	char	*tablename = formatObjectIdentifier(p->tables[i].objectname);
 
 	fprintf(output, "\n\n");
-	fprintf(output, "ALTER PUBLICATION %s ADD TABLE ONLY %s.%s;", publicationname, schemaname, tablename);
+	fprintf(output, "ALTER PUBLICATION %s ADD TABLE ONLY %s.%s;", publicationname,
+			schemaname, tablename);
 
 	free(publicationname);
 	free(schemaname);
@@ -581,7 +589,8 @@ dumpRemoveTable(FILE *output, PQLPublication *p, int i)
 	char	*tablename = formatObjectIdentifier(p->tables[i].objectname);
 
 	fprintf(output, "\n\n");
-	fprintf(output, "ALTER PUBLICATION %s DROP TABLE ONLY %s.%s;", publicationname, schemaname, tablename);
+	fprintf(output, "ALTER PUBLICATION %s DROP TABLE ONLY %s.%s;", publicationname,
+			schemaname, tablename);
 
 	free(publicationname);
 	free(schemaname);

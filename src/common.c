@@ -196,15 +196,15 @@ formatObjectIdentifier(char *s)
 			need_quotes = true;
 #elif PG_VERSION_NUM >= 90600
 		const ScanKeyword *keyword = ScanKeywordLookup(s,
-														 ScanKeywords,
-														 NumScanKeywords);
+									 ScanKeywords,
+									 NumScanKeywords);
 
 		if (keyword != NULL && keyword->category != UNRESERVED_KEYWORD)
 			need_quotes = true;
 #else
 		const ScanKeyword *keyword = ScanKeywordLookup(s,
-														 PQLScanKeywords,
-														 NumPQLScanKeywords);
+									 PQLScanKeywords,
+									 NumPQLScanKeywords);
 
 		if (keyword != NULL && keyword->category != UNRESERVED_KEYWORD)
 			need_quotes = true;

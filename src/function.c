@@ -53,10 +53,10 @@ getProcFunctions(PGconn *c, int *n, char t)
 	{
 		if (t == 'f')
 			res = PQexec(c,
-					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_identity_arguments(p.oid) as funciargs, pg_get_function_result(p.oid) as funcresult, prokind, provolatile, proisstrict, prosecdef, proleakproof, array_to_string(proconfig, ',') AS proconfig, proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE prokind IN ('f', 'w') AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_identity_arguments(p.oid)");
+						 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_identity_arguments(p.oid) as funciargs, pg_get_function_result(p.oid) as funcresult, prokind, provolatile, proisstrict, prosecdef, proleakproof, array_to_string(proconfig, ',') AS proconfig, proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE prokind IN ('f', 'w') AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_identity_arguments(p.oid)");
 		else if (t == 'p')
 			res = PQexec(c,
-					 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_identity_arguments(p.oid) as funciargs, pg_get_function_result(p.oid) as funcresult, prokind, provolatile, proisstrict, prosecdef, proleakproof, array_to_string(proconfig, ',') AS proconfig, proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE prokind = 'p' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_identity_arguments(p.oid)");
+						 "SELECT p.oid, nspname, proname, proretset, prosrc, pg_get_function_arguments(p.oid) as funcargs, pg_get_function_identity_arguments(p.oid) as funciargs, pg_get_function_result(p.oid) as funcresult, prokind, provolatile, proisstrict, prosecdef, proleakproof, array_to_string(proconfig, ',') AS proconfig, proparallel, procost, prorows, (SELECT lanname FROM pg_language WHERE oid = prolang) AS lanname, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(proowner) AS proowner, proacl FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) WHERE prokind = 'p' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, proname, pg_get_function_identity_arguments(p.oid)");
 	}
 	/* parallel is new in 9.6 ('u'nsafe is the default) */
 	else if (PQserverVersion(c) >= 90600)
@@ -159,7 +159,8 @@ getProcFunctions(PGconn *c, int *n, char t)
 			logDebug("function \"%s\".\"%s\"(%s)", f[i].obj.schemaname, f[i].obj.objectname,
 					 f[i].arguments);
 		else
-			logDebug("procedure \"%s\".\"%s\"(%s)", f[i].obj.schemaname, f[i].obj.objectname,
+			logDebug("procedure \"%s\".\"%s\"(%s)", f[i].obj.schemaname,
+					 f[i].obj.objectname,
 					 f[i].arguments);
 	}
 
@@ -236,7 +237,8 @@ getProcFunctionSecurityLabels(PGconn *c, PQLFunction *f, char t)
 		f->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
 		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
-		f->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		f->seclabels[i].label = PQescapeLiteral(c, withoutescape,
+												strlen(withoutescape));
 		if (f->seclabels[i].label == NULL)
 		{
 			logError("escaping label failed: %s", PQerrorMessage(c));
