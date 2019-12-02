@@ -112,12 +112,12 @@ getTables(PGconn *c, int *n, char k)
 		if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(k))
 		{
 			res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, relreplident, reloftype, o.nspname AS typnspname, y.typname, c.relispartition, pg_get_partkeydef(c.oid) AS partitionkeydef, pg_get_expr(c.relpartbound, c.oid) AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind IN ('r', 'p') AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
+						 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, relreplident, reloftype, o.nspname AS typnspname, y.typname, c.relispartition, pg_get_partkeydef(c.oid) AS partitionkeydef, pg_get_expr(c.relpartbound, c.oid) AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind IN ('r', 'p') AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
 		}
 		else if (PGQ_IS_FOREIGN_TABLE(k))
 		{
 			res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, relreplident, reloftype, o.nspname AS typnspname, y.typname, c.relispartition, pg_get_partkeydef(c.oid) AS partitionkeydef, pg_get_expr(c.relpartbound, c.oid) AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'f' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
+						 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, relreplident, reloftype, o.nspname AS typnspname, y.typname, c.relispartition, pg_get_partkeydef(c.oid) AS partitionkeydef, pg_get_expr(c.relpartbound, c.oid) AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'f' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
 		}
 	}
 	else if (PQserverVersion(c) >= 90400)
@@ -125,12 +125,12 @@ getTables(PGconn *c, int *n, char k)
 		if (PGQ_IS_REGULAR_TABLE(k))
 		{
 			res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, relreplident, reloftype, o.nspname AS typnspname, y.typname, false AS relispartition, NULL AS partitionkeydef, NULL AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
+						 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, relreplident, reloftype, o.nspname AS typnspname, y.typname, false AS relispartition, NULL AS partitionkeydef, NULL AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
 		}
 		else if (PGQ_IS_FOREIGN_TABLE(k))
 		{
 			res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, relreplident, reloftype, o.nspname AS typnspname, y.typname, false AS relispartition, NULL AS partitionkeydef, NULL AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'f' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
+						 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, relreplident, reloftype, o.nspname AS typnspname, y.typname, false AS relispartition, NULL AS partitionkeydef, NULL AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'f' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
 		}
 	}
 	else if (PQserverVersion(c) >= 90100)	/* extension support */
@@ -138,12 +138,12 @@ getTables(PGconn *c, int *n, char k)
 		if (PGQ_IS_REGULAR_TABLE(k))
 		{
 			res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, 'v' AS relreplident, reloftype, o.nspname AS typnspname, y.typname, false AS relispartition, NULL AS partitionkeydef, NULL AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
+						 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, 'v' AS relreplident, reloftype, o.nspname AS typnspname, y.typname, false AS relispartition, NULL AS partitionkeydef, NULL AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
 		}
 		else if (PGQ_IS_FOREIGN_TABLE(k))
 		{
 			res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, 'v' AS relreplident, reloftype, o.nspname AS typnspname, y.typname, false AS relispartition, NULL AS partitionkeydef, NULL AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'f' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
+						 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, 'v' AS relreplident, reloftype, o.nspname AS typnspname, y.typname, false AS relispartition, NULL AS partitionkeydef, NULL AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'f' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
 		}
 	}
 	else
@@ -151,7 +151,7 @@ getTables(PGconn *c, int *n, char k)
 		if (PGQ_IS_REGULAR_TABLE(k))
 		{
 			res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, 'p' AS relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, 'v' AS relreplident, 0 AS reloftype, NULL AS typnspname, NULL AS typname, false AS relispartition, NULL AS partitionkeydef, NULL AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, relname");
+						 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, 'p' AS relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, 'v' AS relreplident, 0 AS reloftype, NULL AS typnspname, NULL AS typname, false AS relispartition, NULL AS partitionkeydef, NULL AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, relname");
 		}
 		else
 		{
@@ -424,7 +424,8 @@ getForeignTableProperties(PGconn *c, PQLTable *t, int n)
 		}
 		else
 		{
-			logError("foreign table \"%s\".\"%s\" has more than one entry", t[i].obj.schemaname, t[i].obj.objectname);
+			logError("foreign table \"%s\".\"%s\" has more than one entry",
+					 t[i].obj.schemaname, t[i].obj.objectname);
 			PQclear(res);
 			PQfinish(c);
 			/* XXX leak another connection? */
@@ -493,7 +494,7 @@ getCheckConstraints(PGconn *c, PQLTable *t, int n)
 			t[i].check = NULL;
 
 		logDebug("number of check constraints in %s \"%s\".\"%s\": %d",
-				 	kind, t[i].obj.schemaname, t[i].obj.objectname, t[i].ncheck);
+				 kind, t[i].obj.schemaname, t[i].obj.objectname, t[i].ncheck);
 
 		for (j = 0; j < t[i].ncheck; j++)
 		{
@@ -506,7 +507,8 @@ getCheckConstraints(PGconn *c, PQLTable *t, int n)
 			else
 			{
 				withoutescape = PQgetvalue(res, j, PQfnumber(res, "description"));
-				t[i].check[j].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+				t[i].check[j].comment = PQescapeLiteral(c, withoutescape,
+														strlen(withoutescape));
 				if (t[i].check[j].comment == NULL)
 				{
 					logError("escaping comment failed: %s", PQerrorMessage(c));
@@ -685,7 +687,8 @@ getTableAttributes(PGconn *c, PQLTable *t)
 		exit(EXIT_FAILURE);
 	}
 
-	if (PQserverVersion(c) >= 90200)	/* support for foreign table attribute options */
+	if (PQserverVersion(c) >=
+			90200)	/* support for foreign table attribute options */
 	{
 		/* determine how many characters will be written by snprintf */
 		nquery = snprintf(query, nquery,
@@ -765,7 +768,8 @@ getTableAttributes(PGconn *c, PQLTable *t)
 	}
 	else if (PGQ_IS_FOREIGN_TABLE(t->kind))
 	{
-		logDebug("number of attributes in foreign table \"%s\".\"%s\": %d", t->obj.schemaname,
+		logDebug("number of attributes in foreign table \"%s\".\"%s\": %d",
+				 t->obj.schemaname,
 				 t->obj.objectname, t->nattributes);
 	}
 
@@ -834,7 +838,7 @@ getTableAttributes(PGconn *c, PQLTable *t)
 			t->attributes[i].attfdwoptions = NULL;
 		else
 			t->attributes[i].attfdwoptions = strdup(PQgetvalue(res, i, PQfnumber(res,
-												 "attfdwoptions")));
+													"attfdwoptions")));
 
 		/* attribute ACL */
 		if (PQgetisnull(res, i, PQfnumber(res, "attacl")))
@@ -849,7 +853,8 @@ getTableAttributes(PGconn *c, PQLTable *t)
 		else
 		{
 			withoutescape = PQgetvalue(res, i, PQfnumber(res, "description"));
-			t->attributes[i].comment = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			t->attributes[i].comment = PQescapeLiteral(c, withoutescape,
+									   strlen(withoutescape));
 			if (t->attributes[i].comment == NULL)
 			{
 				logError("escaping comment failed: %s", PQerrorMessage(c));
@@ -983,7 +988,8 @@ getTableSecurityLabels(PGconn *c, PQLTable *t)
 		t->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
 		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
-		t->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		t->seclabels[i].label = PQescapeLiteral(c, withoutescape,
+												strlen(withoutescape));
 		if (t->seclabels[i].label == NULL)
 		{
 			logError("escaping label failed: %s", PQerrorMessage(c));
@@ -1034,7 +1040,8 @@ getTableSecurityLabels(PGconn *c, PQLTable *t)
 			t->attributes[i].seclabels[j].provider = strdup(PQgetvalue(res, j,
 					PQfnumber(res, "provider")));
 			withoutescape = PQgetvalue(res, j, PQfnumber(res, "label"));
-			t->attributes[i].seclabels[j].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+			t->attributes[i].seclabels[j].label = PQescapeLiteral(c, withoutescape,
+												  strlen(withoutescape));
 			if (t->attributes[i].seclabels[j].label == NULL)
 			{
 				logError("escaping label failed: %s", PQerrorMessage(c));
@@ -1301,7 +1308,8 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 	}
 
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE %s%s %s.%s ", t->unlogged ? "UNLOGGED " : "", kind, schema,
+	fprintf(output, "CREATE %s%s %s.%s ", t->unlogged ? "UNLOGGED " : "", kind,
+			schema,
 			tabname);
 
 	/* typed table */
@@ -1391,7 +1399,8 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 		dumpAttachPartition(output2, t);
 
 	/* replica identity */
-	if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(t->kind) && t->relreplident != 'v')		/* 'v' (void) means < 9.4 */
+	if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(t->kind) &&
+			t->relreplident != 'v')		/* 'v' (void) means < 9.4 */
 	{
 
 		switch (t->relreplident)
@@ -1471,7 +1480,8 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 		if (t->comment != NULL)
 		{
 			fprintf(output, "\n\n");
-			fprintf(output, "COMMENT ON %s %s.%s IS %s;", kind, schema, tabname, t->comment);
+			fprintf(output, "COMMENT ON %s %s.%s IS %s;", kind, schema, tabname,
+					t->comment);
 		}
 
 		/* columns */
@@ -1541,7 +1551,7 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 
 			fprintf(output, "\n\n");
 			fprintf(output, "ALTER %s ONLY %s.%s ALTER COLUMN %s SET (%s)", kind, schema,
-						tabname, attname, t->attributes[i].attoptions);
+					tabname, attname, t->attributes[i].attoptions);
 
 			free(attname);
 		}
@@ -1791,7 +1801,8 @@ dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 			 b->attributes[j].attdefexpr == NULL)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER %s ONLY %s.%s ALTER COLUMN %s DROP DEFAULT;", kind, schema2,
+		fprintf(output, "ALTER %s ONLY %s.%s ALTER COLUMN %s DROP DEFAULT;", kind,
+				schema2,
 				tabname2, attname2);
 	}
 
@@ -1799,7 +1810,8 @@ dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 	if (!a->attributes[i].attnotnull && b->attributes[j].attnotnull)
 	{
 		fprintf(output, "\n\n");
-		fprintf(output, "ALTER %s ONLY %s.%s ALTER COLUMN %s SET NOT NULL;", kind, schema2,
+		fprintf(output, "ALTER %s ONLY %s.%s ALTER COLUMN %s SET NOT NULL;", kind,
+				schema2,
 				tabname2, attname2);
 	}
 	else if (a->attributes[i].attnotnull && !b->attributes[j].attnotnull)
@@ -2306,7 +2318,8 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 			 */
 			else if (j == b->nattributes)
 			{
-				logDebug("%s \"%s\".\"%s\" attribute \"%s\" (%s) removed", kindl, a->obj.schemaname,
+				logDebug("%s \"%s\".\"%s\" attribute \"%s\" (%s) removed", kindl,
+						 a->obj.schemaname,
 						 a->obj.objectname, a->attributes[i].attname, a->attributes[i].atttypname);
 
 				dumpRemoveColumn(output, a, i);
@@ -2537,7 +2550,8 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 
 			resetlist = printOptions(rlist);
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER %s %s.%s RESET (%s);", kind, schema2, tabname2, resetlist);
+			fprintf(output, "ALTER %s %s.%s RESET (%s);", kind, schema2, tabname2,
+					resetlist);
 
 			free(resetlist);
 			freeStringList(rlist);
@@ -2556,7 +2570,8 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 
 			resetlist = printOptions(rlist);
 			fprintf(output, "\n\n");
-			fprintf(output, "ALTER %s %s.%s RESET (%s);", kind, schema2, tabname2, resetlist);
+			fprintf(output, "ALTER %s %s.%s RESET (%s);", kind, schema2, tabname2,
+					resetlist);
 
 			free(resetlist);
 			freeStringList(rlist);

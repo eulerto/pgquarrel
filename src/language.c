@@ -154,7 +154,8 @@ getLanguageSecurityLabels(PGconn *c, PQLLanguage *l)
 		l->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
 		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
-		l->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		l->seclabels[i].label = PQescapeLiteral(c, withoutescape,
+												strlen(withoutescape));
 		if (l->seclabels[i].label == NULL)
 		{
 			logError("escaping label failed: %s", PQerrorMessage(c));

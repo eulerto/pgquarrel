@@ -244,7 +244,8 @@ getAggregateSecurityLabels(PGconn *c, PQLAggregate *a)
 		a->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
 		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
-		a->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		a->seclabels[i].label = PQescapeLiteral(c, withoutescape,
+												strlen(withoutescape));
 		if (a->seclabels[i].label == NULL)
 		{
 			logError("escaping label failed: %s", PQerrorMessage(c));

@@ -32,7 +32,8 @@ getPolicies(PGconn *c, int *n)
 
 	logNoise("policy: server version: %d", PQserverVersion(c));
 
-	res = PQexec(c, "SELECT p.oid, p.polname, p.polrelid, n.nspname AS polnamespace, c.relname AS poltabname, p.polcmd, p.polpermissive, CASE WHEN p.polroles = '{0}' THEN NULL ELSE pg_catalog.array_to_string(ARRAY(SELECT pg_catalog.quote_ident(rolname) from pg_catalog.pg_roles WHERE oid = ANY(p.polroles)), ', ') END AS polroles, pg_catalog.pg_get_expr(p.polqual, p.polrelid) AS polqual, pg_catalog.pg_get_expr(p.polwithcheck, p.polrelid) AS polwithcheck FROM pg_policy p INNER JOIN pg_class c ON (p.polrelid = c.oid) INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) ORDER BY p.polname");
+	res = PQexec(c,
+				 "SELECT p.oid, p.polname, p.polrelid, n.nspname AS polnamespace, c.relname AS poltabname, p.polcmd, p.polpermissive, CASE WHEN p.polroles = '{0}' THEN NULL ELSE pg_catalog.array_to_string(ARRAY(SELECT pg_catalog.quote_ident(rolname) from pg_catalog.pg_roles WHERE oid = ANY(p.polroles)), ', ') END AS polroles, pg_catalog.pg_get_expr(p.polqual, p.polrelid) AS polqual, pg_catalog.pg_get_expr(p.polwithcheck, p.polrelid) AS polwithcheck FROM pg_policy p INNER JOIN pg_class c ON (p.polrelid = c.oid) INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) ORDER BY p.polname");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -57,11 +58,15 @@ getPolicies(PGconn *c, int *n)
 
 		p[i].oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		p[i].polname = strdup(PQgetvalue(res, i, PQfnumber(res, "polname")));
-		p[i].table.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "polrelid")), NULL, 10);
-		p[i].table.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "polnspname")));
-		p[i].table.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "poltabname")));
+		p[i].table.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "polrelid")), NULL,
+								 10);
+		p[i].table.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res,
+									   "polnspname")));
+		p[i].table.objectname = strdup(PQgetvalue(res, i, PQfnumber(res,
+									   "poltabname")));
 		p[i].cmd = PQgetvalue(res, i, PQfnumber(res, "polcmd"))[0];
-		p[i].permissive = (PQgetvalue(res, i, PQfnumber(res, "polpermissive"))[0] == 't');
+		p[i].permissive = (PQgetvalue(res, i, PQfnumber(res,
+									  "polpermissive"))[0] == 't');
 		if (PQgetisnull(res, i, PQfnumber(res, "polroles")))
 			p[i].roles = NULL;
 		else
@@ -142,13 +147,15 @@ dumpCreatePolicy(FILE *output, PQLPolicy *p)
 		cmd = strdup(" FOR DELETE");
 	else
 	{
-		logError("bogus value in pg_policy.polcmd (%c) in policy %s", p->cmd, p->polname);
+		logError("bogus value in pg_policy.polcmd (%c) in policy %s", p->cmd,
+				 p->polname);
 		return;
 	}
 
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE POLICY %s;", p->polname);
-	fprintf(output, " ON %s.%s%s%s", schema, tabname, (!p->permissive ? " AS RESTRICTIVE" : ""), cmd);
+	fprintf(output, " ON %s.%s%s%s", schema, tabname,
+			(!p->permissive ? " AS RESTRICTIVE" : ""), cmd);
 
 	if (p->roles != NULL)
 		fprintf(output, " TO %s", p->roles);

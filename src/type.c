@@ -187,7 +187,8 @@ getBaseTypeSecurityLabels(PGconn *c, PQLBaseType *t)
 		t->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
 		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
-		t->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		t->seclabels[i].label = PQescapeLiteral(c, withoutescape,
+												strlen(withoutescape));
 		if (t->seclabels[i].label == NULL)
 		{
 			logError("escaping label failed: %s", PQerrorMessage(c));
@@ -427,7 +428,8 @@ getCompositeTypeSecurityLabels(PGconn *c, PQLCompositeType *t)
 		t->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
 		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
-		t->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		t->seclabels[i].label = PQescapeLiteral(c, withoutescape,
+												strlen(withoutescape));
 		if (t->seclabels[i].label == NULL)
 		{
 			logError("escaping label failed: %s", PQerrorMessage(c));
@@ -646,7 +648,8 @@ getEnumTypeSecurityLabels(PGconn *c, PQLEnumType *t)
 		t->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
 		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
-		t->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		t->seclabels[i].label = PQescapeLiteral(c, withoutescape,
+												strlen(withoutescape));
 		if (t->seclabels[i].label == NULL)
 		{
 			logError("escaping label failed: %s", PQerrorMessage(c));
@@ -807,7 +810,8 @@ getRangeTypeSecurityLabels(PGconn *c, PQLRangeType *t)
 		t->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
 		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
-		t->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		t->seclabels[i].label = PQescapeLiteral(c, withoutescape,
+												strlen(withoutescape));
 		if (t->seclabels[i].label == NULL)
 		{
 			logError("escaping label failed: %s", PQerrorMessage(c));

@@ -146,7 +146,8 @@ getEventTriggerSecurityLabels(PGconn *c, PQLEventTrigger *e)
 		e->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
 		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
-		e->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		e->seclabels[i].label = PQescapeLiteral(c, withoutescape,
+												strlen(withoutescape));
 		if (e->seclabels[i].label == NULL)
 		{
 			logError("escaping label failed: %s", PQerrorMessage(c));

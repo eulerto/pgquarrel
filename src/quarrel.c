@@ -474,8 +474,8 @@ loadConfig(const char *cf, QuarrelOptions *options)
 		 */
 		if (mini_file_get_value(config, "general", "access-method") != NULL)
 			options->general.accessmethod = parseBoolean("access-method",
-										 mini_file_get_value(config,
-												 "general", "access-method"));
+											mini_file_get_value(config,
+													"general", "access-method"));
 
 		if (mini_file_get_value(config, "general", "aggregate") != NULL)
 			options->general.aggregate = parseBoolean("aggregate",
@@ -515,8 +515,9 @@ loadConfig(const char *cf, QuarrelOptions *options)
 												"general", "fdw"));
 
 		if (mini_file_get_value(config, "general", "foreign-table") != NULL)
-			options->general.foreigntable = parseBoolean("foreign-table", mini_file_get_value(config,
-												"general", "foreign-table"));
+			options->general.foreigntable = parseBoolean("foreign-table",
+											mini_file_get_value(config,
+													"general", "foreign-table"));
 
 		if (mini_file_get_value(config, "general", "function") != NULL)
 			options->general.function = parseBoolean("function", mini_file_get_value(config,
@@ -541,15 +542,17 @@ loadConfig(const char *cf, QuarrelOptions *options)
 
 		if (mini_file_get_value(config, "general", "policy") != NULL)
 			options->general.policy = parseBoolean("policy", mini_file_get_value(config,
-										"general", "policy"));
+												   "general", "policy"));
 
 		if (mini_file_get_value(config, "general", "procedure") != NULL)
-			options->general.procedure = parseBoolean("procedure", mini_file_get_value(config,
-										"general", "procedure"));
+			options->general.procedure = parseBoolean("procedure",
+										 mini_file_get_value(config,
+												 "general", "procedure"));
 
 		if (mini_file_get_value(config, "general", "publication") != NULL)
-			options->general.publication = parseBoolean("publication", mini_file_get_value(config,
-										"general", "publication"));
+			options->general.publication = parseBoolean("publication",
+										   mini_file_get_value(config,
+												   "general", "publication"));
 
 		if (mini_file_get_value(config, "general", "rule") != NULL)
 			options->general.rule = parseBoolean("rule", mini_file_get_value(config,
@@ -570,8 +573,8 @@ loadConfig(const char *cf, QuarrelOptions *options)
 
 		if (mini_file_get_value(config, "general", "subscription") != NULL)
 			options->general.subscription = parseBoolean("subscription",
-										  mini_file_get_value(config,
-												  "general", "subscription"));
+											mini_file_get_value(config,
+													"general", "subscription"));
 
 		if (mini_file_get_value(config, "general", "table") != NULL)
 			options->general.table = parseBoolean("table", mini_file_get_value(config,
@@ -583,8 +586,9 @@ loadConfig(const char *cf, QuarrelOptions *options)
 												  "general", "text-search"));
 
 		if (mini_file_get_value(config, "general", "transform") != NULL)
-			options->general.transform = parseBoolean("transform", mini_file_get_value(config,
-													"general", "transform"));
+			options->general.transform = parseBoolean("transform",
+										 mini_file_get_value(config,
+												 "general", "transform"));
 
 		if (mini_file_get_value(config, "general", "trigger") != NULL)
 			options->general.trigger = parseBoolean("trigger", mini_file_get_value(config,
@@ -3689,10 +3693,14 @@ quarrelTransforms()
 	transforms2 = getTransforms(conn2, &ntransforms2);
 
 	for (i = 0; i < ntransforms1; i++)
-		logNoise("server1: transform for %s.%s language %s", transforms1[i].trftype.schemaname, transforms1[i].trftype.objectname, transforms1[i].languagename);
+		logNoise("server1: transform for %s.%s language %s",
+				 transforms1[i].trftype.schemaname, transforms1[i].trftype.objectname,
+				 transforms1[i].languagename);
 
 	for (i = 0; i < ntransforms2; i++)
-		logNoise("server2: transform for %s.%s language %s", transforms2[i].trftype.schemaname, transforms2[i].trftype.objectname, transforms2[i].languagename);
+		logNoise("server2: transform for %s.%s language %s",
+				 transforms2[i].trftype.schemaname, transforms2[i].trftype.objectname,
+				 transforms2[i].languagename);
 
 	/*
 	 * We have two sorted lists. Let's figure out which elements are not in the
@@ -3706,7 +3714,9 @@ quarrelTransforms()
 		/* End of transforms1 list. Print transforms2 list until its end. */
 		if (i == ntransforms1)
 		{
-			logDebug("transform for %s.%s language %s: server2", transforms2[i].trftype.schemaname, transforms2[i].trftype.objectname, transforms2[i].languagename);
+			logDebug("transform for %s.%s language %s: server2",
+					 transforms2[i].trftype.schemaname, transforms2[i].trftype.objectname,
+					 transforms2[i].languagename);
 
 			dumpCreateTransform(fpre, &transforms2[j]);
 
@@ -3716,34 +3726,48 @@ quarrelTransforms()
 		/* End of transforms2 list. Print transforms1 list until its end. */
 		else if (j == ntransforms2)
 		{
-			logDebug("transform for %s.%s language %s: server1", transforms1[i].trftype.schemaname, transforms1[i].trftype.objectname, transforms1[i].languagename);
+			logDebug("transform for %s.%s language %s: server1",
+					 transforms1[i].trftype.schemaname, transforms1[i].trftype.objectname,
+					 transforms1[i].languagename);
 
 			dumpDropTransform(fpost, &transforms1[i]);
 
 			i++;
 			qstat.transformremoved++;
 		}
-		else if (compareNamesAndRelations(&transforms1[i].trftype, &transforms2[j].trftype, transforms1[i].languagename, transforms2[j].languagename) == 0)
+		else if (compareNamesAndRelations(&transforms1[i].trftype,
+										  &transforms2[j].trftype, transforms1[i].languagename,
+										  transforms2[j].languagename) == 0)
 		{
-			logDebug("transform for %s.%s language %s: server1 server2", transforms1[i].trftype.schemaname, transforms1[i].trftype.objectname, transforms1[i].languagename);
+			logDebug("transform for %s.%s language %s: server1 server2",
+					 transforms1[i].trftype.schemaname, transforms1[i].trftype.objectname,
+					 transforms1[i].languagename);
 
 			dumpAlterTransform(fpre, &transforms1[i], &transforms2[j]);
 
 			i++;
 			j++;
 		}
-		else if (compareNamesAndRelations(&transforms1[i].trftype, &transforms2[j].trftype, transforms1[i].languagename, transforms2[j].languagename) < 0)
+		else if (compareNamesAndRelations(&transforms1[i].trftype,
+										  &transforms2[j].trftype, transforms1[i].languagename,
+										  transforms2[j].languagename) < 0)
 		{
-			logDebug("transform for %s.%s language %s: server1", transforms1[i].trftype.schemaname, transforms1[i].trftype.objectname, transforms1[i].languagename);
+			logDebug("transform for %s.%s language %s: server1",
+					 transforms1[i].trftype.schemaname, transforms1[i].trftype.objectname,
+					 transforms1[i].languagename);
 
 			dumpDropTransform(fpost, &transforms1[i]);
 
 			i++;
 			qstat.transformremoved++;
 		}
-		else if (compareNamesAndRelations(&transforms1[i].trftype, &transforms2[j].trftype, transforms1[i].languagename, transforms2[j].languagename) > 0)
+		else if (compareNamesAndRelations(&transforms1[i].trftype,
+										  &transforms2[j].trftype, transforms1[i].languagename,
+										  transforms2[j].languagename) > 0)
 		{
-			logDebug("transform for %s.%s language %s: server2", transforms2[i].trftype.schemaname, transforms2[i].trftype.objectname, transforms2[i].languagename);
+			logDebug("transform for %s.%s language %s: server2",
+					 transforms2[i].trftype.schemaname, transforms2[i].trftype.objectname,
+					 transforms2[i].languagename);
 
 			dumpCreateTransform(fpre, &transforms2[j]);
 

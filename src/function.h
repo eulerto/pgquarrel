@@ -56,8 +56,10 @@ void dumpCreateProcedure(FILE *output, PQLFunction *f, bool orreplace);
 void dumpAlterProcedure(FILE *output, PQLFunction *a, PQLFunction *b);
 
 void dumpDropProcFunction(FILE *output, PQLFunction *f, char t);
-void dumpCreateProcFunction(FILE *output, PQLFunction *f, bool orreplace, char t);
-void dumpAlterProcFunction(FILE *output, PQLFunction *a, PQLFunction *b, char t);
+void dumpCreateProcFunction(FILE *output, PQLFunction *f, bool orreplace,
+							char t);
+void dumpAlterProcFunction(FILE *output, PQLFunction *a, PQLFunction *b,
+						   char t);
 
 void freeFunctions(PQLFunction *f, int n);
 

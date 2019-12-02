@@ -237,7 +237,8 @@ getSequenceSecurityLabels(PGconn *c, PQLSequence *s)
 		s->seclabels[i].provider = strdup(PQgetvalue(res, i, PQfnumber(res,
 										  "provider")));
 		withoutescape = PQgetvalue(res, i, PQfnumber(res, "label"));
-		s->seclabels[i].label = PQescapeLiteral(c, withoutescape, strlen(withoutescape));
+		s->seclabels[i].label = PQescapeLiteral(c, withoutescape,
+												strlen(withoutescape));
 		if (s->seclabels[i].label == NULL)
 		{
 			logError("escaping label failed: %s", PQerrorMessage(c));

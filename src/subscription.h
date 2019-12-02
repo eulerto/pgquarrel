@@ -40,9 +40,10 @@ void getSubscriptionSecurityLabels(PGconn *c, PQLSubscription *s);
 
 void dumpDropSubscription(FILE *output, PQLSubscription *s);
 void dumpCreateSubscription(FILE *output, PQLSubscription *s);
-void dumpAlterSubscription(FILE *output, PQLSubscription *a, PQLSubscription *b);
+void dumpAlterSubscription(FILE *output, PQLSubscription *a,
+						   PQLSubscription *b);
 
-void freeSubscriptions(PQLSubscription *s, int n); 
+void freeSubscriptions(PQLSubscription *s, int n);
 
 #endif	/* SUBSCRIPTION_H */
 

@@ -38,7 +38,7 @@ void dumpDropPublication(FILE *output, PQLPublication *s);
 void dumpCreatePublication(FILE *output, PQLPublication *s);
 void dumpAlterPublication(FILE *output, PQLPublication *a, PQLPublication *b);
 
-void freePublications(PQLPublication *s, int n); 
+void freePublications(PQLPublication *s, int n);
 
 #endif	/* PUBLICATION_H */
 

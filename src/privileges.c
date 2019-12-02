@@ -663,7 +663,8 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject *a, PQLObject *b,
 			logDebug("grant to %s: server2 (end)", tmpb->grantee);
 
 			dumpGrant(output, objecttype, b, tmpb->privileges, tmpb->grantee,
-					  ((objecttype == PGQ_FUNCTION || objecttype == PGQ_PROCEDURE) ? args : NULL), cols);
+					  ((objecttype == PGQ_FUNCTION ||
+						objecttype == PGQ_PROCEDURE) ? args : NULL), cols);
 			tmpb = tmpb->next;
 		}
 		/* End of aclList alb. Print REVOKE for aclList ala until its end. */
@@ -672,7 +673,8 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject *a, PQLObject *b,
 			logDebug("revoke from %s: server1 (end)", tmpa->grantee);
 
 			dumpRevoke(output, objecttype, a, tmpa->privileges, tmpa->grantee,
-					   ((objecttype == PGQ_FUNCTION || objecttype == PGQ_PROCEDURE) ? args : NULL), cols);
+					   ((objecttype == PGQ_FUNCTION ||
+						 objecttype == PGQ_PROCEDURE) ? args : NULL), cols);
 			tmpa = tmpa->next;
 		}
 		else if (strcmp(tmpa->grantee, tmpb->grantee) == 0)
@@ -683,13 +685,15 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject *a, PQLObject *b,
 
 			privs = diffPrivileges(tmpa->privileges, tmpb->privileges);
 			dumpRevoke(output, objecttype, a, privs, tmpa->grantee,
-					   ((objecttype == PGQ_FUNCTION || objecttype == PGQ_PROCEDURE) ? args : NULL), cols);
+					   ((objecttype == PGQ_FUNCTION ||
+						 objecttype == PGQ_PROCEDURE) ? args : NULL), cols);
 			if (privs)
 				free(privs);
 
 			privs = diffPrivileges(tmpb->privileges, tmpa->privileges);
 			dumpGrant(output, objecttype, b, privs, tmpb->grantee,
-					  ((objecttype == PGQ_FUNCTION || objecttype == PGQ_PROCEDURE) ? args : NULL), cols);
+					  ((objecttype == PGQ_FUNCTION ||
+						objecttype == PGQ_PROCEDURE) ? args : NULL), cols);
 			if (privs)
 				free(privs);
 
@@ -701,7 +705,8 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject *a, PQLObject *b,
 			logDebug("revoke from %s: server1", tmpa->grantee);
 
 			dumpRevoke(output, objecttype, a, tmpa->privileges, tmpa->grantee,
-					   ((objecttype == PGQ_FUNCTION || objecttype == PGQ_PROCEDURE) ? args : NULL), cols);
+					   ((objecttype == PGQ_FUNCTION ||
+						 objecttype == PGQ_PROCEDURE) ? args : NULL), cols);
 			tmpa = tmpa->next;
 		}
 		else if (strcmp(tmpa->grantee, tmpb->grantee) > 0)
@@ -709,7 +714,8 @@ dumpGrantAndRevoke(FILE *output, int objecttype, PQLObject *a, PQLObject *b,
 			logDebug("grant to %s: server2", tmpb->grantee);
 
 			dumpGrant(output, objecttype, b, tmpb->privileges, tmpb->grantee,
-					  ((objecttype == PGQ_FUNCTION || objecttype == PGQ_PROCEDURE) ? args : NULL), cols);
+					  ((objecttype == PGQ_FUNCTION ||
+						objecttype == PGQ_PROCEDURE) ? args : NULL), cols);
 			tmpb = tmpb->next;
 		}
 	}
