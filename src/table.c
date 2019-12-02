@@ -468,18 +468,18 @@ getCheckConstraints(PGconn *c, PQLTable *t, int n)
 	int			i, j;
 	char		*kind;
 
-	if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(t->kind))
-		kind = strdup("table");
-	else if (PGQ_IS_FOREIGN_TABLE(t->kind))
-		kind = strdup("foreign table");
-	else
-	{
-		logError("kind is not a regular, partitioned or foreign table");
-		exit(EXIT_FAILURE);
-	}
-
 	for (i = 0; i < n; i++)
 	{
+		if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(t[i].kind))
+			kind = strdup("table");
+		else if (PGQ_IS_FOREIGN_TABLE(t[i].kind))
+			kind = strdup("foreign table");
+		else
+		{
+			logError("kind is not a regular, partitioned or foreign table");
+			exit(EXIT_FAILURE);
+		}
+
 		/* FIXME conislocal (8.4)? convalidated (9.2)? */
 		/* XXX contype = 'c' needed? */
 		query = NULL;
