@@ -35,7 +35,7 @@ getTransforms(PGconn *c, int *n)
 	}
 
 	res = PQexec(c,
-				 "SELECT t.oid, n.nspname AS typschema, y.typname AS typname, (SELECT lanname FROM pg_language WHERE oid = t.trflang) AS lanname, p.oid AS fromsqloid, x.nspname AS fromsqlschema, p.proname AS fromsqlname, pg_get_function_arguments(t.trffromsql) AS fromsqlargs, q.oid AS tosqloid, z.nspname AS tosqlschema, q.proname AS tosqlname, pg_get_function_args(t.trftosql) AS tosqlargs, obj_description(t.oid, 'pg_transform') AS description FROM pg_transform t INNER JOIN pg_type y ON (t.trftype = y.oid) INNER JOIN pg_namespace n ON (n.oid = y.typnamespace) LEFT JOIN pg_proc p ON (t.trffromsql = p.oid) LEFT JOIN pg_namespace x ON (x.oid = p.pronamespace) LEFT JOIN pg_proc q ON (t.trftosql = q.oid) LEFT JOIN pg_namespace z ON (z.oid = q.pronamespace) ORDER BY typschema, typname, lanname");
+				 "SELECT t.oid, n.nspname AS typschema, y.typname AS typname, (SELECT lanname FROM pg_language WHERE oid = t.trflang) AS lanname, p.oid AS fromsqloid, x.nspname AS fromsqlschema, p.proname AS fromsqlname, pg_get_function_arguments(t.trffromsql) AS fromsqlargs, q.oid AS tosqloid, z.nspname AS tosqlschema, q.proname AS tosqlname, pg_get_function_arguments(t.trftosql) AS tosqlargs, obj_description(t.oid, 'pg_transform') AS description FROM pg_transform t INNER JOIN pg_type y ON (t.trftype = y.oid) INNER JOIN pg_namespace n ON (n.oid = y.typnamespace) LEFT JOIN pg_proc p ON (t.trffromsql = p.oid) LEFT JOIN pg_namespace x ON (x.oid = p.pronamespace) LEFT JOIN pg_proc q ON (t.trftosql = q.oid) LEFT JOIN pg_namespace z ON (z.oid = q.pronamespace) ORDER BY typschema, typname, lanname");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
