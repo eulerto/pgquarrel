@@ -15,7 +15,9 @@
 
 
 #if PG_VERSION_NUM >= 90600
+#define FRONTEND
 #include "common/keywords.h"
+#undef FRONTEND
 #else
 #include "parser/keywords.h"
 #endif

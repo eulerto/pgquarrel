@@ -136,7 +136,8 @@ else()
 		if(EXISTS "${pgpath}/libpgcommon.lib")
 			set(LIBS ${LIBS} "${pgpath}/libpgcommon.lib")
 		endif()
-		set(PostgreSQL_LIBRARIES "${PostgreSQL_LIBRARY_DIRS}/libpq.dll")
+
+		set(PostgreSQL_LIBRARIES "${PostgreSQL_LIBRARY_DIRS}/libpq.lib")
 	else()
 #		execute_process(COMMAND ${PGCONFIG_PATH} --libdir RESULT_VARIABLE result OUTPUT_VARIABLE pgpath OUTPUT_STRIP_TRAILING_WHITESPACE)
 		if(EXISTS "${pgpath}/libpgport.a")
@@ -180,7 +181,12 @@ else()
 	# (--includedir-server) first to avoid those warnings.
 	#
 	execute_process(COMMAND ${PGCONFIG_PATH} --includedir-server OUTPUT_VARIABLE pgpath OUTPUT_STRIP_TRAILING_WHITESPACE)
-	set(PostgreSQL_INCLUDE_DIRS ${pgpath})
+	# Windows requires some include paths
+	if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+		set(PostgreSQL_INCLUDE_DIRS ${pgpath}/port/win32 ${pgpath}/port/win32_msvc)
+	endif()
+	set(PostgreSQL_INCLUDE_DIRS ${PostgreSQL_INCLUDE_DIRS} ${pgpath})
+
 	execute_process(COMMAND ${PGCONFIG_PATH} --includedir OUTPUT_VARIABLE pgpath OUTPUT_STRIP_TRAILING_WHITESPACE)
 	set(PostgreSQL_INCLUDE_DIRS ${PostgreSQL_INCLUDE_DIRS} ${pgpath})
 
