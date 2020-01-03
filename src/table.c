@@ -520,10 +520,10 @@ getCheckConstraints(PGconn *c, PQLTable *t, int n)
 			}
 		}
 
+		free(kind);
+
 		PQclear(res);
 	}
-
-	free(kind);
 }
 
 void
