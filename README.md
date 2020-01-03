@@ -434,7 +434,7 @@ $ ./run-test.sh 11 11 init
 License
 =======
 
-> Copyright © 2015-2018 Euler Taveira de Oliveira
+> Copyright © 2015-2020 Euler Taveira de Oliveira
 > All rights reserved.
 
 > Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:

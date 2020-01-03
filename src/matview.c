@@ -21,7 +21,7 @@
  * ALTER MATERIALIZED VIEW ... SET TABLESPACE
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
- * Copyright (c) 2015-2018, Euler Taveira
+ * Copyright (c) 2015-2020, Euler Taveira
  *
  * ---------------------------------------------------------------------
  */

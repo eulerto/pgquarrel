@@ -56,7 +56,7 @@
  * REVOKE LARGE OBJECT
  *
  *
- * Copyright (c) 2015-2018, Euler Taveira
+ * Copyright (c) 2015-2020, Euler Taveira
  *
  *----------------------------------------------------------------------
  */
