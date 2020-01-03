@@ -97,6 +97,8 @@
 #include "mini-parser.h"
 
 
+#define	MAX_PASSWORD_LEN	200
+
 /* global variables */
 enum PQLLogLevel	loglevel = PGQ_ERROR;
 int					pgversion1;
@@ -729,8 +731,7 @@ static PGconn *
 connectDatabase(QuarrelDatabaseOptions opt)
 {
 	PGconn		*conn;
-	char		*prompt_password = NULL;
-#define	MAX_PASSWORD_LEN	200
+	char		*prompt_password;
 
 #define NUMBER_OF_PARAMS	7
 	const char **keywords = malloc(NUMBER_OF_PARAMS * sizeof(*keywords));
@@ -767,11 +768,12 @@ connectDatabase(QuarrelDatabaseOptions opt)
 	{
 		PQfinish(conn);
 #if PG_VERSION_NUM >= 100000
+		prompt_password = (char *) malloc((MAX_PASSWORD_LEN + 1) * sizeof(char));
 		if (opt.istarget)
-			simple_prompt("Target password: ", prompt_password, MAX_PASSWORD_LEN,
+			simple_prompt("Target password: ", prompt_password, MAX_PASSWORD_LEN + 1,
 						  false);
 		else
-			simple_prompt("Source password: ", prompt_password, MAX_PASSWORD_LEN,
+			simple_prompt("Source password: ", prompt_password, MAX_PASSWORD_LEN + 1,
 						  false);
 #else
 		if (opt.istarget)
@@ -789,6 +791,9 @@ connectDatabase(QuarrelDatabaseOptions opt)
 
 	free(keywords);
 	free(values);
+
+	if (prompt_password)
+		free(prompt_password);
 
 	/* failed connection attempt */
 	if (PQstatus(conn) == CONNECTION_BAD)
