@@ -731,7 +731,7 @@ static PGconn *
 connectDatabase(QuarrelDatabaseOptions opt)
 {
 	PGconn		*conn;
-	char		*prompt_password;
+	char		*prompt_password = NULL;
 
 #define NUMBER_OF_PARAMS	7
 	const char **keywords = malloc(NUMBER_OF_PARAMS * sizeof(*keywords));
