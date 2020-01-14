@@ -227,6 +227,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	install(DIRECTORY ${pgbin}/ DESTINATION bin FILES_MATCHING PATTERN "libiconv*.dll")
 	install(DIRECTORY ${pgbin}/ DESTINATION bin FILES_MATCHING PATTERN "libintl*.dll")
 	install(DIRECTORY ${pgbin}/ DESTINATION bin FILES_MATCHING PATTERN "libssl*.dll")
+	install(FILES ${pgbin}/ssleay32.dll DESTINATION bin)
+	install(FILES ${pgbin}/libeay32.dll DESTINATION bin)
 endif()
 
 find_program(astyle_EXECUTABLE astyle DOC "source code indenter, formatter, and beautifier")
