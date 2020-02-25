@@ -208,7 +208,7 @@ dumpAlterPolicy(FILE *output, PQLPolicy *a, PQLPolicy *b)
 
 	if ((a->roles == NULL && b->roles != NULL) ||
 			(a->roles != NULL && b->roles == NULL) ||
-			(strcmp(a->roles, b->roles) != 0))
+			(a->roles != NULL && b->roles != NULL && strcmp(a->roles, b->roles) != 0))
 	{
 		if (first)
 		{
@@ -216,12 +216,15 @@ dumpAlterPolicy(FILE *output, PQLPolicy *a, PQLPolicy *b)
 			fprintf(output, "\n\nALTER POLICY %s ON %s.%s", polname2, schema2, tabname2);
 		}
 
-		fprintf(output, " TO %s", b->roles);
+		if (b->roles != NULL)
+			fprintf(output, " TO %s", b->roles);
+		else
+			fprintf(output, " TO PUBLIC");
 	}
 
 	if ((a->qual == NULL && b->qual != NULL) ||
 			(a->qual != NULL && b->qual == NULL) ||
-			(strcmp(a->qual, b->qual) != 0))
+			(a->qual != NULL && b->qual != NULL && strcmp(a->qual, b->qual) != 0))
 	{
 		if (first)
 		{
@@ -229,12 +232,15 @@ dumpAlterPolicy(FILE *output, PQLPolicy *a, PQLPolicy *b)
 			fprintf(output, "\n\nALTER POLICY %s ON %s.%s", polname2, schema2, tabname2);
 		}
 
-		fprintf(output, " USING (%s)", b->qual);
+		if (b->qual)
+			fprintf(output, " USING (%s)", b->qual);
+		else
+			fprintf(output, " USING (NULL)");
 	}
 
 	if ((a->withcheck == NULL && b->withcheck != NULL) ||
 			(a->withcheck != NULL && b->withcheck == NULL) ||
-			(strcmp(a->withcheck, b->withcheck) != 0))
+			(a->withcheck != NULL && b->withcheck != NULL && strcmp(a->withcheck, b->withcheck) != 0))
 	{
 		/*
 		 * If a new ALTER option is added above, don't forget to add 'first = false'.
@@ -242,8 +248,13 @@ dumpAlterPolicy(FILE *output, PQLPolicy *a, PQLPolicy *b)
 		if (first)
 			fprintf(output, "\n\nALTER POLICY %s ON %s.%s", polname2, schema2, tabname2);
 
-		fprintf(output, " WITH CHECK (%s)", b->withcheck);
+		if (b->withcheck != NULL)
+			fprintf(output, " WITH CHECK (%s)", b->withcheck);
+		else
+			fprintf(output, " WITH CHECK (NULL)");
 	}
+
+	fprintf(output, ";");
 
 	/* comment */
 	if (options.comment)
