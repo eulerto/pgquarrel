@@ -176,10 +176,19 @@ dumpCreateTransform(FILE *output, PQLTransform *t)
 	char	*typeschema = formatObjectIdentifier(t->trftype.schemaname);
 	char	*typename = formatObjectIdentifier(t->trftype.objectname);
 	char	*langname = formatObjectIdentifier(t->languagename);
-	char	*fromsqlschema = formatObjectIdentifier(t->fromsql.schemaname);
-	char	*fromsqlname = formatObjectIdentifier(t->fromsql.objectname);
-	char	*tosqlschema = formatObjectIdentifier(t->tosql.schemaname);
-	char	*tosqlname = formatObjectIdentifier(t->tosql.objectname);
+	char	*fromsqlschema = NULL;
+	char	*fromsqlname = NULL;
+	char	*tosqlschema = NULL;
+	char	*tosqlname = NULL;
+
+	if (t->fromsql.schemaname != NULL)
+		fromsqlschema = formatObjectIdentifier(t->fromsql.schemaname);
+	if (t->fromsql.objectname != NULL)
+		fromsqlname = formatObjectIdentifier(t->fromsql.objectname);
+	if (t->tosql.schemaname != NULL)
+		tosqlschema = formatObjectIdentifier(t->tosql.schemaname);
+	if (t->tosql.objectname != NULL)
+		tosqlname = formatObjectIdentifier(t->tosql.objectname);
 
 	fprintf(output, "\n\n");
 	fprintf(output, "CREATE TRANSFORM FOR %s.%s LANGUAGE %s (", typeschema,
@@ -201,10 +210,14 @@ dumpCreateTransform(FILE *output, PQLTransform *t)
 	free(typeschema);
 	free(typename);
 	free(langname);
-	free(fromsqlschema);
-	free(fromsqlname);
-	free(tosqlschema);
-	free(tosqlname);
+	if (fromsqlschema)
+		free(fromsqlschema);
+	if (fromsqlname)
+		free(fromsqlname);
+	if (tosqlschema)
+		free(tosqlschema);
+	if (tosqlname)
+		free(tosqlname);
 }
 
 void
