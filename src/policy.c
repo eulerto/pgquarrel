@@ -149,7 +149,11 @@ dumpCreatePolicy(FILE *output, PQLPolicy *p)
 	{
 		logError("bogus value in pg_policy.polcmd (%c) in policy %s", p->cmd,
 				 p->polname);
-		return;
+		free(polname);
+		free(schema);
+		free(tabname);
+		free(cmd);
+		exit(EXIT_FAILURE);
 	}
 
 	fprintf(output, "\n\n");
