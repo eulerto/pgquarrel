@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/eulerto/pgquarrel.svg?branch=master)](https://travis-ci.org/eulerto/pgquarrel)
+[![Coverity Status](https://scan.coverity.com/projects/8369/badge.svg)](https://scan.coverity.com/projects/pgquarrel)
 
 Introduction
 ============
