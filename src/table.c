@@ -1520,7 +1520,7 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 		}
 
 		/* primary key */
-		if (t->pk.comment != NULL)
+		if (t->pk.conname != NULL && t->pk.comment != NULL)
 		{
 			char	*pkname = formatObjectIdentifier(t->pk.conname);
 
