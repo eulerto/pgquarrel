@@ -690,7 +690,7 @@ getTableAttributes(PGconn *c, PQLTable *t)
 	int			nquery = 0;
 	PGresult	*res;
 	int			i;
-	char		*kind;
+	char		*kind = NULL;
 
 	if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(t->kind))
 		kind = strdup("table");
@@ -946,6 +946,9 @@ getTableAttributes(PGconn *c, PQLTable *t)
 
 		PQclear(res);
 	}
+
+	if (kind)
+		free(kind);
 }
 
 void
@@ -954,7 +957,7 @@ getTableSecurityLabels(PGconn *c, PQLTable *t)
 	char		query[200];
 	PGresult	*res;
 	int			i;
-	char		*kind;
+	char		*kind = NULL;
 
 	if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(t->kind))
 		kind = strdup("table");
@@ -969,6 +972,8 @@ getTableSecurityLabels(PGconn *c, PQLTable *t)
 	if (PQserverVersion(c) < 90100)
 	{
 		logWarning("ignoring security labels because server does not support it");
+		if (kind)
+			free(kind);
 		return;
 	}
 
