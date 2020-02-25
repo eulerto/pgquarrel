@@ -4943,7 +4943,7 @@ int main(int argc, char *argv[])
 	if (gopts_given.fdw)
 		options.fdw = gopts.fdw;
 	if (gopts_given.foreigntable)
-		options.fdw = gopts.foreigntable;
+		options.foreigntable = gopts.foreigntable;
 	if (gopts_given.function)
 		options.function = gopts.function;
 	if (gopts_given.index)
