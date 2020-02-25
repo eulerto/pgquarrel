@@ -244,7 +244,8 @@ dumpAlterPolicy(FILE *output, PQLPolicy *a, PQLPolicy *b)
 
 	if ((a->withcheck == NULL && b->withcheck != NULL) ||
 			(a->withcheck != NULL && b->withcheck == NULL) ||
-			(a->withcheck != NULL && b->withcheck != NULL && strcmp(a->withcheck, b->withcheck) != 0))
+			(a->withcheck != NULL && b->withcheck != NULL &&
+			 strcmp(a->withcheck, b->withcheck) != 0))
 	{
 		/*
 		 * If a new ALTER option is added above, don't forget to add 'first = false'.
