@@ -35,8 +35,8 @@ Before installing **pgquarrel**, you should have PostgreSQL 9.0+ installed (incl
 If you compile PostgreSQL by yourself and install it in `/home/euler/pg12`:
 
 ```
-$ tar -zxf pgquarrel-0.6.0.tgz
-$ cd pgquarrel-0.6.0
+$ tar -zxf pgquarrel-0.7.0.tgz
+$ cd pgquarrel-0.7.0
 $ cmake -DCMAKE_INSTALL_PREFIX=$HOME/pgquarrel -DCMAKE_PREFIX_PATH=/home/euler/pg12 .
 $ make
 $ make install
@@ -46,8 +46,8 @@ If you are using [PostgreSQL yum repository](https://yum.postgresql.org):
 
 ```
 $ sudo yum install postgresql12-devel
-$ tar -zxf pgquarrel-0.6.0.tgz
-$ cd pgquarrel-0.6.0
+$ tar -zxf pgquarrel-0.7.0.tgz
+$ cd pgquarrel-0.7.0
 $ cmake -DCMAKE_INSTALL_PREFIX=$HOME/pgquarrel -DCMAKE_PREFIX_PATH=/usr/pgsql-12 .
 $ make
 $ make install
@@ -57,8 +57,8 @@ If you are using [PostgreSQL apt repository](https://wiki.postgresql.org/wiki/Ap
 
 ```
 $ sudo apt-get install postgresql-server-dev-12
-$ tar -zxf pgquarrel-0.6.0.tgz
-$ cd pgquarrel-0.6.0
+$ tar -zxf pgquarrel-0.7.0.tgz
+$ cd pgquarrel-0.7.0
 $ cmake -DCMAKE_INSTALL_PREFIX=$HOME/pgquarrel -DCMAKE_PREFIX_PATH=/usr/lib/postgresql/12 .
 $ make
 $ make install
@@ -427,7 +427,7 @@ Regression Tests
 
 ```
 $ # adjust test/run-test.sh
-$ cd pgquarrel-0.6.0/test
+$ cd pgquarrel-0.7.0/test
 $ # test using 11 on both clusters
 $ ./run-test.sh 11 11 init
 ```
