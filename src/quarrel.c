@@ -799,10 +799,10 @@ connectDatabase(QuarrelDatabaseOptions opt)
 	if (PQstatus(conn) == CONNECTION_BAD)
 	{
 		if (opt.istarget)
-			logError("connection to target database \"%s\" failed: %s", opt.dbname,
+			logError("connection to target database failed: %s",
 					 PQerrorMessage(conn));
 		else
-			logError("connection to source database \"%s\" failed: %s", opt.dbname,
+			logError("connection to source database failed: %s",
 					 PQerrorMessage(conn));
 		PQfinish(conn);
 		exit(EXIT_FAILURE);
