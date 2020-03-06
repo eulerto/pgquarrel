@@ -1,4 +1,4 @@
-add_library(mini SHARED
+add_library(mini STATIC
 	mini-file.c
 	mini-file.h
 	mini-parser.c
