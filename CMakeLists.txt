@@ -214,6 +214,8 @@ set(LIBS ${LIBS} mini)
 # postgres library directory is not in the dynamic linker
 #set_target_properties(pgquarrel PROPERTIES LINK_FLAGS "-L${PostgreSQL_LIBRARY_DIRS}")
 
+set_target_properties(pgquarrel PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib)
+
 target_link_libraries(pgquarrel ${LIBS})
 
 install(TARGETS pgquarrel RUNTIME DESTINATION bin)
