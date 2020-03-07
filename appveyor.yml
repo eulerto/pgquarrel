@@ -1,0 +1,10 @@
+version: 0.7.{build}
+image:
+- Visual Studio 2019
+configuration:
+- Debug
+- Release
+before_build:
+- cmd: cmake -B./build -DCMAKE_INSTALL_PREFIX=C:\pgquarrel
+build:
+  verbosity: normal
