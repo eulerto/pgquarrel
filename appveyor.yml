@@ -4,6 +4,8 @@ image:
 configuration:
 - Debug
 - Release
+services:
+- postgresql12
 before_build:
 - cmd: cmake -B./build -DCMAKE_INSTALL_PREFIX=C:\pgquarrel
 build:
