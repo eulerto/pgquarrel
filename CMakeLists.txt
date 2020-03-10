@@ -171,7 +171,16 @@ else()
 			endif()
 		endif()
 
-		set(PostgreSQL_LIBRARIES "${PostgreSQL_LIBRARY_DIRS}/libpq.so")
+		# MacOS has libpq.dylib
+		if(APPLE)
+			if(EXISTS "${PostgreSQL_LIBRARY_DIRS}/libpq.dylib")
+				set(PostgreSQL_LIBRARIES "${PostgreSQL_LIBRARY_DIRS}/libpq.dylib")
+			endif()
+		else()
+			if(EXISTS "${PostgreSQL_LIBRARY_DIRS}/libpq.so")
+				set(PostgreSQL_LIBRARIES "${PostgreSQL_LIBRARY_DIRS}/libpq.so")
+			endif()
+		endif()
 	endif()
 
 	# setup include directories
