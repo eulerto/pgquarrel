@@ -27,13 +27,17 @@ PQLPolicy *
 getPolicies(PGconn *c, int *n)
 {
 	PQLPolicy	*p;
+	char		*query;
 	PGresult	*res;
 	int			i;
 
 	logNoise("policy: server version: %d", PQserverVersion(c));
 
-	res = PQexec(c,
-				 "SELECT p.oid, p.polname, p.polrelid, n.nspname AS polnamespace, c.relname AS poltabname, p.polcmd, p.polpermissive, CASE WHEN p.polroles = '{0}' THEN NULL ELSE pg_catalog.array_to_string(ARRAY(SELECT pg_catalog.quote_ident(rolname) from pg_catalog.pg_roles WHERE oid = ANY(p.polroles)), ', ') END AS polroles, pg_catalog.pg_get_expr(p.polqual, p.polrelid) AS polqual, pg_catalog.pg_get_expr(p.polwithcheck, p.polrelid) AS polwithcheck FROM pg_policy p INNER JOIN pg_class c ON (p.polrelid = c.oid) INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) ORDER BY p.polname");
+	query = psprintf("SELECT p.oid, p.polname, p.polrelid, n.nspname AS polnamespace, c.relname AS poltabname, p.polcmd, p.polpermissive, CASE WHEN p.polroles = '{0}' THEN NULL ELSE pg_catalog.array_to_string(ARRAY(SELECT pg_catalog.quote_ident(rolname) from pg_catalog.pg_roles WHERE oid = ANY(p.polroles)), ', ') END AS polroles, pg_catalog.pg_get_expr(p.polqual, p.polrelid) AS polqual, pg_catalog.pg_get_expr(p.polwithcheck, p.polrelid) AS polwithcheck FROM pg_policy p INNER JOIN pg_class c ON (p.polrelid = c.oid) INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE TRUE %s%s ORDER BY p.polname", include_schema_str, exclude_schema_str);
+
+	res = PQexec(c, query);
+
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

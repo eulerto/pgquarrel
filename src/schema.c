@@ -27,6 +27,7 @@ PQLSchema *
 getSchemas(PGconn *c, int *n)
 {
 	PQLSchema	*s;
+	char		*query;
 	PGresult	*res;
 	int			i;
 
@@ -34,14 +35,16 @@ getSchemas(PGconn *c, int *n)
 
 	if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
-		res = PQexec(c,
-					 "SELECT n.oid, nspname, obj_description(n.oid, 'pg_namespace') AS description, pg_get_userbyid(nspowner) AS nspowner, nspacl FROM pg_namespace n WHERE nspname !~ '^pg_' AND nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE n.oid = d.objid AND d.deptype = 'e') ORDER BY nspname");
+		query = psprintf("SELECT n.oid, nspname, obj_description(n.oid, 'pg_namespace') AS description, pg_get_userbyid(nspowner) AS nspowner, nspacl FROM pg_namespace n WHERE nspname !~ '^pg_' AND nspname <> 'information_schema' %s%s AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE n.oid = d.objid AND d.deptype = 'e') ORDER BY nspname", include_schema_str, exclude_schema_str);
 	}
 	else
 	{
-		res = PQexec(c,
-					 "SELECT n.oid, nspname, obj_description(n.oid, 'pg_namespace') AS description, pg_get_userbyid(nspowner) AS nspowner, nspacl FROM pg_namespace n WHERE nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname");
+		query = psprintf("SELECT n.oid, nspname, obj_description(n.oid, 'pg_namespace') AS description, pg_get_userbyid(nspowner) AS nspowner, nspacl FROM pg_namespace n WHERE nspname !~ '^pg_' AND nspname <> 'information_schema' %s%s ORDER BY nspname", include_schema_str, exclude_schema_str);
 	}
+
+	res = PQexec(c, query);
+
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

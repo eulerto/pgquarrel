@@ -45,15 +45,14 @@ static void dumpRemoveFunctionOpFamily(FILE *output, PQLOperatorFamily *f,
 PQLOperator *
 getOperators(PGconn *c, int *n)
 {
-	char			*query;
 	PQLOperator		*o;
+	char			*query;
 	PGresult		*res;
 	int				i;
 
 	logNoise("operator: server version: %d", PQserverVersion(c));
 
-	query = psprintf("SELECT o.oid, n.nspname, o.oprname, oprcode::regprocedure, oprleft::regtype, oprright::regtype, oprcom::regoperator, oprnegate::regoperator, oprrest::regprocedure, oprjoin::regprocedure, oprcanhash, oprcanmerge, obj_description(o.oid, 'pg_operator') AS description, pg_get_userbyid(o.oprowner) AS oprowner FROM pg_operator o INNER JOIN pg_namespace n ON (o.oprnamespace = n.oid) WHERE o.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE o.oid = d.objid AND deptype = 'e') ORDER BY n.nspname, o.oprname, o.oprleft, o.oprright",
-					  PGQ_FIRST_USER_OID);
+	query = psprintf("SELECT o.oid, n.nspname, o.oprname, oprcode::regprocedure, oprleft::regtype, oprright::regtype, oprcom::regoperator, oprnegate::regoperator, oprrest::regprocedure, oprjoin::regprocedure, oprcanhash, oprcanmerge, obj_description(o.oid, 'pg_operator') AS description, pg_get_userbyid(o.oprowner) AS oprowner FROM pg_operator o INNER JOIN pg_namespace n ON (o.oprnamespace = n.oid) WHERE o.oid >= %u %s%s AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE o.oid = d.objid AND deptype = 'e') ORDER BY n.nspname, o.oprname, o.oprleft, o.oprright", PGQ_FIRST_USER_OID, include_schema_str, exclude_schema_str);
 
 	res = PQexec(c, query);
 
@@ -155,15 +154,14 @@ getOperators(PGconn *c, int *n)
 PQLOperatorClass *
 getOperatorClasses(PGconn *c, int *n)
 {
-	char				*query;
 	PQLOperatorClass	*d;
+	char				*query;
 	PGresult			*res;
 	int					i;
 
 	logNoise("operator class: server version: %d", PQserverVersion(c));
 
-	query = psprintf("SELECT c.oid, n.nspname AS opcnspname, c.opcname, c.opcdefault, c.opcintype::regtype, a.amname, o.nspname AS opfnspname, f.opfname, CASE WHEN c.opckeytype = 0 THEN NULL ELSE c.opckeytype::regtype END AS storage, obj_description(c.oid, 'pg_opclass') AS description, pg_get_userbyid(c.opcowner) AS opcowner FROM pg_opclass c INNER JOIN pg_namespace n ON (c.opcnamespace = n.oid) INNER JOIN pg_am a ON (c.opcmethod = a.oid) LEFT JOIN (pg_opfamily f INNER JOIN pg_namespace o ON (f.opfnamespace = o.oid)) ON (c.opcfamily = f.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND deptype = 'e') ORDER BY c.opcnamespace, c.opcname",
-					  PGQ_FIRST_USER_OID);
+	query = psprintf("SELECT c.oid, n.nspname AS opcnspname, c.opcname, c.opcdefault, c.opcintype::regtype, a.amname, o.nspname AS opfnspname, f.opfname, CASE WHEN c.opckeytype = 0 THEN NULL ELSE c.opckeytype::regtype END AS storage, obj_description(c.oid, 'pg_opclass') AS description, pg_get_userbyid(c.opcowner) AS opcowner FROM pg_opclass c INNER JOIN pg_namespace n ON (c.opcnamespace = n.oid) INNER JOIN pg_am a ON (c.opcmethod = a.oid) LEFT JOIN (pg_opfamily f INNER JOIN pg_namespace o ON (f.opfnamespace = o.oid)) ON (c.opcfamily = f.oid) WHERE c.oid >= %u %s%s AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND deptype = 'e') ORDER BY c.opcnamespace, c.opcname", PGQ_FIRST_USER_OID, include_schema_str, exclude_schema_str);
 
 	res = PQexec(c, query);
 
@@ -250,15 +248,14 @@ getOperatorClasses(PGconn *c, int *n)
 PQLOperatorFamily *
 getOperatorFamilies(PGconn *c, int *n)
 {
-	char				*query;
 	PQLOperatorFamily	*f;
+	char				*query;
 	PGresult			*res;
 	int					i;
 
 	logNoise("operator family: server version: %d", PQserverVersion(c));
 
-	query = psprintf("SELECT f.oid, n.nspname AS opfnspname, f.opfname, a.amname, obj_description(f.oid, 'pg_opfamily') AS description, pg_get_userbyid(f.opfowner) AS opfowner FROM pg_opfamily f INNER JOIN pg_namespace n ON (f.opfnamespace = n.oid) INNER JOIN pg_am a ON (f.opfmethod = a.oid) WHERE f.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE f.oid = d.objid AND deptype = 'e') ORDER BY opfnspname, f.opfname",
-					  PGQ_FIRST_USER_OID);
+	query = psprintf("SELECT f.oid, n.nspname AS opfnspname, f.opfname, a.amname, obj_description(f.oid, 'pg_opfamily') AS description, pg_get_userbyid(f.opfowner) AS opfowner FROM pg_opfamily f INNER JOIN pg_namespace n ON (f.opfnamespace = n.oid) INNER JOIN pg_am a ON (f.opfmethod = a.oid) WHERE f.oid >= %u %s%s AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE f.oid = d.objid AND deptype = 'e') ORDER BY opfnspname, f.opfname", PGQ_FIRST_USER_OID, include_schema_str, exclude_schema_str);
 
 	res = PQexec(c, query);
 

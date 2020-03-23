@@ -39,8 +39,9 @@ PQLMaterializedView *
 getMaterializedViews(PGconn *c, int *n)
 {
 	PQLMaterializedView		*v;
-	PGresult	*res;
-	int			i;
+	char					*query;
+	PGresult				*res;
+	int						i;
 
 	logNoise("materialized view: server version: %d", PQserverVersion(c));
 
@@ -51,8 +52,11 @@ getMaterializedViews(PGconn *c, int *n)
 		return NULL;
 	}
 
-	res = PQexec(c,
-				 "SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, pg_get_viewdef(c.oid) AS viewdef, array_to_string(c.reloptions, ', ') AS reloptions, relispopulated, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'm' AND nspname !~ '^pg_' AND nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, relname");
+	query = psprintf("SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, pg_get_viewdef(c.oid) AS viewdef, array_to_string(c.reloptions, ', ') AS reloptions, relispopulated, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'm' AND nspname !~ '^pg_' AND nspname <> 'information_schema' %s%s AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, relname", include_schema_str, exclude_schema_str);
+
+	res = PQexec(c, query);
+
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

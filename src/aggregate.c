@@ -28,26 +28,36 @@ PQLAggregate *
 getAggregates(PGconn *c, int *n)
 {
 	PQLAggregate	*a;
+	char			*query;
 	PGresult		*res;
 	int				i;
 
 	logNoise("aggregate: server version: %d", PQserverVersion(c));
 
 	if (PQserverVersion(c) >= 110000)
-		res = PQexec(c,
-					 "SELECT p.oid, n.nspname, p.proname, pg_get_function_arguments(p.oid) AS aggargs, aggtransfn, aggtranstype::regtype, aggtransspace, aggfinalfn, aggfinalextra, aggfinalmodify, agginitval, aggmtransfn, aggminvtransfn, aggmtranstype::regtype, aggmtransspace, aggmfinalfn, aggmfinalextra, aggmfinalmodify, aggminitval, aggsortop::regoperator, proparallel, (aggkind = 'h') AS hypothetical, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(p.proowner) AS aggowner FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) INNER JOIN pg_aggregate a ON (aggfnoid = p.oid) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, p.proname, pg_get_function_arguments(p.oid)");
+	{
+		query = psprintf("SELECT p.oid, n.nspname, p.proname, pg_get_function_arguments(p.oid) AS aggargs, aggtransfn, aggtranstype::regtype, aggtransspace, aggfinalfn, aggfinalextra, aggfinalmodify, agginitval, aggmtransfn, aggminvtransfn, aggmtranstype::regtype, aggmtransspace, aggmfinalfn, aggmfinalextra, aggmfinalmodify, aggminitval, aggsortop::regoperator, proparallel, (aggkind = 'h') AS hypothetical, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(p.proowner) AS aggowner FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) INNER JOIN pg_aggregate a ON (aggfnoid = p.oid) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' %s%s AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, p.proname, pg_get_function_arguments(p.oid)", include_schema_str, exclude_schema_str);
+	}
 	else if (PQserverVersion(c) >= 90600)	/* parallel is new in 9.6 */
-		res = PQexec(c,
-					 "SELECT p.oid, n.nspname, p.proname, pg_get_function_arguments(p.oid) AS aggargs, aggtransfn, aggtranstype::regtype, aggtransspace, aggfinalfn, aggfinalextra, 'n' AS aggfinalmodify, agginitval, aggmtransfn, aggminvtransfn, aggmtranstype::regtype, aggmtransspace, aggmfinalfn, aggmfinalextra, 'n' AS aggmfinalmodify, aggminitval, aggsortop::regoperator, proparallel, (aggkind = 'h') AS hypothetical, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(p.proowner) AS aggowner FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) INNER JOIN pg_aggregate a ON (aggfnoid = p.oid) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, p.proname, pg_get_function_arguments(p.oid)");
+	{
+		query = psprintf("SELECT p.oid, n.nspname, p.proname, pg_get_function_arguments(p.oid) AS aggargs, aggtransfn, aggtranstype::regtype, aggtransspace, aggfinalfn, aggfinalextra, 'n' AS aggfinalmodify, agginitval, aggmtransfn, aggminvtransfn, aggmtranstype::regtype, aggmtransspace, aggmfinalfn, aggmfinalextra, 'n' AS aggmfinalmodify, aggminitval, aggsortop::regoperator, proparallel, (aggkind = 'h') AS hypothetical, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(p.proowner) AS aggowner FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) INNER JOIN pg_aggregate a ON (aggfnoid = p.oid) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' %s%s AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, p.proname, pg_get_function_arguments(p.oid)", include_schema_str, exclude_schema_str);
+	}
 	else if (PQserverVersion(c) >= 90400)
-		res = PQexec(c,
-					 "SELECT p.oid, n.nspname, p.proname, pg_get_function_arguments(p.oid) AS aggargs, aggtransfn, aggtranstype::regtype, aggtransspace, aggfinalfn, aggfinalextra, 'n' AS aggfinalmodify, agginitval, aggmtransfn, aggminvtransfn, aggmtranstype::regtype, aggmtransspace, aggmfinalfn, aggmfinalextra, 'n' AS aggmfinalmodify, aggminitval, aggsortop::regoperator, 'n' AS proparallel, (aggkind = 'h') AS hypothetical, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(p.proowner) AS aggowner FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) INNER JOIN pg_aggregate a ON (aggfnoid = p.oid) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, p.proname, pg_get_function_arguments(p.oid)");
+	{
+		query = psprintf("SELECT p.oid, n.nspname, p.proname, pg_get_function_arguments(p.oid) AS aggargs, aggtransfn, aggtranstype::regtype, aggtransspace, aggfinalfn, aggfinalextra, 'n' AS aggfinalmodify, agginitval, aggmtransfn, aggminvtransfn, aggmtranstype::regtype, aggmtransspace, aggmfinalfn, aggmfinalextra, 'n' AS aggmfinalmodify, aggminitval, aggsortop::regoperator, 'n' AS proparallel, (aggkind = 'h') AS hypothetical, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(p.proowner) AS aggowner FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) INNER JOIN pg_aggregate a ON (aggfnoid = p.oid) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' %s%s AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, p.proname, pg_get_function_arguments(p.oid)", include_schema_str, exclude_schema_str);
+	}
 	else if (PQserverVersion(c) >= 90100)	/* extension support */
-		res = PQexec(c,
-					 "SELECT p.oid, n.nspname, p.proname, pg_get_function_arguments(p.oid) AS aggargs, aggtransfn, aggtranstype::regtype, NULL AS aggtransspace, aggfinalfn, false AS aggfinalextra, 'n' AS aggfinalmodify, agginitval, NULL AS aggmtransfn, NULL AS aggminvtransfn, NULL AS aggmtranstype, NULL AS aggmtransspace, NULL AS aggmfinalfn, false AS aggmfinalextra, 'n' AS aggmfinalmodify, NULL AS aggminitval, aggsortop::regoperator, 'n' AS proparallel, false AS hypothetical, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(p.proowner) AS aggowner FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) INNER JOIN pg_aggregate a ON (aggfnoid = p.oid) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, p.proname, pg_get_function_arguments(p.oid)");
+	{
+		query = psprintf("SELECT p.oid, n.nspname, p.proname, pg_get_function_arguments(p.oid) AS aggargs, aggtransfn, aggtranstype::regtype, NULL AS aggtransspace, aggfinalfn, false AS aggfinalextra, 'n' AS aggfinalmodify, agginitval, NULL AS aggmtransfn, NULL AS aggminvtransfn, NULL AS aggmtranstype, NULL AS aggmtransspace, NULL AS aggmfinalfn, false AS aggmfinalextra, 'n' AS aggmfinalmodify, NULL AS aggminitval, aggsortop::regoperator, 'n' AS proparallel, false AS hypothetical, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(p.proowner) AS aggowner FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) INNER JOIN pg_aggregate a ON (aggfnoid = p.oid) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' %s%s AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE p.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, p.proname, pg_get_function_arguments(p.oid)", include_schema_str, exclude_schema_str);
+	}
 	else
-		res = PQexec(c,
-					 "SELECT p.oid, n.nspname, p.proname, pg_get_function_arguments(p.oid) AS aggargs, aggtransfn, aggtranstype::regtype, NULL AS aggtransspace, aggfinalfn, false AS aggfinalextra, 'n' AS aggfinalmodify, agginitval, NULL AS aggmtransfn, NULL AS aggminvtransfn, NULL AS aggmtranstype, NULL AS aggmtransspace, NULL AS aggmfinalfn, false AS aggmfinalextra, 'n' AS aggmfinalmodify, NULL AS aggminitval, aggsortop::regoperator, 'n' AS proparallel, false AS hypothetical, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(p.proowner) AS aggowner FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) INNER JOIN pg_aggregate a ON (aggfnoid = p.oid) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, p.proname, pg_get_function_arguments(p.oid)");
+	{
+		query = psprintf("SELECT p.oid, n.nspname, p.proname, pg_get_function_arguments(p.oid) AS aggargs, aggtransfn, aggtranstype::regtype, NULL AS aggtransspace, aggfinalfn, false AS aggfinalextra, 'n' AS aggfinalmodify, agginitval, NULL AS aggmtransfn, NULL AS aggminvtransfn, NULL AS aggmtranstype, NULL AS aggmtransspace, NULL AS aggmfinalfn, false AS aggmfinalextra, 'n' AS aggmfinalmodify, NULL AS aggminitval, aggsortop::regoperator, 'n' AS proparallel, false AS hypothetical, obj_description(p.oid, 'pg_proc') AS description, pg_get_userbyid(p.proowner) AS aggowner FROM pg_proc p INNER JOIN pg_namespace n ON (n.oid = p.pronamespace) INNER JOIN pg_aggregate a ON (aggfnoid = p.oid) WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' %s%s ORDER BY n.nspname, p.proname, pg_get_function_arguments(p.oid)", include_schema_str, exclude_schema_str);
+	}
+
+	res = PQexec(c, query);
+
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

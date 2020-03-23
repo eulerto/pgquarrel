@@ -23,13 +23,17 @@ PQLRule *
 getRules(PGconn *c, int *n)
 {
 	PQLRule		*r;
+	char		*query;
 	PGresult	*res;
 	int			i;
 
 	logNoise("rule: server version: %d", PQserverVersion(c));
 
-	res = PQexec(c,
-				 "SELECT r.oid, n.nspname AS schemaname, c.relname AS tablename, r.rulename, pg_get_ruledef(r.oid) AS definition, obj_description(r.oid, 'pg_rewrite') AS description FROM pg_rewrite r INNER JOIN pg_class c ON (c.oid = r.ev_class) INNER JOIN pg_namespace n ON (n.oid = c.relnamespace) WHERE r.rulename <> '_RETURN'::name AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' ORDER BY n.nspname, c.relname, r.rulename");
+	query = psprintf("SELECT r.oid, n.nspname AS schemaname, c.relname AS tablename, r.rulename, pg_get_ruledef(r.oid) AS definition, obj_description(r.oid, 'pg_rewrite') AS description FROM pg_rewrite r INNER JOIN pg_class c ON (c.oid = r.ev_class) INNER JOIN pg_namespace n ON (n.oid = c.relnamespace) WHERE r.rulename <> '_RETURN'::name AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' %s%s ORDER BY n.nspname, c.relname, r.rulename", include_schema_str, exclude_schema_str);
+
+	res = PQexec(c, query);
+
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

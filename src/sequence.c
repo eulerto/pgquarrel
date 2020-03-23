@@ -30,6 +30,7 @@ PQLSequence *
 getSequences(PGconn *c, int *n)
 {
 	PQLSequence		*s;
+	char			*query;
 	PGresult		*res;
 	int				i;
 
@@ -37,14 +38,16 @@ getSequences(PGconn *c, int *n)
 
 	if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
-		res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'S' AND nspname !~ '^pg_' AND nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, relname");
+		query = psprintf("SELECT c.oid, n.nspname, c.relname, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'S' AND nspname !~ '^pg_' AND nspname <> 'information_schema' %s%s AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY nspname, relname", include_schema_str, exclude_schema_str);
 	}
 	else
 	{
-		res = PQexec(c,
-					 "SELECT c.oid, n.nspname, c.relname, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'S' AND nspname !~ '^pg_' AND nspname <> 'information_schema' ORDER BY nspname, relname");
+		query = psprintf("SELECT c.oid, n.nspname, c.relname, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE relkind = 'S' AND nspname !~ '^pg_' AND nspname <> 'information_schema' %s%s ORDER BY nspname, relname", include_schema_str, exclude_schema_str);
 	}
+
+	res = PQexec(c, query);
+
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

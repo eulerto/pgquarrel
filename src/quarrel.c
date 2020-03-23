@@ -108,6 +108,10 @@ PGconn				*conn2;
 
 QuarrelGeneralOptions		options;	/* general options */
 
+/* filter by schema */
+char *include_schema_str;
+char *exclude_schema_str;
+
 PQLStatistic		qstat = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -295,6 +299,9 @@ help(void)
 		   (opts.general.type) ? "true" : "false");
 	printf("      --view=BOOL               view (default: %s)\n",
 		   (opts.general.view) ? "true" : "false");
+	printf("\nFilter options:\n");
+	printf("      --include-schema=PATTERN  include schemas that match PATTERN (default: all schemas)\n");
+	printf("      --exclude-schema=PATTERN  exclude schemas that match PATTERN (default: none)\n");
 	printf("\nSource options:\n");
 	printf("      --source-dbname=DBNAME    database name or connection string\n");
 	printf("      --source-host=HOSTNAME    server host or socket directory\n");
@@ -363,6 +370,9 @@ loadConfig(const char *cf, QuarrelOptions *options)
 	options->general.trigger = true;			/* general - trigger */
 	options->general.type = true;				/* general - type */
 	options->general.view = true;				/* general - view */
+
+	options->general.include_schema = NULL;		/* general - include schemas that match pattern */
+	options->general.exclude_schema = NULL;		/* general - exclude schemas that match pattern */
 
 	options->source.host = NULL;				/* source - host */
 	options->source.port = NULL;				/* source - port */
@@ -603,6 +613,15 @@ loadConfig(const char *cf, QuarrelOptions *options)
 		if (mini_file_get_value(config, "general", "view") != NULL)
 			options->general.view = parseBoolean("view", mini_file_get_value(config,
 												 "general", "view"));
+
+		/* filter options */
+		tmp = mini_file_get_value(config, "general", "include-schema");
+		if (tmp != NULL)
+			options->general.include_schema = strdup(tmp);
+
+		tmp = mini_file_get_value(config, "general", "exclude-schema");
+		if (tmp != NULL)
+			options->general.exclude_schema = strdup(tmp);
 
 		/* source options */
 		tmp = mini_file_get_value(config, "source", "host");
@@ -4650,6 +4669,8 @@ int main(int argc, char *argv[])
 		{"view", required_argument, NULL, 35},
 		{"ignore-version", no_argument, NULL, 36},
 		{"temp-directory", required_argument, NULL, 37},
+		{"include-schema", required_argument, NULL, 45},
+		{"exclude-schema", required_argument, NULL, 46},
 		{NULL, 0, NULL, 0}
 	};
 
@@ -4662,6 +4683,8 @@ int main(int argc, char *argv[])
 	bool		tmpdir_given = false;
 	bool		source_prompt_given = false;
 	bool		target_prompt_given = false;
+	bool		include_schema_given = false;
+	bool		exclude_schema_given = false;
 
 	/* general and connection options */
 	QuarrelOptions	opts;
@@ -4891,6 +4914,14 @@ int main(int argc, char *argv[])
 				gopts.transform = parseBoolean("transform", optarg);
 				gopts_given.transform = true;
 				break;
+			case 45:
+				gopts.include_schema = strdup(optarg);
+				include_schema_given = true;
+				break;
+			case 46:
+				gopts.exclude_schema = strdup(optarg);
+				exclude_schema_given = true;
+				break;
 			default:
 				fprintf(stderr, "Try \"%s --help\" for more information.\n", PGQ_NAME);
 				exit(EXIT_FAILURE);
@@ -4986,6 +5017,11 @@ int main(int argc, char *argv[])
 		options.type = gopts.type;
 	if (gopts_given.view)
 		options.view = gopts.view;
+
+	if (include_schema_given)
+		options.include_schema = gopts.include_schema;
+	if (exclude_schema_given)
+		options.exclude_schema = gopts.exclude_schema;
 
 	if (sopts.dbname)
 		opts.source.dbname = sopts.dbname;
@@ -5095,6 +5131,22 @@ int main(int argc, char *argv[])
 	/*
 	 * Let's start the party ...
 	 */
+
+	/*
+	 * Filter by schema. Multiple objects can use it, hence, build a unique string.
+	 */
+	if (options.include_schema != NULL)
+	{
+		include_schema_str = psprintf(" AND n.nspname ~ '%s'", options.include_schema);
+
+		logNoise("filter include schema: %s", include_schema_str);
+	}
+	if (options.exclude_schema != NULL)
+	{
+		exclude_schema_str = psprintf(" AND n.nspname !~ '%s'", options.exclude_schema);
+
+		logNoise("filter exclude schema: %s", exclude_schema_str);
+	}
 
 	/*
 	 * We cannot start sending everything to stdout here because we will have

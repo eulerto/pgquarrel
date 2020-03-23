@@ -27,8 +27,8 @@
 PQLConversion *
 getConversions(PGconn *c, int *n)
 {
-	char			*query;
 	PQLConversion	*d;
+	char			*query;
 	PGresult		*res;
 	int				i;
 
@@ -36,13 +36,11 @@ getConversions(PGconn *c, int *n)
 
 	if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
-		query = psprintf("SELECT c.oid, n.nspname as conschema, c.conname, pg_encoding_to_char(conforencoding) AS conforencoding, pg_encoding_to_char(contoencoding) AS contoencoding, conproc, condefault, obj_description(c.oid, 'pg_conversion') AS description, pg_get_userbyid(c.conowner) AS conowner FROM pg_conversion c LEFT JOIN pg_namespace n ON (c.connamespace = n.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, c.conname",
-						  PGQ_FIRST_USER_OID);
+		query = psprintf("SELECT c.oid, n.nspname as conschema, c.conname, pg_encoding_to_char(conforencoding) AS conforencoding, pg_encoding_to_char(contoencoding) AS contoencoding, conproc, condefault, obj_description(c.oid, 'pg_conversion') AS description, pg_get_userbyid(c.conowner) AS conowner FROM pg_conversion c LEFT JOIN pg_namespace n ON (c.connamespace = n.oid) WHERE c.oid >= %u %s%s AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, c.conname", PGQ_FIRST_USER_OID, include_schema_str, exclude_schema_str);
 	}
 	else
 	{
-		query = psprintf("SELECT c.oid, n.nspname as conschema, c.conname, pg_encoding_to_char(conforencoding) AS conforencoding, pg_encoding_to_char(contoencoding) AS contoencoding, conproc, condefault, obj_description(c.oid, 'pg_conversion') AS description, pg_get_userbyid(c.conowner) AS conowner FROM pg_conversion c LEFT JOIN pg_namespace n ON (c.connamespace = n.oid) WHERE c.oid >= %u ORDER BY n.nspname, c.conname",
-						  PGQ_FIRST_USER_OID);
+		query = psprintf("SELECT c.oid, n.nspname as conschema, c.conname, pg_encoding_to_char(conforencoding) AS conforencoding, pg_encoding_to_char(contoencoding) AS contoencoding, conproc, condefault, obj_description(c.oid, 'pg_conversion') AS description, pg_get_userbyid(c.conowner) AS conowner FROM pg_conversion c LEFT JOIN pg_namespace n ON (c.connamespace = n.oid) WHERE c.oid >= %u %s%s ORDER BY n.nspname, c.conname", PGQ_FIRST_USER_OID, include_schema_str, exclude_schema_str);
 	}
 
 	res = PQexec(c, query);

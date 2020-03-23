@@ -28,6 +28,7 @@ PQLStatistics *
 getStatistics(PGconn *c, int *n)
 {
 	PQLStatistics	*s;
+	char			*query;
 	PGresult		*res;
 	int				i;
 
@@ -40,8 +41,11 @@ getStatistics(PGconn *c, int *n)
 		return NULL;
 	}
 
-	res = PQexec(c,
-				 "SELECT s.oid, n.nspname AS nspname, s.stxname AS stxname, pg_get_statisticsobjdef(s.oid) AS stxdef, obj_description(s.oid, 'pg_statistic_ext') AS description, pg_get_userbyid(s.stxowner) AS stxowner FROM pg_statistic_ext s INNER JOIN pg_namespace n ON (s.stxnamespace = n.oid) ORDER BY n.nspname, s.stxname");
+	query = psprintf("SELECT s.oid, n.nspname AS nspname, s.stxname AS stxname, pg_get_statisticsobjdef(s.oid) AS stxdef, obj_description(s.oid, 'pg_statistic_ext') AS description, pg_get_userbyid(s.stxowner) AS stxowner FROM pg_statistic_ext s INNER JOIN pg_namespace n ON (s.stxnamespace = n.oid) WHERE TRUE %s%s ORDER BY n.nspname, s.stxname", include_schema_str, exclude_schema_str);
+
+	res = PQexec(c, query);
+
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

@@ -28,13 +28,17 @@ PQLIndex *
 getIndexes(PGconn *c, int *n)
 {
 	PQLIndex	*i;
+	char		*query;
 	PGresult	*res;
 	int			k;
 
 	logNoise("index: server version: %d", PQserverVersion(c));
 
-	res = PQexec(c,
-				 "SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, pg_get_indexdef(c.oid) AS indexdef, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) INNER JOIN pg_index i ON (i.indexrelid = c.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'i' AND nspname !~ '^pg_' AND nspname <> 'information_schema' AND NOT indisprimary ORDER BY nspname, relname");
+	query = psprintf("SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, pg_get_indexdef(c.oid) AS indexdef, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) INNER JOIN pg_index i ON (i.indexrelid = c.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'i' AND nspname !~ '^pg_' AND nspname <> 'information_schema' %s%s AND NOT indisprimary ORDER BY nspname, relname", include_schema_str, exclude_schema_str);
+
+	res = PQexec(c, query);
+
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

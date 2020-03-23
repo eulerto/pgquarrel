@@ -30,8 +30,8 @@
 PQLCollation *
 getCollations(PGconn *c, int *n)
 {
-	char			*query;
 	PQLCollation	*d;
+	char			*query;
 	PGresult		*res;
 	int				i;
 
@@ -45,13 +45,13 @@ getCollations(PGconn *c, int *n)
 	}
 	else if (PQserverVersion(c) >= 100000)
 	{
-		query = psprintf("SELECT c.oid, n.nspname, collname, pg_encoding_to_char(collencoding) AS collencoding, collcollate, collctype, collprovider, pg_get_userbyid(collowner) AS collowner, obj_description(c.oid, 'pg_collation') AS description FROM pg_collation c INNER JOIN pg_namespace n ON (c.collnamespace = n.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, collname",
-						  PGQ_FIRST_USER_OID);
+		query = psprintf("SELECT c.oid, n.nspname, collname, pg_encoding_to_char(collencoding) AS collencoding, collcollate, collctype, collprovider, pg_get_userbyid(collowner) AS collowner, obj_description(c.oid, 'pg_collation') AS description FROM pg_collation c INNER JOIN pg_namespace n ON (c.collnamespace = n.oid) WHERE c.oid >= %u %s%s AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, collname",
+						  PGQ_FIRST_USER_OID, include_schema_str, exclude_schema_str);
 	}
 	else
 	{
-		query = psprintf("SELECT c.oid, n.nspname, collname, pg_encoding_to_char(collencoding) AS collencoding, collcollate, collctype, NULL AS collprovider, pg_get_userbyid(collowner) AS collowner, obj_description(c.oid, 'pg_collation') AS description FROM pg_collation c INNER JOIN pg_namespace n ON (c.collnamespace = n.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, collname",
-						  PGQ_FIRST_USER_OID);
+		query = psprintf("SELECT c.oid, n.nspname, collname, pg_encoding_to_char(collencoding) AS collencoding, collcollate, collctype, NULL AS collprovider, pg_get_userbyid(collowner) AS collowner, obj_description(c.oid, 'pg_collation') AS description FROM pg_collation c INNER JOIN pg_namespace n ON (c.collnamespace = n.oid) WHERE c.oid >= %u %s%s AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, collname",
+						  PGQ_FIRST_USER_OID, include_schema_str, exclude_schema_str);
 	}
 
 	res = PQexec(c, query);

@@ -94,6 +94,10 @@ typedef struct QuarrelGeneralOptions
 	bool			trigger;
 	bool			type;
 	bool			view;
+
+	/* filter options */
+	char			*include_schema;
+	char			*exclude_schema;
 } QuarrelGeneralOptions;
 
 typedef struct QuarrelDatabaseOptions
@@ -176,6 +180,9 @@ extern int pgversion1;
 extern int pgversion2;
 
 extern QuarrelGeneralOptions options;
+
+extern char *include_schema_str;
+extern char *exclude_schema_str;
 
 typedef struct stringListCell
 {

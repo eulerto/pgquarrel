@@ -8,7 +8,7 @@ Introduction
 
 Given two database connections, it output a file that represent the difference between schemas. It means that if you run the output file into the *target* database, it'll have the same schema as the *source* database. The main use case is to deploy database changes into testing, staging or production environment.
 
-**pgquarrel** does not rely on another tool (such as **pg\_dump**) instead it connects directly to PostgreSQL server, obtain meta data from catalog, compare objects and output the commands necessary to turn *target* database into *source* database.
+**pgquarrel** does not rely on another tool (such as **pg\_dump**) instead it connects directly to PostgreSQL server, obtain meta data from catalog, compare objects and output the commands necessary to turn *target* database into *source* database. It also has filter options; that means, you can compare part of your objects.
 
 It could work with different PostgreSQL versions. The generated file could not work as expected if the *source* PostgreSQL version is greater than *target* PostgreSQL version. That's because the tool could generate commands that does not exist in a prior PostgreSQL version.
 
@@ -361,6 +361,8 @@ The following command-line options are provided (all are optional):
 * `trigger`: trigger comparison (default: true).
 * `type`: type comparison (default: true).
 * `view`: view comparison (default: true).
+* `include-schema`: include schemas that match pattern (default: all schemas).
+* `exclude-schema`: exclude schemas that match pattern (default: none).
 
 You can use a configuration file to store the desired options. The _general_ section specifies which kind of objects will be output. The _target_ and _source_ section options specifies connection options to both servers. Have in mind that any command-line option can override the configuration file option. The configuration file contains the following structure:
 
@@ -406,6 +408,9 @@ transform = false
 trigger = true
 type = true
 view = true
+
+include-schema = ^(hr|finance|account|crm|sales)$
+exclude-schema = ^public$
 
 [target]
 host = 10.27.0.8
