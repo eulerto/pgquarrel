@@ -105,7 +105,7 @@ getEventTriggers(PGconn *c, int *n)
 void
 getEventTriggerSecurityLabels(PGconn *c, PQLEventTrigger *e)
 {
-	char		query[200];
+	char		*query;
 	PGresult	*res;
 	int			i;
 
@@ -115,11 +115,12 @@ getEventTriggerSecurityLabels(PGconn *c, PQLEventTrigger *e)
 		return;
 	}
 
-	snprintf(query, 200,
-			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_event_trigger' AND s.objoid = %u ORDER BY provider",
+	query = psprintf("SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_event_trigger' AND s.objoid = %u ORDER BY provider",
 			 e->oid);
 
 	res = PQexec(c, query);
+
+	free(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

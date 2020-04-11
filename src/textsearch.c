@@ -47,27 +47,14 @@
 PQLTextSearchConfig *
 getTextSearchConfigs(PGconn *c, int *n)
 {
-	char					*query = NULL;
-	int						nquery = 0;
+	char					*query;
 	PQLTextSearchConfig		*d;
 	PGresult				*res;
 	int						i;
 
 	logNoise("text search configuration: server version: %d", PQserverVersion(c));
 
-	/* determine how many characters will be written by snprintf */
-	nquery = snprintf(query, nquery,
-					  "SELECT c.oid, n.nspname, c.cfgname, quote_ident(o.nspname) || '.' || quote_ident(p.prsname) AS prsname, quote_ident(q.nspname) || '.' || quote_ident(d.dictname) AS dictname, (SELECT string_agg(alias, ', ') FROM ts_token_type(p.oid) AS t) AS tokentype, obj_description(c.oid, 'pg_ts_config') AS description, pg_get_userbyid(c.cfgowner) AS cfgowner FROM pg_ts_config c INNER JOIN pg_namespace n ON (c.cfgnamespace = n.oid) INNER JOIN pg_ts_parser p ON (c.cfgparser = p.oid) INNER JOIN pg_namespace o ON (p.prsnamespace = o.oid) INNER JOIN pg_ts_config_map m ON (c.oid = m.mapcfg) INNER JOIN pg_ts_dict d ON (m.mapdict = d.oid) INNER JOIN pg_namespace q ON (d.dictnamespace = q.oid) WHERE c.oid >= %u ORDER BY n.nspname, c.cfgname",
-					  PGQ_FIRST_USER_OID);
-
-	nquery++;
-	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-	snprintf(query, nquery,
-			 "SELECT c.oid, n.nspname, c.cfgname, quote_ident(o.nspname) || '.' || quote_ident(p.prsname) AS prsname, quote_ident(q.nspname) || '.' || quote_ident(d.dictname) AS dictname, (SELECT string_agg(alias, ', ') FROM ts_token_type(p.oid) AS t) AS tokentype, obj_description(c.oid, 'pg_ts_config') AS description, pg_get_userbyid(c.cfgowner) AS cfgowner FROM pg_ts_config c INNER JOIN pg_namespace n ON (c.cfgnamespace = n.oid) INNER JOIN pg_ts_parser p ON (c.cfgparser = p.oid) INNER JOIN pg_namespace o ON (p.prsnamespace = o.oid) INNER JOIN pg_ts_config_map m ON (c.oid = m.mapcfg) INNER JOIN pg_ts_dict d ON (m.mapdict = d.oid) INNER JOIN pg_namespace q ON (d.dictnamespace = q.oid) WHERE c.oid >= %u ORDER BY n.nspname, c.cfgname",
-			 PGQ_FIRST_USER_OID);
-
-	logNoise("text search configuration: query size: %d ; query: %s", nquery,
-			 query);
+	query = psprintf("SELECT c.oid, n.nspname, c.cfgname, quote_ident(o.nspname) || '.' || quote_ident(p.prsname) AS prsname, quote_ident(q.nspname) || '.' || quote_ident(d.dictname) AS dictname, (SELECT string_agg(alias, ', ') FROM ts_token_type(p.oid) AS t) AS tokentype, obj_description(c.oid, 'pg_ts_config') AS description, pg_get_userbyid(c.cfgowner) AS cfgowner FROM pg_ts_config c INNER JOIN pg_namespace n ON (c.cfgnamespace = n.oid) INNER JOIN pg_ts_parser p ON (c.cfgparser = p.oid) INNER JOIN pg_namespace o ON (p.prsnamespace = o.oid) INNER JOIN pg_ts_config_map m ON (c.oid = m.mapcfg) INNER JOIN pg_ts_dict d ON (m.mapdict = d.oid) INNER JOIN pg_namespace q ON (d.dictnamespace = q.oid) WHERE c.oid >= %u ORDER BY n.nspname, c.cfgname", PGQ_FIRST_USER_OID);
 
 	res = PQexec(c, query);
 
@@ -134,26 +121,14 @@ getTextSearchConfigs(PGconn *c, int *n)
 PQLTextSearchDict *
 getTextSearchDicts(PGconn *c, int *n)
 {
-	char					*query = NULL;
-	int						nquery = 0;
+	char					*query;
 	PQLTextSearchDict		*d;
 	PGresult				*res;
 	int						i;
 
 	logNoise("text search dictionary: server version: %d", PQserverVersion(c));
 
-	/* determine how many characters will be written by snprintf */
-	nquery = snprintf(query, nquery,
-					  "SELECT d.oid, n.nspname, d.dictname, d.dictinitoption, quote_ident(o.nspname) || '.' || t.tmplname AS tmplname, obj_description(d.oid, 'pg_ts_dict') AS description, pg_get_userbyid(d.dictowner) AS dictowner FROM pg_ts_dict d INNER JOIN pg_namespace n ON (d.dictnamespace = n.oid) INNER JOIN pg_ts_template t ON (d.dicttemplate = t.oid) INNER JOIN pg_namespace o ON (t.tmplnamespace = o.oid) WHERE d.oid >= %u ORDER BY n.nspname, d.dictname",
-					  PGQ_FIRST_USER_OID);
-
-	nquery++;
-	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-	snprintf(query, nquery,
-			 "SELECT d.oid, n.nspname, d.dictname, d.dictinitoption, quote_ident(o.nspname) || '.' || t.tmplname AS tmplname, obj_description(d.oid, 'pg_ts_dict') AS description, pg_get_userbyid(d.dictowner) AS dictowner FROM pg_ts_dict d INNER JOIN pg_namespace n ON (d.dictnamespace = n.oid) INNER JOIN pg_ts_template t ON (d.dicttemplate = t.oid) INNER JOIN pg_namespace o ON (t.tmplnamespace = o.oid) WHERE d.oid >= %u ORDER BY n.nspname, d.dictname",
-			 PGQ_FIRST_USER_OID);
-
-	logNoise("text search dictionary: query size: %d ; query: %s", nquery, query);
+	query = psprintf("SELECT d.oid, n.nspname, d.dictname, d.dictinitoption, quote_ident(o.nspname) || '.' || t.tmplname AS tmplname, obj_description(d.oid, 'pg_ts_dict') AS description, pg_get_userbyid(d.dictowner) AS dictowner FROM pg_ts_dict d INNER JOIN pg_namespace n ON (d.dictnamespace = n.oid) INNER JOIN pg_ts_template t ON (d.dicttemplate = t.oid) INNER JOIN pg_namespace o ON (t.tmplnamespace = o.oid) WHERE d.oid >= %u ORDER BY n.nspname, d.dictname", PGQ_FIRST_USER_OID);
 
 	res = PQexec(c, query);
 
@@ -219,26 +194,14 @@ getTextSearchDicts(PGconn *c, int *n)
 PQLTextSearchParser *
 getTextSearchParsers(PGconn *c, int *n)
 {
-	char					*query = NULL;
-	int						nquery = 0;
+	char					*query;
 	PQLTextSearchParser		*p;
 	PGresult				*res;
 	int						i;
 
 	logNoise("text search parser: server version: %d", PQserverVersion(c));
 
-	/* determine how many characters will be written by snprintf */
-	nquery = snprintf(query, nquery,
-					  "SELECT p.oid, n.nspname, p.prsname, quote_ident(o.nspname) || '.' || quote_ident(a.proname) AS startfunc, quote_ident(q.nspname) || '.' || quote_ident(b.proname) AS tokenfunc, quote_ident(r.nspname) || '.' || quote_ident(a.proname) AS endfunc, quote_ident(s.nspname) || '.' || quote_ident(d.proname) AS lextypefunc, quote_ident(t.nspname) || '.' || quote_ident(e.proname) AS headlinefunc, obj_description(p.oid, 'pg_ts_parser') AS description FROM pg_ts_parser p INNER JOIN pg_namespace n ON (p.prsnamespace = n.oid) INNER JOIN (pg_proc a INNER JOIN pg_namespace o ON (a.pronamespace = o.oid)) ON (p.prsstart = a.oid) INNER JOIN (pg_proc b INNER JOIN pg_namespace q ON (b.pronamespace = q.oid)) ON (p.prstoken = b.oid) INNER JOIN (pg_proc c INNER JOIN pg_namespace r ON (c.pronamespace = r.oid)) ON (p.prsend = c.oid) INNER JOIN (pg_proc d INNER JOIN pg_namespace s ON (d.pronamespace = s.oid)) ON (p.prslextype = d.oid) LEFT JOIN (pg_proc e INNER JOIN pg_namespace t ON (e.pronamespace = t.oid)) ON (p.prsheadline = e.oid) WHERE p.oid >= %u ORDER BY n.nspname, p.prsname",
-					  PGQ_FIRST_USER_OID);
-
-	nquery++;
-	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-	snprintf(query, nquery,
-			 "SELECT p.oid, n.nspname, p.prsname, quote_ident(o.nspname) || '.' || quote_ident(a.proname) AS startfunc, quote_ident(q.nspname) || '.' || quote_ident(b.proname) AS tokenfunc, quote_ident(r.nspname) || '.' || quote_ident(a.proname) AS endfunc, quote_ident(s.nspname) || '.' || quote_ident(d.proname) AS lextypefunc, quote_ident(t.nspname) || '.' || quote_ident(e.proname) AS headlinefunc, obj_description(p.oid, 'pg_ts_parser') AS description FROM pg_ts_parser p INNER JOIN pg_namespace n ON (p.prsnamespace = n.oid) INNER JOIN (pg_proc a INNER JOIN pg_namespace o ON (a.pronamespace = o.oid)) ON (p.prsstart = a.oid) INNER JOIN (pg_proc b INNER JOIN pg_namespace q ON (b.pronamespace = q.oid)) ON (p.prstoken = b.oid) INNER JOIN (pg_proc c INNER JOIN pg_namespace r ON (c.pronamespace = r.oid)) ON (p.prsend = c.oid) INNER JOIN (pg_proc d INNER JOIN pg_namespace s ON (d.pronamespace = s.oid)) ON (p.prslextype = d.oid) LEFT JOIN (pg_proc e INNER JOIN pg_namespace t ON (e.pronamespace = t.oid)) ON (p.prsheadline = e.oid) WHERE p.oid >= %u ORDER BY n.nspname, p.prsname",
-			 PGQ_FIRST_USER_OID);
-
-	logNoise("text search parser: query size: %d ; query: %s", nquery, query);
+	query = psprintf("SELECT p.oid, n.nspname, p.prsname, quote_ident(o.nspname) || '.' || quote_ident(a.proname) AS startfunc, quote_ident(q.nspname) || '.' || quote_ident(b.proname) AS tokenfunc, quote_ident(r.nspname) || '.' || quote_ident(a.proname) AS endfunc, quote_ident(s.nspname) || '.' || quote_ident(d.proname) AS lextypefunc, quote_ident(t.nspname) || '.' || quote_ident(e.proname) AS headlinefunc, obj_description(p.oid, 'pg_ts_parser') AS description FROM pg_ts_parser p INNER JOIN pg_namespace n ON (p.prsnamespace = n.oid) INNER JOIN (pg_proc a INNER JOIN pg_namespace o ON (a.pronamespace = o.oid)) ON (p.prsstart = a.oid) INNER JOIN (pg_proc b INNER JOIN pg_namespace q ON (b.pronamespace = q.oid)) ON (p.prstoken = b.oid) INNER JOIN (pg_proc c INNER JOIN pg_namespace r ON (c.pronamespace = r.oid)) ON (p.prsend = c.oid) INNER JOIN (pg_proc d INNER JOIN pg_namespace s ON (d.pronamespace = s.oid)) ON (p.prslextype = d.oid) LEFT JOIN (pg_proc e INNER JOIN pg_namespace t ON (e.pronamespace = t.oid)) ON (p.prsheadline = e.oid) WHERE p.oid >= %u ORDER BY n.nspname, p.prsname", PGQ_FIRST_USER_OID);
 
 	res = PQexec(c, query);
 
@@ -305,25 +268,14 @@ getTextSearchParsers(PGconn *c, int *n)
 PQLTextSearchTemplate *
 getTextSearchTemplates(PGconn *c, int *n)
 {
-	char					*query = NULL;
-	int						nquery = 0;
+	char					*query;
 	PQLTextSearchTemplate	*t;
 	PGresult				*res;
 	int						i;
 
 	logNoise("text search template: server version: %d", PQserverVersion(c));
 
-	nquery = snprintf(query, nquery,
-					  "SELECT t.oid, n.nspname, t.tmplname, quote_ident(o.nspname) || '.' || quote_ident(a.proname) AS tmpllexize, quote_ident(p.nspname) || '.' || quote_ident(b.proname) AS tmplinit, obj_description(t.oid, 'pg_ts_template') AS description FROM pg_ts_template t INNER JOIN pg_namespace n ON (t.tmplnamespace = n.oid) INNER JOIN (pg_proc a INNER JOIN pg_namespace o ON (a.pronamespace = o.oid)) ON (t.tmpllexize = a.oid) LEFT JOIN (pg_proc b INNER JOIN pg_namespace p ON (b.pronamespace = p.oid)) ON (t.tmplinit = b.oid) WHERE t.oid >= %u ORDER BY n.nspname, t.tmplname",
-					  PGQ_FIRST_USER_OID);
-
-	nquery++;
-	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-	snprintf(query, nquery,
-			 "SELECT t.oid, n.nspname, t.tmplname, quote_ident(o.nspname) || '.' || quote_ident(a.proname) AS tmpllexize, quote_ident(p.nspname) || '.' || quote_ident(b.proname) AS tmplinit, obj_description(t.oid, 'pg_ts_template') AS description FROM pg_ts_template t INNER JOIN pg_namespace n ON (t.tmplnamespace = n.oid) INNER JOIN (pg_proc a INNER JOIN pg_namespace o ON (a.pronamespace = o.oid)) ON (t.tmpllexize = a.oid) LEFT JOIN (pg_proc b INNER JOIN pg_namespace p ON (b.pronamespace = p.oid)) ON (t.tmplinit = b.oid) WHERE t.oid >= %u ORDER BY n.nspname, t.tmplname",
-			 PGQ_FIRST_USER_OID);
-
-	logNoise("text search template: query size: %d ; query: %s", nquery, query);
+	query = psprintf("SELECT t.oid, n.nspname, t.tmplname, quote_ident(o.nspname) || '.' || quote_ident(a.proname) AS tmpllexize, quote_ident(p.nspname) || '.' || quote_ident(b.proname) AS tmplinit, obj_description(t.oid, 'pg_ts_template') AS description FROM pg_ts_template t INNER JOIN pg_namespace n ON (t.tmplnamespace = n.oid) INNER JOIN (pg_proc a INNER JOIN pg_namespace o ON (a.pronamespace = o.oid)) ON (t.tmpllexize = a.oid) LEFT JOIN (pg_proc b INNER JOIN pg_namespace p ON (b.pronamespace = p.oid)) ON (t.tmplinit = b.oid) WHERE t.oid >= %u ORDER BY n.nspname, t.tmplname", PGQ_FIRST_USER_OID);
 
 	res = PQexec(c, query);
 

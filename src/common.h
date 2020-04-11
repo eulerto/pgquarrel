@@ -15,6 +15,7 @@
 #include <stdarg.h>
 #include <libpq-fe.h>
 #include <c.h>			/* bool, true, false */
+#include <postgres_fe.h>
 
 #if defined(_WINDOWS)
 #define	strcasecmp	_stricmp

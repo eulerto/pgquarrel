@@ -107,7 +107,7 @@ getSchemas(PGconn *c, int *n)
 void
 getSchemaSecurityLabels(PGconn *c, PQLSchema *s)
 {
-	char		query[200];
+	char		*query;
 	PGresult	*res;
 	int			i;
 
@@ -117,11 +117,11 @@ getSchemaSecurityLabels(PGconn *c, PQLSchema *s)
 		return;
 	}
 
-	snprintf(query, 200,
-			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_namespace' AND s.objoid = %u ORDER BY provider",
-			 s->oid);
+	query = psprintf("SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_namespace' AND s.objoid = %u ORDER BY provider", s->oid);
 
 	res = PQexec(c, query);
+
+	free(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

@@ -113,7 +113,7 @@ getLanguages(PGconn *c, int *n)
 void
 getLanguageSecurityLabels(PGconn *c, PQLLanguage *l)
 {
-	char		query[200];
+	char		*query;
 	PGresult	*res;
 	int			i;
 
@@ -123,11 +123,11 @@ getLanguageSecurityLabels(PGconn *c, PQLLanguage *l)
 		return;
 	}
 
-	snprintf(query, 200,
-			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_language' AND s.objoid = %u ORDER BY provider",
-			 l->oid);
+	query = psprintf("SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_language' AND s.objoid = %u ORDER BY provider", l->oid);
 
 	res = PQexec(c, query);
+
+	free(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
