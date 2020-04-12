@@ -77,6 +77,19 @@ add_subdirectory(mini)
 
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -Wall -Wmissing-prototypes -Wpointer-arith -Wdeclaration-after-statement -Wendif-labels -fno-strict-aliasing -fwrapv -g")
+	#
+	# Coverage
+	#
+	# $ cmake -DCOVERAGE=1 . ; make clean; make
+	# $ cd test
+	# $ ./run-test.sh 11 11 init
+	# point your browser to pgquarrel/coverage/index.html
+	if(COVERAGE)
+		message("COVERAGE: yes")
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage")
+	else()
+		message("COVERAGE: no")
+	endif()
 endif()
 
 # It does not accurately detect PostgreSQL headers and libraries
@@ -264,25 +277,3 @@ add_custom_target("style" COMMAND
 	${CMAKE_CURRENT_SOURCE_DIR}/src/*.h
 	VERBATIM
 )
-
-# coverage
-#include(CodeCoverage)
-#set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -fprofile-arcs -ftest-coverage")
-#setup_target_for_coverage(coverage_target mytests coverage_dir)
-
-# cmake -DCMAKE_BUILD_TYPE=Debug ..
-# make
-# make coverage_target
-
-#
-# MANUAL COVERAGE
-#
-# uncomment the line below:
-#set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage")
-#
-# $ cd pgquarrel/
-# $ rm -rf CMakeFiles/
-# $ cmake -DCMAKE_PREFIX_PATH=/home/euler/pg945 . ; make clean; make
-# $ cd test
-# $ ./run-test.sh init
-# point your browser to pgquarrel/coverage/index.html
