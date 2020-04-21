@@ -22,6 +22,8 @@ typedef struct PQLView
 	char			*comment;
 	char			*owner;
 
+	bool			has_dependants;
+
 	/* security labels */
 	PQLSecLabel		*seclabels;
 	int				nseclabels;
