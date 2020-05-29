@@ -2,7 +2,7 @@
  *
  * pgquarrel -- comparing database schemas
  *
- * Copyright (c) 2015-2018, Euler Taveira
+ * Copyright (c) 2015-2020, Euler Taveira
  *
  * ---------------------------------------------------------------------
  */
@@ -15,6 +15,7 @@
 #include <stdarg.h>
 #include <libpq-fe.h>
 #include <c.h>			/* bool, true, false */
+#include <postgres_fe.h>
 
 #if defined(_WINDOWS)
 #define	strcasecmp	_stricmp

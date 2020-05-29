@@ -21,7 +21,7 @@
  * ALTER MATERIALIZED VIEW ... SET TABLESPACE
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
- * Copyright (c) 2015-2018, Euler Taveira
+ * Copyright (c) 2015-2020, Euler Taveira
  *
  * ---------------------------------------------------------------------
  */
@@ -150,24 +150,13 @@ getMaterializedViews(PGconn *c, int *n)
 void
 getMaterializedViewAttributes(PGconn *c, PQLMaterializedView *v)
 {
-	char		*query = NULL;
-	int			nquery = 0;
+	char		*query;
 	PGresult	*res;
 	int			i;
 
-	/* determine how many characters will be written by snprintf */
 	/* FIXME attcollation (9.1)? */
-	nquery = snprintf(query, nquery,
-					  "SELECT a.attnum, a.attname, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
+	query = psprintf("SELECT a.attnum, a.attname, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
 					  v->obj.oid);
-
-	nquery++;
-	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-	snprintf(query, nquery,
-			 "SELECT a.attnum, a.attname, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
-			 v->obj.oid);
-
-	logNoise("materialized view: query size: %d ; query: %s", nquery, query);
 
 	res = PQexec(c, query);
 
@@ -248,7 +237,7 @@ getMaterializedViewAttributes(PGconn *c, PQLMaterializedView *v)
 void
 getMaterializedViewSecurityLabels(PGconn *c, PQLMaterializedView *v)
 {
-	char		query[200];
+	char		*query;
 	PGresult	*res;
 	int			i;
 
@@ -258,11 +247,12 @@ getMaterializedViewSecurityLabels(PGconn *c, PQLMaterializedView *v)
 		return;
 	}
 
-	snprintf(query, 200,
-			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_class' AND s.objoid = %u ORDER BY provider",
+	query = psprintf("SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_class' AND s.objoid = %u ORDER BY provider",
 			 v->obj.oid);
 
 	res = PQexec(c, query);
+
+	free(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

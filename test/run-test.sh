@@ -12,17 +12,17 @@ LCOV="/usr/bin/lcov"
 GENHTML="/usr/bin/genhtml"
 VGCMD="/usr/bin/valgrind --leak-check=full --show-leak-kinds=all"
 
-PGUSER1=quarrel
-PGUSER2=quarrel
+PGUSER1=${PGUSER1:-"quarrel"}
+PGUSER2=${PGUSER2:-"quarrel"}
 
-PGPORT1=9901
-PGPORT2=9902
+PGPORT1=${PGPORT1:-9901}
+PGPORT2=${PGPORT2:-9902}
 
-VERBOSE="-v -v -v"
-CLEANUP=0
-COVERAGE=0
-VALGRIND=0
-STOPAFTERTESTS=1
+VERBOSE=${VERBOSE:-"-v -v -v"}
+CLEANUP=${CLEANUP:-0}
+COVERAGE=${COVERAGE:-0}
+VALGRIND=${VALGRIND:-0}
+STOPAFTERTESTS=${STOPAFTERTESTS:-1}
 
 CLUSTERPATH=${CLUSTERPATH:-"/tmp"}
 ###############################################
@@ -127,7 +127,11 @@ $PGPATH2/psql -U $PGUSER2 -p $PGPORT2 -X -f test-server2.sql postgres > /dev/nul
 
 echo "quarrel..."
 if [ $VALGRIND -eq 1 ]; then
-	$VGCMD $PGQUARREL $VERBOSE -c test.ini
+	if [ ! -f $VGCMD ]; then
+		echo "valgrind is not installed"
+	else
+		$VGCMD $PGQUARREL $VERBOSE -c test.ini
+	fi
 	exit 0
 else
 	$PGQUARREL $VERBOSE -c test.ini
@@ -159,15 +163,23 @@ if [ $CLEANUP -eq 1 ]; then
 fi
 
 if [ $COVERAGE -eq 1 ]; then
-	echo "coverage test..."
-	mkdir -p $BASEWD/coverage
-	cd $BASEWD/src
-	for i in *.c; do
-		echo "$i $i.gcno $i.gcov.out"
-		$GCOV -b -f -p -o $BASEWD/CMakeFiles/pgquarrel.dir/src/$i.gcno $BASEWD/src/$i > $BASEWD/CMakeFiles/pgquarrel.dir/src/$i.gcov.out
-	done
-	$LCOV -c -d $BASEWD/CMakeFiles/pgquarrel.dir/src -o $BASEWD/CMakeFiles/pgquarrel.dir/src/lcov.info --gcov-tool $GCOV
-	$GENHTML --show-details --legend --output-directory=$BASEWD/coverage --title=PostgreSQL --num-spaces=4 $BASEWD/CMakeFiles/pgquarrel.dir/src/lcov.info
+	if [ ! -f $GCOV ]; then
+		echo "gcov is not installed"
+	elif [ ! -f $LCOV ]; then
+		echo "lcov is not installed"
+	elif [ ! -f $GENHTML ]; then
+		echo "genhtml is not installed"
+	else
+		echo "coverage test..."
+		mkdir -p $BASEWD/coverage
+		cd $BASEWD/src
+		for i in *.c; do
+			echo "$i $i.gcno $i.gcov.out"
+			$GCOV -b -f -p -o $BASEWD/CMakeFiles/pgquarrel.dir/src/$i.gcno $BASEWD/src/$i > $BASEWD/CMakeFiles/pgquarrel.dir/src/$i.gcov.out
+		done
+		$LCOV -c -d $BASEWD/CMakeFiles/pgquarrel.dir/src -o $BASEWD/CMakeFiles/pgquarrel.dir/src/lcov.info --gcov-tool $GCOV
+		$GENHTML --show-details --legend --output-directory=$BASEWD/coverage --title=PostgreSQL --num-spaces=4 $BASEWD/CMakeFiles/pgquarrel.dir/src/lcov.info
+	fi
 fi
 
 if [ $STOPAFTERTESTS -eq 1 ]; then

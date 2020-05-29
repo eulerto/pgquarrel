@@ -77,6 +77,19 @@ add_subdirectory(mini)
 
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -Wall -Wmissing-prototypes -Wpointer-arith -Wdeclaration-after-statement -Wendif-labels -fno-strict-aliasing -fwrapv -g")
+	#
+	# Coverage
+	#
+	# $ cmake -DCOVERAGE=1 . ; make clean; make
+	# $ cd test
+	# $ ./run-test.sh 11 11 init
+	# point your browser to pgquarrel/coverage/index.html
+	if(COVERAGE)
+		message("COVERAGE: yes")
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage")
+	else()
+		message("COVERAGE: no")
+	endif()
 endif()
 
 # It does not accurately detect PostgreSQL headers and libraries
@@ -136,6 +149,9 @@ else()
 		if(EXISTS "${pgpath}/libpgcommon.lib")
 			set(LIBS ${LIBS} "${pgpath}/libpgcommon.lib")
 		endif()
+		if(EXISTS "${pgpath}/libintl.lib")
+			set(LIBS ${LIBS} "${pgpath}/libintl.lib")
+		endif()
 
 		set(PostgreSQL_LIBRARIES "${PostgreSQL_LIBRARY_DIRS}/libpq.lib")
 	else()
@@ -168,7 +184,16 @@ else()
 			endif()
 		endif()
 
-		set(PostgreSQL_LIBRARIES "${PostgreSQL_LIBRARY_DIRS}/libpq.so")
+		# MacOS has libpq.dylib
+		if(APPLE)
+			if(EXISTS "${PostgreSQL_LIBRARY_DIRS}/libpq.dylib")
+				set(PostgreSQL_LIBRARIES "${PostgreSQL_LIBRARY_DIRS}/libpq.dylib")
+			endif()
+		else()
+			if(EXISTS "${PostgreSQL_LIBRARY_DIRS}/libpq.so")
+				set(PostgreSQL_LIBRARIES "${PostgreSQL_LIBRARY_DIRS}/libpq.so")
+			endif()
+		endif()
 	endif()
 
 	# setup include directories
@@ -211,6 +236,8 @@ set(LIBS ${LIBS} mini)
 # postgres library directory is not in the dynamic linker
 #set_target_properties(pgquarrel PROPERTIES LINK_FLAGS "-L${PostgreSQL_LIBRARY_DIRS}")
 
+set_target_properties(pgquarrel PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib)
+
 target_link_libraries(pgquarrel ${LIBS})
 
 install(TARGETS pgquarrel RUNTIME DESTINATION bin)
@@ -218,6 +245,14 @@ install(TARGETS pgquarrel RUNTIME DESTINATION bin)
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	install(FILES ${PostgreSQL_LIBRARY_DIRS}/libpq.dll DESTINATION bin)
 	install(FILES ${PROJECT_BINARY_DIR}/mini/$<CONFIGURATION>/mini.dll DESTINATION bin)
+	# include some libraries if available
+	execute_process(COMMAND ${PGCONFIG_PATH} --bindir OUTPUT_VARIABLE pgbin OUTPUT_STRIP_TRAILING_WHITESPACE)
+	install(DIRECTORY ${pgbin}/ DESTINATION bin FILES_MATCHING PATTERN "libcrypto*.dll")
+	install(DIRECTORY ${pgbin}/ DESTINATION bin FILES_MATCHING PATTERN "libiconv*.dll")
+	install(DIRECTORY ${pgbin}/ DESTINATION bin FILES_MATCHING PATTERN "libintl*.dll")
+	install(DIRECTORY ${pgbin}/ DESTINATION bin FILES_MATCHING PATTERN "libssl*.dll")
+	install(FILES ${pgbin}/ssleay32.dll DESTINATION bin)
+	install(FILES ${pgbin}/libeay32.dll DESTINATION bin)
 endif()
 
 find_program(astyle_EXECUTABLE astyle DOC "source code indenter, formatter, and beautifier")
@@ -242,25 +277,3 @@ add_custom_target("style" COMMAND
 	${CMAKE_CURRENT_SOURCE_DIR}/src/*.h
 	VERBATIM
 )
-
-# coverage
-#include(CodeCoverage)
-#set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -fprofile-arcs -ftest-coverage")
-#setup_target_for_coverage(coverage_target mytests coverage_dir)
-
-# cmake -DCMAKE_BUILD_TYPE=Debug ..
-# make
-# make coverage_target
-
-#
-# MANUAL COVERAGE
-#
-# uncomment the line below:
-#set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage")
-#
-# $ cd pgquarrel/
-# $ rm -rf CMakeFiles/
-# $ cmake -DCMAKE_PREFIX_PATH=/home/euler/pg945 . ; make clean; make
-# $ cd test
-# $ ./run-test.sh init
-# point your browser to pgquarrel/coverage/index.html

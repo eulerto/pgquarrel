@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/eulerto/pgquarrel.svg?branch=master)](https://travis-ci.org/eulerto/pgquarrel)
+[![Coverity Status](https://scan.coverity.com/projects/8369/badge.svg)](https://scan.coverity.com/projects/pgquarrel)
 
 Introduction
 ============
@@ -34,8 +35,8 @@ Before installing **pgquarrel**, you should have PostgreSQL 9.0+ installed (incl
 If you compile PostgreSQL by yourself and install it in `/home/euler/pg12`:
 
 ```
-$ tar -zxf pgquarrel-0.6.0.tgz
-$ cd pgquarrel-0.6.0
+$ tar -zxf pgquarrel-0.7.0.tgz
+$ cd pgquarrel-0.7.0
 $ cmake -DCMAKE_INSTALL_PREFIX=$HOME/pgquarrel -DCMAKE_PREFIX_PATH=/home/euler/pg12 .
 $ make
 $ make install
@@ -45,8 +46,8 @@ If you are using [PostgreSQL yum repository](https://yum.postgresql.org):
 
 ```
 $ sudo yum install postgresql12-devel
-$ tar -zxf pgquarrel-0.6.0.tgz
-$ cd pgquarrel-0.6.0
+$ tar -zxf pgquarrel-0.7.0.tgz
+$ cd pgquarrel-0.7.0
 $ cmake -DCMAKE_INSTALL_PREFIX=$HOME/pgquarrel -DCMAKE_PREFIX_PATH=/usr/pgsql-12 .
 $ make
 $ make install
@@ -56,8 +57,8 @@ If you are using [PostgreSQL apt repository](https://wiki.postgresql.org/wiki/Ap
 
 ```
 $ sudo apt-get install postgresql-server-dev-12
-$ tar -zxf pgquarrel-0.6.0.tgz
-$ cd pgquarrel-0.6.0
+$ tar -zxf pgquarrel-0.7.0.tgz
+$ cd pgquarrel-0.7.0
 $ cmake -DCMAKE_INSTALL_PREFIX=$HOME/pgquarrel -DCMAKE_PREFIX_PATH=/usr/lib/postgresql/12 .
 $ make
 $ make install
@@ -426,7 +427,7 @@ Regression Tests
 
 ```
 $ # adjust test/run-test.sh
-$ cd pgquarrel-0.6.0/test
+$ cd pgquarrel-0.7.0/test
 $ # test using 11 on both clusters
 $ ./run-test.sh 11 11 init
 ```
@@ -434,7 +435,7 @@ $ ./run-test.sh 11 11 init
 License
 =======
 
-> Copyright © 2015-2018 Euler Taveira de Oliveira
+> Copyright © 2015-2020 Euler Taveira de Oliveira
 > All rights reserved.
 
 > Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:

@@ -17,7 +17,7 @@
  * ALTER CONVERSION ... SET SCHEMA
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
- * Copyright (c) 2015-2018, Euler Taveira
+ * Copyright (c) 2015-2020, Euler Taveira
  *
  * ---------------------------------------------------------------------
  */
@@ -27,8 +27,7 @@
 PQLConversion *
 getConversions(PGconn *c, int *n)
 {
-	char			*query = NULL;
-	int				nquery = 0;
+	char			*query;
 	PQLConversion	*d;
 	PGresult		*res;
 	int				i;
@@ -37,33 +36,13 @@ getConversions(PGconn *c, int *n)
 
 	if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
-		/* determine how many characters will be written by snprintf */
-		nquery = snprintf(query, nquery,
-						  "SELECT c.oid, n.nspname as conschema, c.conname, pg_encoding_to_char(conforencoding) AS conforencoding, pg_encoding_to_char(contoencoding) AS contoencoding, conproc, condefault, obj_description(c.oid, 'pg_conversion') AS description, pg_get_userbyid(c.conowner) AS conowner FROM pg_conversion c LEFT JOIN pg_namespace n ON (c.connamespace = n.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, c.conname",
+		query = psprintf("SELECT c.oid, n.nspname as conschema, c.conname, pg_encoding_to_char(conforencoding) AS conforencoding, pg_encoding_to_char(contoencoding) AS contoencoding, conproc, condefault, obj_description(c.oid, 'pg_conversion') AS description, pg_get_userbyid(c.conowner) AS conowner FROM pg_conversion c LEFT JOIN pg_namespace n ON (c.connamespace = n.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, c.conname",
 						  PGQ_FIRST_USER_OID);
-
-		nquery++;
-		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-		snprintf(query, nquery,
-				 "SELECT c.oid, n.nspname as conschema, c.conname, pg_encoding_to_char(conforencoding) AS conforencoding, pg_encoding_to_char(contoencoding) AS contoencoding, conproc, condefault, obj_description(c.oid, 'pg_conversion') AS description, pg_get_userbyid(c.conowner) AS conowner FROM pg_conversion c LEFT JOIN pg_namespace n ON (c.connamespace = n.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, c.conname",
-				 PGQ_FIRST_USER_OID);
-
-		logNoise("conversion: query size: %d ; query: %s", nquery, query);
 	}
 	else
 	{
-		/* determine how many characters will be written by snprintf */
-		nquery = snprintf(query, nquery,
-						  "SELECT c.oid, n.nspname as conschema, c.conname, pg_encoding_to_char(conforencoding) AS conforencoding, pg_encoding_to_char(contoencoding) AS contoencoding, conproc, condefault, obj_description(c.oid, 'pg_conversion') AS description, pg_get_userbyid(c.conowner) AS conowner FROM pg_conversion c LEFT JOIN pg_namespace n ON (c.connamespace = n.oid) WHERE c.oid >= %u ORDER BY n.nspname, c.conname",
+		query = psprintf("SELECT c.oid, n.nspname as conschema, c.conname, pg_encoding_to_char(conforencoding) AS conforencoding, pg_encoding_to_char(contoencoding) AS contoencoding, conproc, condefault, obj_description(c.oid, 'pg_conversion') AS description, pg_get_userbyid(c.conowner) AS conowner FROM pg_conversion c LEFT JOIN pg_namespace n ON (c.connamespace = n.oid) WHERE c.oid >= %u ORDER BY n.nspname, c.conname",
 						  PGQ_FIRST_USER_OID);
-
-		nquery++;
-		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-		snprintf(query, nquery,
-				 "SELECT c.oid, n.nspname as conschema, c.conname, pg_encoding_to_char(conforencoding) AS conforencoding, pg_encoding_to_char(contoencoding) AS contoencoding, conproc, condefault, obj_description(c.oid, 'pg_conversion') AS description, pg_get_userbyid(c.conowner) AS conowner FROM pg_conversion c LEFT JOIN pg_namespace n ON (c.connamespace = n.oid) WHERE c.oid >= %u ORDER BY n.nspname, c.conname",
-				 PGQ_FIRST_USER_OID);
-
-		logNoise("conversion: query size: %d ; query: %s", nquery, query);
 	}
 
 	res = PQexec(c, query);

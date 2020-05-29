@@ -22,7 +22,7 @@
  * ALTER DOMAIN ... SET SCHEMA
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
- * Copyright (c) 2015-2018, Euler Taveira
+ * Copyright (c) 2015-2020, Euler Taveira
  *
  * ---------------------------------------------------------------------
  */
@@ -140,40 +140,19 @@ getDomains(PGconn *c, int *n)
 void
 getDomainConstraints(PGconn *c, PQLDomain *d)
 {
-	char		*query = NULL;
-	int			nquery = 0;
+	char		*query;
 	PGresult	*res;
 	int			i;
 
 	if (PQserverVersion(c) >= 90100)
 	{
-		/* determine how many characters will be written by snprintf */
-		nquery = snprintf(query, nquery,
-						  "SELECT conname, pg_get_constraintdef(oid) AS condef, convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
+		query = psprintf("SELECT conname, pg_get_constraintdef(oid) AS condef, convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
 						  d->obj.oid);
-
-		nquery++;
-		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-		snprintf(query, nquery,
-				 "SELECT conname, pg_get_constraintdef(oid) AS condef, convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
-				 d->obj.oid);
-
-		logNoise("domain: query size: %d ; query: %s", nquery, query);
 	}
 	else
 	{
-		/* determine how many characters will be written by snprintf */
-		nquery = snprintf(query, nquery,
-						  "SELECT conname, pg_get_constraintdef(oid) AS condef, true AS convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
+		query = psprintf("SELECT conname, pg_get_constraintdef(oid) AS condef, true AS convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
 						  d->obj.oid);
-
-		nquery++;
-		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-		snprintf(query, nquery,
-				 "SELECT conname, pg_get_constraintdef(oid) AS condef, true AS convalidated FROM pg_constraint WHERE contypid = %u ORDER BY conname",
-				 d->obj.oid);
-
-		logNoise("domain: query size: %d ; query: %s", nquery, query);
 	}
 
 	res = PQexec(c, query);
@@ -212,7 +191,7 @@ getDomainConstraints(PGconn *c, PQLDomain *d)
 void
 getDomainSecurityLabels(PGconn *c, PQLDomain *d)
 {
-	char		query[200];
+	char		*query;
 	PGresult	*res;
 	int			i;
 
@@ -226,11 +205,12 @@ getDomainSecurityLabels(PGconn *c, PQLDomain *d)
 	 * Don't bother to check the kind of type because can't be duplicated oids
 	 * in the same catalog.
 	 */
-	snprintf(query, 200,
-			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_type' AND s.objoid = %u ORDER BY provider",
+	query = psprintf("SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_type' AND s.objoid = %u ORDER BY provider",
 			 d->obj.oid);
 
 	res = PQexec(c, query);
+
+	free(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

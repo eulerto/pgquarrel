@@ -24,7 +24,7 @@
  * ALTER PROCEDURE ... SET SCHEMA
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
- * Copyright (c) 2015-2018, Euler Taveira
+ * Copyright (c) 2015-2020, Euler Taveira
  *
  * ---------------------------------------------------------------------
  */
@@ -192,7 +192,7 @@ compareFunctions(PQLFunction *a, PQLFunction *b)
 void
 getProcFunctionSecurityLabels(PGconn *c, PQLFunction *f, char t)
 {
-	char		query[200];
+	char		*query;
 	PGresult	*res;
 	int			i;
 
@@ -202,11 +202,12 @@ getProcFunctionSecurityLabels(PGconn *c, PQLFunction *f, char t)
 		return;
 	}
 
-	snprintf(query, 200,
-			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_proc' AND s.objoid = %u ORDER BY provider",
+	query = psprintf("SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_proc' AND s.objoid = %u ORDER BY provider",
 			 f->obj.oid);
 
 	res = PQexec(c, query);
+
+	free(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

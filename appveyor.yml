@@ -1,0 +1,12 @@
+version: 0.7.{build}
+image:
+- Visual Studio 2019
+configuration:
+- Debug
+- Release
+services:
+- postgresql12
+before_build:
+- cmd: cmake -B./build -DCMAKE_INSTALL_PREFIX=C:\pgquarrel -DCMAKE_PREFIX_PATH="C:\Program Files\PostgreSQL\12\bin"
+build:
+  verbosity: normal

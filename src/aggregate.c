@@ -17,7 +17,7 @@
  * ALTER AGGREGATE ... SET SCHEMA
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
- * Copyright (c) 2015-2018, Euler Taveira
+ * Copyright (c) 2015-2020, Euler Taveira
  *
  * ---------------------------------------------------------------------
  */
@@ -203,7 +203,7 @@ compareAggregates(PQLAggregate *a, PQLAggregate *b)
 void
 getAggregateSecurityLabels(PGconn *c, PQLAggregate *a)
 {
-	char		query[200];
+	char		*query;
 	PGresult	*res;
 	int			i;
 
@@ -213,11 +213,12 @@ getAggregateSecurityLabels(PGconn *c, PQLAggregate *a)
 		return;
 	}
 
-	snprintf(query, 200,
-			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_aggregate' AND s.objoid = %u ORDER BY provider",
+	query = psprintf("SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_aggregate' AND s.objoid = %u ORDER BY provider",
 			 a->obj.oid);
 
 	res = PQexec(c, query);
+
+	free(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

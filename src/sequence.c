@@ -19,7 +19,7 @@
  * ALTER SEQUENCE ... SET SCHEMA
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
- * Copyright (c) 2015-2018, Euler Taveira
+ * Copyright (c) 2015-2020, Euler Taveira
  *
  * ---------------------------------------------------------------------
  */
@@ -123,44 +123,23 @@ getSequences(PGconn *c, int *n)
 void
 getSequenceAttributes(PGconn *c, PQLSequence *s)
 {
-	char		*query = NULL;
-	int			nquery = 0;
+	char		*query;
 	PGresult	*res;
 
 	/* pg_sequence catalog is new in 10 */
 	if (PQserverVersion(c) >= 100000)
 	{
-		/* determine how many characters will be written by snprintf */
-		nquery = snprintf(query, nquery,
-						  "SELECT seqincrement, seqstart, seqmax, seqmin, seqcache, seqcycle, format_type(seqtypid, NULL) AS typname FROM pg_sequence WHERE seqrelid = %u",
-						  s->obj.oid);
-
-		nquery++;
-		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-		snprintf(query, nquery,
-				 "SELECT seqincrement, seqstart, seqmax, seqmin, seqcache, seqcycle, format_type(seqtypid, NULL) AS typname FROM pg_sequence WHERE seqrelid = %u",
-				 s->obj.oid);
+		query = psprintf("SELECT seqincrement, seqstart, seqmax, seqmin, seqcache, seqcycle, format_type(seqtypid, NULL) AS typname FROM pg_sequence WHERE seqrelid = %u", s->obj.oid);
 	}
 	else
 	{
 		char *schema = formatObjectIdentifier(s->obj.schemaname);
 		char *seqname = formatObjectIdentifier(s->obj.objectname);
 
-		/* determine how many characters will be written by snprintf */
-		nquery = snprintf(query, nquery,
-						  "SELECT increment_by AS seqincrement, start_value AS seqstart, max_value AS seqmax, min_value AS seqmin, cache_value AS seqcache, is_cycled AS seqcycle FROM %s.%s",
-						  schema, seqname);
-
-		nquery++;
-		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-		snprintf(query, nquery,
-				 "SELECT increment_by AS seqincrement, start_value AS seqstart, max_value AS seqmax, min_value AS seqmin, cache_value AS seqcache, is_cycled AS seqcycle FROM %s.%s",
-				 schema, seqname);
+		query = psprintf("SELECT increment_by AS seqincrement, start_value AS seqstart, max_value AS seqmax, min_value AS seqmin, cache_value AS seqcache, is_cycled AS seqcycle FROM %s.%s", schema, seqname);
 		free(schema);
 		free(seqname);
 	}
-
-	logNoise("sequence: query size: %d ; query: %s", nquery, query);
 
 	res = PQexec(c, query);
 
@@ -196,7 +175,7 @@ getSequenceAttributes(PGconn *c, PQLSequence *s)
 void
 getSequenceSecurityLabels(PGconn *c, PQLSequence *s)
 {
-	char		query[200];
+	char		*query;
 	PGresult	*res;
 	int			i;
 
@@ -206,11 +185,11 @@ getSequenceSecurityLabels(PGconn *c, PQLSequence *s)
 		return;
 	}
 
-	snprintf(query, 200,
-			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_class' AND s.objoid = %u ORDER BY provider",
-			 s->obj.oid);
+	query = psprintf("SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_class' AND s.objoid = %u ORDER BY provider", s->obj.oid);
 
 	res = PQexec(c, query);
+
+	free(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

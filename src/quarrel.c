@@ -56,7 +56,7 @@
  * REVOKE LARGE OBJECT
  *
  *
- * Copyright (c) 2015-2018, Euler Taveira
+ * Copyright (c) 2015-2020, Euler Taveira
  *
  *----------------------------------------------------------------------
  */
@@ -96,6 +96,8 @@
 
 #include "mini-parser.h"
 
+
+#define	MAX_PASSWORD_LEN	200
 
 /* global variables */
 enum PQLLogLevel	loglevel = PGQ_ERROR;
@@ -730,7 +732,6 @@ connectDatabase(QuarrelDatabaseOptions opt)
 {
 	PGconn		*conn;
 	char		*prompt_password = NULL;
-#define	MAX_PASSWORD_LEN	200
 
 #define NUMBER_OF_PARAMS	7
 	const char **keywords = malloc(NUMBER_OF_PARAMS * sizeof(*keywords));
@@ -767,11 +768,12 @@ connectDatabase(QuarrelDatabaseOptions opt)
 	{
 		PQfinish(conn);
 #if PG_VERSION_NUM >= 100000
+		prompt_password = (char *) malloc((MAX_PASSWORD_LEN + 1) * sizeof(char));
 		if (opt.istarget)
-			simple_prompt("Target password: ", prompt_password, MAX_PASSWORD_LEN,
+			simple_prompt("Target password: ", prompt_password, MAX_PASSWORD_LEN + 1,
 						  false);
 		else
-			simple_prompt("Source password: ", prompt_password, MAX_PASSWORD_LEN,
+			simple_prompt("Source password: ", prompt_password, MAX_PASSWORD_LEN + 1,
 						  false);
 #else
 		if (opt.istarget)
@@ -790,14 +792,17 @@ connectDatabase(QuarrelDatabaseOptions opt)
 	free(keywords);
 	free(values);
 
+	if (prompt_password)
+		free(prompt_password);
+
 	/* failed connection attempt */
 	if (PQstatus(conn) == CONNECTION_BAD)
 	{
 		if (opt.istarget)
-			logError("connection to target database \"%s\" failed: %s", opt.dbname,
+			logError("connection to target database failed: %s",
 					 PQerrorMessage(conn));
 		else
-			logError("connection to source database \"%s\" failed: %s", opt.dbname,
+			logError("connection to source database failed: %s",
 					 PQerrorMessage(conn));
 		PQfinish(conn);
 		exit(EXIT_FAILURE);
@@ -4938,7 +4943,7 @@ int main(int argc, char *argv[])
 	if (gopts_given.fdw)
 		options.fdw = gopts.fdw;
 	if (gopts_given.foreigntable)
-		options.fdw = gopts.foreigntable;
+		options.foreigntable = gopts.foreigntable;
 	if (gopts_given.function)
 		options.function = gopts.function;
 	if (gopts_given.index)

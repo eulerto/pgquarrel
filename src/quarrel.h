@@ -2,7 +2,7 @@
  *
  * pgquarrel -- comparing database schemas
  *
- * Copyright (c) 2015-2018, Euler Taveira
+ * Copyright (c) 2015-2020, Euler Taveira
  *
  * ---------------------------------------------------------------------
  */
@@ -22,7 +22,7 @@
 #include <port.h>				/* simple_prompt */
 
 #define PGQ_NAME			"pgquarrel"
-#define PGQ_VERSION			"0.6.0"
+#define PGQ_VERSION			"0.7.0"
 #define PGQ_SUPPORTED		90000	/* first supported version */
 #define PGQ_SUPPORTED_STR	"9.0.0"
 

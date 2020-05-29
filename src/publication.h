@@ -2,7 +2,7 @@
  *
  * pgquarrel -- comparing database schemas
  *
- * Copyright (c) 2015-2019, Euler Taveira
+ * Copyright (c) 2015-2020, Euler Taveira
  *
  * ---------------------------------------------------------------------
  */

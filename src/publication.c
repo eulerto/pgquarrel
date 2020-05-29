@@ -16,7 +16,7 @@
  * ALTER PUBLICATION ... RENAME TO
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
- * Copyright (c) 2015-2019, Euler Taveira
+ * Copyright (c) 2015-2020, Euler Taveira
  *
  * ---------------------------------------------------------------------
  */
@@ -127,23 +127,12 @@ getPublications(PGconn *c, int *n)
 void
 getPublicationTables(PGconn *c, PQLPublication *p)
 {
-	char		*query = NULL;
-	int			nquery = 0;
+	char		*query;
 	PGresult	*res;
 	int			i;
 
-	/* determine how many characters will be written by snprintf */
-	nquery = snprintf(query, nquery,
-					  "SELECT n.nspname, c.relname FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) INNER JOIN pg_publication_rel pr ON (c.oid = pr.prrelid) WHERE pr.prpubid = %u ORDER BY n.nspname, c.relname",
+	query = psprintf("SELECT n.nspname, c.relname FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) INNER JOIN pg_publication_rel pr ON (c.oid = pr.prrelid) WHERE pr.prpubid = %u ORDER BY n.nspname, c.relname",
 					  p->oid);
-
-	nquery++;
-	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-	snprintf(query, nquery,
-			 "SELECT n.nspname, c.relname FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) INNER JOIN pg_publication_rel pr ON (c.oid = pr.prrelid) WHERE pr.prpubid = %u ORDER BY n.nspname, c.relname",
-			 p->oid);
-
-	logNoise("publication: query size: %d ; query: %s", nquery, query);
 
 	res = PQexec(c, query);
 
@@ -183,15 +172,15 @@ getPublicationTables(PGconn *c, PQLPublication *p)
 void
 getPublicationSecurityLabels(PGconn *c, PQLPublication *p)
 {
-	char		query[200];
+	char		*query;
 	PGresult	*res;
 	int			i;
 
-	snprintf(query, 200,
-			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_publication' AND s.objoid = %u ORDER BY provider",
-			 p->oid);
+	query = psprintf("SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_publication' AND s.objoid = %u ORDER BY provider", p->oid);
 
 	res = PQexec(c, query);
+
+	free(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

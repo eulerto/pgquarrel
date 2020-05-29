@@ -28,7 +28,7 @@
  * ALTER OPERATOR FAMILY ... SET SCHEMA
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
- * Copyright (c) 2015-2018, Euler Taveira
+ * Copyright (c) 2015-2020, Euler Taveira
  *
  * ---------------------------------------------------------------------
  */
@@ -45,26 +45,15 @@ static void dumpRemoveFunctionOpFamily(FILE *output, PQLOperatorFamily *f,
 PQLOperator *
 getOperators(PGconn *c, int *n)
 {
-	char			*query = NULL;
-	int				nquery = 0;
+	char			*query;
 	PQLOperator		*o;
 	PGresult		*res;
 	int				i;
 
 	logNoise("operator: server version: %d", PQserverVersion(c));
 
-	/* determine how many characters will be written by snprintf */
-	nquery = snprintf(query, nquery,
-					  "SELECT o.oid, n.nspname, o.oprname, oprcode::regprocedure, oprleft::regtype, oprright::regtype, oprcom::regoperator, oprnegate::regoperator, oprrest::regprocedure, oprjoin::regprocedure, oprcanhash, oprcanmerge, obj_description(o.oid, 'pg_operator') AS description, pg_get_userbyid(o.oprowner) AS oprowner FROM pg_operator o INNER JOIN pg_namespace n ON (o.oprnamespace = n.oid) WHERE o.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE o.oid = d.objid AND deptype = 'e') ORDER BY n.nspname, o.oprname, o.oprleft, o.oprright",
+	query = psprintf("SELECT o.oid, n.nspname, o.oprname, oprcode::regprocedure, oprleft::regtype, oprright::regtype, oprcom::regoperator, oprnegate::regoperator, oprrest::regprocedure, oprjoin::regprocedure, oprcanhash, oprcanmerge, obj_description(o.oid, 'pg_operator') AS description, pg_get_userbyid(o.oprowner) AS oprowner FROM pg_operator o INNER JOIN pg_namespace n ON (o.oprnamespace = n.oid) WHERE o.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE o.oid = d.objid AND deptype = 'e') ORDER BY n.nspname, o.oprname, o.oprleft, o.oprright",
 					  PGQ_FIRST_USER_OID);
-
-	nquery++;
-	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-	snprintf(query, nquery,
-			 "SELECT o.oid, n.nspname, o.oprname, oprcode::regprocedure, oprleft::regtype, oprright::regtype, oprcom::regoperator, oprnegate::regoperator, oprrest::regprocedure, oprjoin::regprocedure, oprcanhash, oprcanmerge, obj_description(o.oid, 'pg_operator') AS description, pg_get_userbyid(o.oprowner) AS oprowner FROM pg_operator o INNER JOIN pg_namespace n ON (o.oprnamespace = n.oid) WHERE o.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE o.oid = d.objid AND deptype = 'e') ORDER BY n.nspname, o.oprname, o.oprleft, o.oprright",
-			 PGQ_FIRST_USER_OID);
-
-	logNoise("operator: query size: %d ; query: %s", nquery, query);
 
 	res = PQexec(c, query);
 
@@ -166,26 +155,15 @@ getOperators(PGconn *c, int *n)
 PQLOperatorClass *
 getOperatorClasses(PGconn *c, int *n)
 {
-	char				*query = NULL;
-	int					nquery = 0;
+	char				*query;
 	PQLOperatorClass	*d;
 	PGresult			*res;
 	int					i;
 
 	logNoise("operator class: server version: %d", PQserverVersion(c));
 
-	/* determine how many characters will be written by snprintf */
-	nquery = snprintf(query, nquery,
-					  "SELECT c.oid, n.nspname AS opcnspname, c.opcname, c.opcdefault, c.opcintype::regtype, a.amname, o.nspname AS opfnspname, f.opfname, CASE WHEN c.opckeytype = 0 THEN NULL ELSE c.opckeytype::regtype END AS storage, obj_description(c.oid, 'pg_opclass') AS description, pg_get_userbyid(c.opcowner) AS opcowner FROM pg_opclass c INNER JOIN pg_namespace n ON (c.opcnamespace = n.oid) INNER JOIN pg_am a ON (c.opcmethod = a.oid) LEFT JOIN (pg_opfamily f INNER JOIN pg_namespace o ON (f.opfnamespace = o.oid)) ON (c.opcfamily = f.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND deptype = 'e') ORDER BY c.opcnamespace, c.opcname",
+	query = psprintf("SELECT c.oid, n.nspname AS opcnspname, c.opcname, c.opcdefault, c.opcintype::regtype, a.amname, o.nspname AS opfnspname, f.opfname, CASE WHEN c.opckeytype = 0 THEN NULL ELSE c.opckeytype::regtype END AS storage, obj_description(c.oid, 'pg_opclass') AS description, pg_get_userbyid(c.opcowner) AS opcowner FROM pg_opclass c INNER JOIN pg_namespace n ON (c.opcnamespace = n.oid) INNER JOIN pg_am a ON (c.opcmethod = a.oid) LEFT JOIN (pg_opfamily f INNER JOIN pg_namespace o ON (f.opfnamespace = o.oid)) ON (c.opcfamily = f.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND deptype = 'e') ORDER BY c.opcnamespace, c.opcname",
 					  PGQ_FIRST_USER_OID);
-
-	nquery++;
-	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-	snprintf(query, nquery,
-			 "SELECT c.oid, n.nspname AS opcnspname, c.opcname, c.opcdefault, c.opcintype::regtype, a.amname, o.nspname AS opfnspname, f.opfname, CASE WHEN c.opckeytype = 0 THEN NULL ELSE c.opckeytype::regtype END AS storage, obj_description(c.oid, 'pg_opclass') AS description, pg_get_userbyid(c.opcowner) AS opcowner FROM pg_opclass c INNER JOIN pg_namespace n ON (c.opcnamespace = n.oid) INNER JOIN pg_am a ON (c.opcmethod = a.oid) LEFT JOIN (pg_opfamily f INNER JOIN pg_namespace o ON (f.opfnamespace = o.oid)) ON (c.opcfamily = f.oid) WHERE c.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE c.oid = d.objid AND deptype = 'e') ORDER BY c.opcnamespace, c.opcname",
-			 PGQ_FIRST_USER_OID);
-
-	logNoise("operator class: query size: %d ; query: %s", nquery, query);
 
 	res = PQexec(c, query);
 
@@ -272,26 +250,15 @@ getOperatorClasses(PGconn *c, int *n)
 PQLOperatorFamily *
 getOperatorFamilies(PGconn *c, int *n)
 {
-	char				*query = NULL;
-	int					nquery = 0;
+	char				*query;
 	PQLOperatorFamily	*f;
 	PGresult			*res;
 	int					i;
 
 	logNoise("operator family: server version: %d", PQserverVersion(c));
 
-	/* determine how many characters will be written by snprintf */
-	nquery = snprintf(query, nquery,
-					  "SELECT f.oid, n.nspname AS opfnspname, f.opfname, a.amname, obj_description(f.oid, 'pg_opfamily') AS description, pg_get_userbyid(f.opfowner) AS opfowner FROM pg_opfamily f INNER JOIN pg_namespace n ON (f.opfnamespace = n.oid) INNER JOIN pg_am a ON (f.opfmethod = a.oid) WHERE f.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE f.oid = d.objid AND deptype = 'e') ORDER BY opfnspname, f.opfname",
+	query = psprintf("SELECT f.oid, n.nspname AS opfnspname, f.opfname, a.amname, obj_description(f.oid, 'pg_opfamily') AS description, pg_get_userbyid(f.opfowner) AS opfowner FROM pg_opfamily f INNER JOIN pg_namespace n ON (f.opfnamespace = n.oid) INNER JOIN pg_am a ON (f.opfmethod = a.oid) WHERE f.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE f.oid = d.objid AND deptype = 'e') ORDER BY opfnspname, f.opfname",
 					  PGQ_FIRST_USER_OID);
-
-	nquery++;
-	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-	snprintf(query, nquery,
-			 "SELECT f.oid, n.nspname AS opfnspname, f.opfname, a.amname, obj_description(f.oid, 'pg_opfamily') AS description, pg_get_userbyid(f.opfowner) AS opfowner FROM pg_opfamily f INNER JOIN pg_namespace n ON (f.opfnamespace = n.oid) INNER JOIN pg_am a ON (f.opfmethod = a.oid) WHERE f.oid >= %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE f.oid = d.objid AND deptype = 'e') ORDER BY opfnspname, f.opfname",
-			 PGQ_FIRST_USER_OID);
-
-	logNoise("operator family: query size: %d ; query: %s", nquery, query);
 
 	res = PQexec(c, query);
 
@@ -360,25 +327,13 @@ getOperatorFamilies(PGconn *c, int *n)
 void
 getOpFuncAttributes(PGconn *c, Oid o, PQLOpAndFunc *d)
 {
-	char		*query = NULL;
-	int			nquery = 0;
+	char		*query;
 	PGresult	*res;
 	int			i;
 
 	/* Operators */
 
-	/* determine how many characters will be written by snprintf */
-	nquery = snprintf(query, nquery,
-					  "SELECT amopopr::regoperator, amopstrategy, f.oid AS opfoid, n.nspname AS opfnspname, f.opfname FROM pg_amop a LEFT JOIN (pg_opfamily f INNER JOIN pg_namespace n ON (f.opfnamespace = n.oid)) ON (a.amopsortfamily = f.oid) WHERE a.amopfamily = %u",
-					  o);
-
-	nquery++;
-	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-	snprintf(query, nquery,
-			 "SELECT amopopr::regoperator, amopstrategy, f.oid AS opfoid, n.nspname AS opfnspname, f.opfname FROM pg_amop a LEFT JOIN (pg_opfamily f INNER JOIN pg_namespace n ON (f.opfnamespace = n.oid)) ON (a.amopsortfamily = f.oid) WHERE a.amopfamily = %u",
-			 o);
-
-	logNoise("operator family: query size: %d ; query: %s", nquery, query);
+	query = psprintf("SELECT amopopr::regoperator, amopstrategy, f.oid AS opfoid, n.nspname AS opfnspname, f.opfname FROM pg_amop a LEFT JOIN (pg_opfamily f INNER JOIN pg_namespace n ON (f.opfnamespace = n.oid)) ON (a.amopsortfamily = f.oid) WHERE a.amopfamily = %u", o);
 
 	res = PQexec(c, query);
 
@@ -433,18 +388,7 @@ getOpFuncAttributes(PGconn *c, Oid o, PQLOpAndFunc *d)
 
 	/* Functions */
 
-	query = NULL;
-	nquery = 0;
-	/* determine how many characters will be written by snprintf */
-	nquery = snprintf(query, nquery,
-					  "SELECT amproc::regprocedure, amprocnum FROM pg_amop WHERE amopfamily = %u", o);
-
-	nquery++;
-	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-	snprintf(query, nquery,
-			 "SELECT amproc::regprocedure, amprocnum FROM pg_amop WHERE amopfamily = %u", o);
-
-	logNoise("operator family: query size: %d ; query: %s", nquery, query);
+	query = psprintf("SELECT amproc::regprocedure, amprocnum FROM pg_amop WHERE amopfamily = %u", o);
 
 	res = PQexec(c, query);
 

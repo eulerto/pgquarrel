@@ -50,7 +50,7 @@
  * ALTER FOREIGN TABLE ... NOINHERIT parent_table
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
- * Copyright (c) 2015-2018, Euler Taveira
+ * Copyright (c) 2015-2020, Euler Taveira
  *
  * ---------------------------------------------------------------------
  */
@@ -142,6 +142,11 @@ getTables(PGconn *c, int *n, char k)
 			res = PQexec(c,
 						 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, relreplident, reloftype, o.nspname AS typnspname, y.typname, c.relispartition, pg_get_partkeydef(c.oid) AS partitionkeydef, pg_get_expr(c.relpartbound, c.oid) AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'f' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
 		}
+		else
+		{
+			logError("it is not a table or foreign table");
+			exit(EXIT_FAILURE);
+		}
 	}
 	else if (PQserverVersion(c) >= 90400)
 	{
@@ -155,6 +160,11 @@ getTables(PGconn *c, int *n, char k)
 			res = PQexec(c,
 						 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, relreplident, reloftype, o.nspname AS typnspname, y.typname, false AS relispartition, NULL AS partitionkeydef, NULL AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'f' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
 		}
+		else
+		{
+			logError("it is not a table or foreign table");
+			exit(EXIT_FAILURE);
+		}
 	}
 	else if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
@@ -167,6 +177,11 @@ getTables(PGconn *c, int *n, char k)
 		{
 			res = PQexec(c,
 						 "SELECT c.oid, n.nspname, c.relname, c.relkind, t.spcname AS tablespacename, c.relpersistence, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description, pg_get_userbyid(c.relowner) AS relowner, relacl, 'v' AS relreplident, reloftype, o.nspname AS typnspname, y.typname, false AS relispartition, NULL AS partitionkeydef, NULL AS partitionbound, c.relhassubclass FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN (pg_type y INNER JOIN pg_namespace o ON (y.typnamespace = o.oid)) ON (c.reloftype = y.oid) WHERE relkind = 'f' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, relname");
+		}
+		else
+		{
+			logError("it is not a table or foreign table");
+			exit(EXIT_FAILURE);
 		}
 	}
 	else
@@ -340,24 +355,10 @@ static void
 getParentTables(PGconn *c, PQLTable *t)
 {
 	char		*query;
-	int			nquery;
 	PGresult	*res;
 	int			j;
 
-	query = NULL;
-	nquery = 0;
-	/* determine how many characters will be written by snprintf */
-	nquery = snprintf(query, nquery,
-					  "SELECT c.oid, n.nspname, c.relname FROM pg_inherits i INNER JOIN pg_class c ON (c.oid = i.inhparent) INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE inhrelid = %u ORDER BY nspname, relname",
-					  t->obj.oid);
-
-	nquery++;
-	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-	snprintf(query, nquery,
-			 "SELECT c.oid, n.nspname, c.relname FROM pg_inherits i INNER JOIN pg_class c ON (c.oid = i.inhparent) INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE inhrelid = %u ORDER BY nspname, relname",
-			 t->obj.oid);
-
-	logNoise("table: query size: %d ; query: %s", nquery, query);
+	query = psprintf("SELECT c.oid, n.nspname, c.relname FROM pg_inherits i INNER JOIN pg_class c ON (c.oid = i.inhparent) INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) WHERE inhrelid = %u ORDER BY nspname, relname", t->obj.oid);
 
 	res = PQexec(c, query);
 
@@ -403,26 +404,12 @@ void
 getForeignTableProperties(PGconn *c, PQLTable *t, int n)
 {
 	char		*query;
-	int			nquery;
 	PGresult	*res;
 	int			i;
 
 	for (i = 0; i < n; i++)
 	{
-		query = NULL;
-		nquery = 0;
-		/* determine how many characters will be written by snprintf */
-		nquery = snprintf(query, nquery,
-						  "SELECT s.srvname, array_to_string(f.ftoptions, ', ') AS ftoptions FROM pg_foreign_table f INNER JOIN pg_foreign_server s ON (f.ftserver = s.oid) WHERE f.ftrelid = %u",
-						  t[i].obj.oid);
-
-		nquery++;
-		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-		snprintf(query, nquery,
-				 "SELECT s.srvname, array_to_string(f.ftoptions, ', ') AS ftoptions FROM pg_foreign_table f INNER JOIN pg_foreign_server s ON (f.ftserver = s.oid) WHERE f.ftrelid = %u",
-				 t[i].obj.oid);
-
-		logNoise("foreign table: query size: %d ; query: %s", nquery, query);
+		query = psprintf("SELECT s.srvname, array_to_string(f.ftoptions, ', ') AS ftoptions FROM pg_foreign_table f INNER JOIN pg_foreign_server s ON (f.ftserver = s.oid) WHERE f.ftrelid = %u", t[i].obj.oid);
 
 		res = PQexec(c, query);
 
@@ -463,7 +450,6 @@ void
 getCheckConstraints(PGconn *c, PQLTable *t, int n)
 {
 	char		*query;
-	int			nquery;
 	PGresult	*res;
 	int			i, j;
 	char		*kind;
@@ -482,20 +468,7 @@ getCheckConstraints(PGconn *c, PQLTable *t, int n)
 
 		/* FIXME conislocal (8.4)? convalidated (9.2)? */
 		/* XXX contype = 'c' needed? */
-		query = NULL;
-		nquery = 0;
-		/* determine how many characters will be written by snprintf */
-		nquery = snprintf(query, nquery,
-						  "SELECT conname, pg_get_constraintdef(c.oid) AS condef, obj_description(c.oid, 'pg_constraint') AS description FROM pg_constraint c WHERE conrelid = %u AND contype = 'c' ORDER BY conname",
-						  t[i].obj.oid);
-
-		nquery++;
-		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-		snprintf(query, nquery,
-				 "SELECT conname, pg_get_constraintdef(c.oid) AS condef, obj_description(c.oid, 'pg_constraint') AS description FROM pg_constraint c WHERE conrelid = %u AND contype = 'c' ORDER BY conname",
-				 t[i].obj.oid);
-
-		logNoise("%s: query size: %d ; query: %s", kind, nquery, query);
+		query = psprintf("SELECT conname, pg_get_constraintdef(c.oid) AS condef, obj_description(c.oid, 'pg_constraint') AS description FROM pg_constraint c WHERE conrelid = %u AND contype = 'c' ORDER BY conname", t[i].obj.oid);
 
 		res = PQexec(c, query);
 
@@ -543,36 +516,22 @@ getCheckConstraints(PGconn *c, PQLTable *t, int n)
 			}
 		}
 
+		free(kind);
+
 		PQclear(res);
 	}
-
-	free(kind);
 }
 
 void
 getFKConstraints(PGconn *c, PQLTable *t, int n)
 {
 	char		*query;
-	int			nquery;
 	PGresult	*res;
 	int			i, j;
 
 	for (i = 0; i < n; i++)
 	{
-		query = NULL;
-		nquery = 0;
-		/* determine how many characters will be written by snprintf */
-		nquery = snprintf(query, nquery,
-						  "SELECT conname, pg_get_constraintdef(c.oid) AS condef, obj_description(c.oid, 'pg_constraint') AS description FROM pg_constraint c WHERE conrelid = %u AND contype = 'f' ORDER BY conname",
-						  t[i].obj.oid);
-
-		nquery++;
-		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-		snprintf(query, nquery,
-				 "SELECT conname, pg_get_constraintdef(c.oid) AS condef, obj_description(c.oid, 'pg_constraint') AS description FROM pg_constraint c WHERE conrelid = %u AND contype = 'f' ORDER BY conname",
-				 t[i].obj.oid);
-
-		logNoise("table: query size: %d ; query: %s", nquery, query);
+		query = psprintf("SELECT conname, pg_get_constraintdef(c.oid) AS condef, obj_description(c.oid, 'pg_constraint') AS description FROM pg_constraint c WHERE conrelid = %u AND contype = 'f' ORDER BY conname", t[i].obj.oid);
 
 		res = PQexec(c, query);
 
@@ -626,27 +585,13 @@ void
 getPKConstraints(PGconn *c, PQLTable *t, int n)
 {
 	char		*query;
-	int			nquery;
 	PGresult	*res;
 	int			i;
 
 	for (i = 0; i < n; i++)
 	{
 		/* XXX only 9.0+ */
-		query = NULL;
-		nquery = 0;
-		/* determine how many characters will be written by snprintf */
-		nquery = snprintf(query, nquery,
-						  "SELECT conname, pg_get_constraintdef(c.oid) AS condef, obj_description(c.oid, 'pg_constraint') AS description FROM pg_constraint c WHERE conrelid = %u AND contype = 'p' ORDER BY conname",
-						  t[i].obj.oid);
-
-		nquery++;
-		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-		snprintf(query, nquery,
-				 "SELECT conname, pg_get_constraintdef(c.oid) AS condef, obj_description(c.oid, 'pg_constraint') AS description FROM pg_constraint c WHERE conrelid = %u AND contype = 'p' ORDER BY conname",
-				 t[i].obj.oid);
-
-		logNoise("table: query size: %d ; query: %s", nquery, query);
+		query = psprintf("SELECT conname, pg_get_constraintdef(c.oid) AS condef, obj_description(c.oid, 'pg_constraint') AS description FROM pg_constraint c WHERE conrelid = %u AND contype = 'p' ORDER BY conname", t[i].obj.oid);
 
 		res = PQexec(c, query);
 
@@ -694,11 +639,10 @@ getPKConstraints(PGconn *c, PQLTable *t, int n)
 void
 getTableAttributes(PGconn *c, PQLTable *t)
 {
-	char		*query = NULL;
-	int			nquery = 0;
+	char		*query;
 	PGresult	*res;
 	int			i;
-	char		*kind;
+	char		*kind = NULL;
 
 	if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(t->kind))
 		kind = strdup("table");
@@ -713,48 +657,21 @@ getTableAttributes(PGconn *c, PQLTable *t)
 	if (PQserverVersion(c) >=
 			90200)	/* support for foreign table attribute options */
 	{
-		/* determine how many characters will be written by snprintf */
-		nquery = snprintf(query, nquery,
+		query = psprintf(
 						  "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, array_to_string(attfdwoptions, ', ') AS attfdwoptions, attacl FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
 						  t->obj.oid);
-
-		nquery++;
-		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-		snprintf(query, nquery,
-				 "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, array_to_string(attfdwoptions, ', ') AS attfdwoptions, attacl FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
-				 t->obj.oid);
-
-		logNoise("%s: query size: %d ; query: %s", kind, nquery, query);
 	}
 	else if (PQserverVersion(c) >= 90100)	/* support for collation */
 	{
-		/* determine how many characters will be written by snprintf */
-		nquery = snprintf(query, nquery,
+		query = psprintf(
 						  "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, NULL AS attfdwoptions, attacl FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
 						  t->obj.oid);
-
-		nquery++;
-		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-		snprintf(query, nquery,
-				 "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, NULL AS attfdwoptions, attacl FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
-				 t->obj.oid);
-
-		logNoise("%s: query size: %d ; query: %s", kind, nquery, query);
 	}
 	else
 	{
-		/* determine how many characters will be written by snprintf */
-		nquery = snprintf(query, nquery,
+		query = psprintf(
 						  "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, NULL AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, NULL AS attfdwoptions, attacl FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
 						  t->obj.oid);
-
-		nquery++;
-		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-		snprintf(query, nquery,
-				 "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, NULL AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, NULL AS attfdwoptions, attacl FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
-				 t->obj.oid);
-
-		logNoise("%s: query size: %d ; query: %s", kind, nquery, query);
 	}
 
 	res = PQexec(c, query);
@@ -913,21 +830,7 @@ getTableAttributes(PGconn *c, PQLTable *t)
 	/* replica identity using index */
 	if (t->relreplident == 'i')
 	{
-		query = NULL;
-		nquery = 0;
-
-		/* determine how many characters will be written by snprintf */
-		nquery = snprintf(query, nquery,
-						  "SELECT c.relname AS idxname FROM pg_index i INNER JOIN pg_class c ON (i.indexrelid = c.oid) WHERE indrelid = %u AND indisreplident",
-						  t->obj.oid);
-
-		nquery++;
-		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-		snprintf(query, nquery,
-				 "SELECT c.relname AS idxname FROM pg_index i INNER JOIN pg_class c ON (i.indexrelid = c.oid) WHERE indrelid = %u AND indisreplident",
-				 t->obj.oid);
-
-		logNoise("table: query size: %d ; query: %s", nquery, query);
+		query = psprintf("SELECT c.relname AS idxname FROM pg_index i INNER JOIN pg_class c ON (i.indexrelid = c.oid) WHERE indrelid = %u AND indisreplident", t->obj.oid);
 
 		res = PQexec(c, query);
 
@@ -954,15 +857,18 @@ getTableAttributes(PGconn *c, PQLTable *t)
 
 		PQclear(res);
 	}
+
+	if (kind)
+		free(kind);
 }
 
 void
 getTableSecurityLabels(PGconn *c, PQLTable *t)
 {
-	char		query[200];
+	char		*query;
 	PGresult	*res;
 	int			i;
-	char		*kind;
+	char		*kind = NULL;
 
 	if (PGQ_IS_REGULAR_OR_PARTITIONED_TABLE(t->kind))
 		kind = strdup("table");
@@ -977,14 +883,16 @@ getTableSecurityLabels(PGconn *c, PQLTable *t)
 	if (PQserverVersion(c) < 90100)
 	{
 		logWarning("ignoring security labels because server does not support it");
+		if (kind)
+			free(kind);
 		return;
 	}
 
-	snprintf(query, 200,
-			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_class' AND s.objoid = %u ORDER BY provider",
-			 t->obj.oid);
+	query = psprintf("SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_class' AND s.objoid = %u ORDER BY provider", t->obj.oid);
 
 	res = PQexec(c, query);
+
+	free(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -1030,11 +938,11 @@ getTableSecurityLabels(PGconn *c, PQLTable *t)
 	{
 		int		j;
 
-		snprintf(query, 200,
-				 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_attribute' AND s.objoid = %u AND s.objsubid = %u ORDER BY provider",
-				 t->obj.oid, t->attributes[i].attnum);
+		query = psprintf("SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_attribute' AND s.objoid = %u AND s.objsubid = %u ORDER BY provider", t->obj.oid, t->attributes[i].attnum);
 
 		res = PQexec(c, query);
+
+		free(query);
 
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		{
@@ -1221,23 +1129,11 @@ freeTables(PQLTable *t, int n)
 void
 getOwnedBySequences(PGconn *c, PQLTable *t)
 {
-	char		*query = NULL;
-	int			nquery = 0;
+	char		*query;
 	PGresult	*res;
 	int			i;
 
-	/* determine how many characters will be written by snprintf */
-	nquery = snprintf(query, nquery,
-					  "SELECT n.nspname, c.relname, a.attname FROM pg_depend d INNER JOIN pg_class c ON (c.oid = d.objid) INNER JOIN pg_namespace n ON (n.oid = c.relnamespace) INNER JOIN pg_attribute a ON (d.refobjid = a.attrelid AND d.refobjsubid = a.attnum) WHERE d.classid = 'pg_class'::regclass AND d.objsubid = 0 AND d.refobjid = %u AND d.refobjsubid != 0 AND d.deptype = 'a' AND c.relkind = 'S'",
-					  t->obj.oid);
-
-	nquery++;
-	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-	snprintf(query, nquery,
-			 "SELECT n.nspname, c.relname, a.attname FROM pg_depend d INNER JOIN pg_class c ON (c.oid = d.objid) INNER JOIN pg_namespace n ON (n.oid = c.relnamespace) INNER JOIN pg_attribute a ON (d.refobjid = a.attrelid AND d.refobjsubid = a.attnum) WHERE d.classid = 'pg_class'::regclass AND d.objsubid = 0 AND d.refobjid = %u AND d.refobjsubid != 0 AND d.deptype = 'a' AND c.relkind = 'S'",
-			 t->obj.oid);
-
-	logNoise("table: query size: %d ; query: %s", nquery, query);
+	query = psprintf("SELECT n.nspname, c.relname, a.attname FROM pg_depend d INNER JOIN pg_class c ON (c.oid = d.objid) INNER JOIN pg_namespace n ON (n.oid = c.relnamespace) INNER JOIN pg_attribute a ON (d.refobjid = a.attrelid AND d.refobjsubid = a.attnum) WHERE d.classid = 'pg_class'::regclass AND d.objsubid = 0 AND d.refobjid = %u AND d.refobjsubid != 0 AND d.deptype = 'a' AND c.relkind = 'S'", t->obj.oid);
 
 	res = PQexec(c, query);
 
@@ -1526,7 +1422,7 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 		}
 
 		/* primary key */
-		if (t->pk.comment != NULL)
+		if (t->pk.conname != NULL && t->pk.comment != NULL)
 		{
 			char	*pkname = formatObjectIdentifier(t->pk.conname);
 

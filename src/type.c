@@ -20,7 +20,7 @@
  * ALTER TYPE ... RENAME VALUE
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
- * Copyright (c) 2015-2018, Euler Taveira
+ * Copyright (c) 2015-2020, Euler Taveira
  *
  * ---------------------------------------------------------------------
  */
@@ -142,7 +142,7 @@ getBaseTypes(PGconn *c, int *n)
 void
 getBaseTypeSecurityLabels(PGconn *c, PQLBaseType *t)
 {
-	char		query[200];
+	char		*query;
 	PGresult	*res;
 	int			i;
 
@@ -156,11 +156,11 @@ getBaseTypeSecurityLabels(PGconn *c, PQLBaseType *t)
 	 * Don't bother to check the kind of type because can't be duplicated oids
 	 * in the same catalog.
 	 */
-	snprintf(query, 200,
-			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_type' AND s.objoid = %u ORDER BY provider",
-			 t->obj.oid);
+	query = psprintf("SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_type' AND s.objoid = %u ORDER BY provider", t->obj.oid);
 
 	res = PQexec(c, query);
+
+	free(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -206,41 +206,18 @@ getBaseTypeSecurityLabels(PGconn *c, PQLBaseType *t)
 static void
 getCompositeTypeAttributes(PGconn *c, PQLCompositeType *t)
 {
-	char		*query = NULL;
-	int			nquery = 0;
+	char		*query;
 	PGresult	*res;
 	int			i;
 
 	/* typcollation is new in 9.1 */
 	if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
-		/* determine how many characters will be written by snprintf */
-		nquery = snprintf(query, nquery,
-						  "SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, p.nspname AS collschemaname, CASE WHEN a.attcollation <> u.typcollation THEN l.collname ELSE NULL END AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) LEFT JOIN pg_type u ON (u.oid = a.atttypid) LEFT JOIN (pg_collation l LEFT JOIN pg_namespace p ON (l.collnamespace = p.oid)) ON (a.attcollation = l.oid) WHERE t.oid = %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY a.attnum",
-						  t->obj.oid);
-
-		nquery++;
-		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-		snprintf(query, nquery,
-				 "SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, p.nspname AS collschemaname, CASE WHEN a.attcollation <> u.typcollation THEN l.collname ELSE NULL END AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) LEFT JOIN pg_type u ON (u.oid = a.atttypid) LEFT JOIN (pg_collation l LEFT JOIN pg_namespace p ON (l.collnamespace = p.oid)) ON (a.attcollation = l.oid) WHERE t.oid = %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY a.attnum",
-				 t->obj.oid);
-
-		logNoise("composite type: query size: %d ; query: %s", nquery, query);
+		query = psprintf("SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, p.nspname AS collschemaname, CASE WHEN a.attcollation <> u.typcollation THEN l.collname ELSE NULL END AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) LEFT JOIN pg_type u ON (u.oid = a.atttypid) LEFT JOIN (pg_collation l LEFT JOIN pg_namespace p ON (l.collnamespace = p.oid)) ON (a.attcollation = l.oid) WHERE t.oid = %u AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY a.attnum", t->obj.oid);
 	}
 	else
 	{
-		/* determine how many characters will be written by snprintf */
-		nquery = snprintf(query, nquery,
-						  "SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, NULL AS collschemaname, NULL AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) WHERE t.oid = %u ORDER BY a.attnum",
-						  t->obj.oid);
-
-		nquery++;
-		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-		snprintf(query, nquery,
-				 "SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, NULL AS collschemaname, NULL AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) WHERE t.oid = %u ORDER BY a.attnum",
-				 t->obj.oid);
-
-		logNoise("composite type: query size: %d ; query: %s", nquery, query);
+		query = psprintf("SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS attdefinition, NULL AS collschemaname, NULL AS collname FROM pg_type t INNER JOIN pg_attribute a ON (a.attrelid = t.typrelid) WHERE t.oid = %u ORDER BY a.attnum", t->obj.oid);
 	}
 
 	res = PQexec(c, query);
@@ -383,7 +360,7 @@ getCompositeTypes(PGconn *c, int *n)
 void
 getCompositeTypeSecurityLabels(PGconn *c, PQLCompositeType *t)
 {
-	char		query[200];
+	char		*query;
 	PGresult	*res;
 	int			i;
 
@@ -397,11 +374,11 @@ getCompositeTypeSecurityLabels(PGconn *c, PQLCompositeType *t)
 	 * Don't bother to check the kind of type because can't be duplicated oids
 	 * in the same catalog.
 	 */
-	snprintf(query, 200,
-			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_type' AND s.objoid = %u ORDER BY provider",
-			 t->obj.oid);
+	query = psprintf("SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_type' AND s.objoid = %u ORDER BY provider", t->obj.oid);
 
 	res = PQexec(c, query);
+
+	free(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -446,40 +423,15 @@ getCompositeTypeSecurityLabels(PGconn *c, PQLCompositeType *t)
 static void
 getEnumTypeLabels(PGconn *c, PQLEnumType *t)
 {
-	char		*query = NULL;
-	int			nquery = 0;
+	char		*query;
 	PGresult	*res;
 	int			i;
 
 	/* enumsortorder is new in 9.1 */
 	if (PQserverVersion(c) >= 90100)
-	{
-		/* determine how many characters will be written by snprintf */
-		nquery = snprintf(query, nquery,
-						  "SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY enumsortorder",
-						  t->obj.oid);
-
-		nquery++;
-		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-		snprintf(query, nquery,
-				 "SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY enumsortorder",
-				 t->obj.oid);
-
-		logNoise("enum type: query size: %d ; query: %s", nquery, query);
-	}
+		query = psprintf("SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY enumsortorder", t->obj.oid);
 	else
-	{
-		/* determine how many characters will be written by snprintf */
-		nquery = snprintf(query, nquery,
-						  "SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY oid", t->obj.oid);
-
-		nquery++;
-		query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-		snprintf(query, nquery,
-				 "SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY oid", t->obj.oid);
-
-		logNoise("enum type: query size: %d ; query: %s", nquery, query);
-	}
+		query = psprintf("SELECT enumlabel FROM pg_enum WHERE enumtypid = %u ORDER BY oid", t->obj.oid);
 
 	res = PQexec(c, query);
 
@@ -603,7 +555,7 @@ getEnumTypes(PGconn *c, int *n)
 void
 getEnumTypeSecurityLabels(PGconn *c, PQLEnumType *t)
 {
-	char		query[200];
+	char		*query;
 	PGresult	*res;
 	int			i;
 
@@ -617,11 +569,11 @@ getEnumTypeSecurityLabels(PGconn *c, PQLEnumType *t)
 	 * Don't bother to check the kind of type because can't be duplicated oids
 	 * in the same catalog.
 	 */
-	snprintf(query, 200,
-			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_type' AND s.objoid = %u ORDER BY provider",
-			 t->obj.oid);
+	query = psprintf("SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_type' AND s.objoid = %u ORDER BY provider", t->obj.oid);
 
 	res = PQexec(c, query);
+
+	free(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -765,7 +717,7 @@ getRangeTypes(PGconn *c, int *n)
 void
 getRangeTypeSecurityLabels(PGconn *c, PQLRangeType *t)
 {
-	char		query[200];
+	char		*query;
 	PGresult	*res;
 	int			i;
 
@@ -779,11 +731,11 @@ getRangeTypeSecurityLabels(PGconn *c, PQLRangeType *t)
 	 * Don't bother to check the kind of type because can't be duplicated oids
 	 * in the same catalog.
 	 */
-	snprintf(query, 200,
-			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_type' AND s.objoid = %u ORDER BY provider",
-			 t->obj.oid);
+	query = psprintf("SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_type' AND s.objoid = %u ORDER BY provider", t->obj.oid);
 
 	res = PQexec(c, query);
+
+	free(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

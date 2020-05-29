@@ -1,3 +1,7 @@
+if(APPLE)
+	set( CMAKE_MACOSX_RPATH 1 )
+endif()
+
 add_library(mini SHARED
 	mini-file.c
 	mini-file.h

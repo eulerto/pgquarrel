@@ -17,7 +17,7 @@
  * ALTER SUBSCRIPTION ... RENAME TO
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
- * Copyright (c) 2015-2019, Euler Taveira
+ * Copyright (c) 2015-2020, Euler Taveira
  *
  * ---------------------------------------------------------------------
  */
@@ -120,23 +120,11 @@ getSubscriptions(PGconn *c, int *n)
 void
 getSubscriptionPublications(PGconn *c, PQLSubscription *s)
 {
-	char		*query = NULL;
-	int			nquery = 0;
+	char		*query;
 	PGresult	*res;
 	int			i;
 
-	/* determine how many characters will be written by snprintf */
-	nquery = snprintf(query, nquery,
-					  "SELECT unnest(subpublications) FROM pg_subscription s WHERE s.oid = %u ORDER BY 1",
-					  s->oid);
-
-	nquery++;
-	query = (char *) malloc(nquery * sizeof(char));	/* make enough room for query */
-	snprintf(query, nquery,
-			 "SELECT unnest(subpublications) AS pubname FROM pg_subscription s WHERE s.oid = %u ORDER BY 1",
-			 s->oid);
-
-	logNoise("subscription: query size: %d ; query: %s", nquery, query);
+	query = psprintf("SELECT unnest(subpublications) FROM pg_subscription s WHERE s.oid = %u ORDER BY 1", s->oid);
 
 	res = PQexec(c, query);
 
@@ -176,15 +164,15 @@ getSubscriptionPublications(PGconn *c, PQLSubscription *s)
 void
 getSubscriptionSecurityLabels(PGconn *c, PQLSubscription *s)
 {
-	char		query[200];
+	char		*query;
 	PGresult	*res;
 	int			i;
 
-	snprintf(query, 200,
-			 "SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_subscription' AND s.objoid = %u ORDER BY provider",
-			 s->oid);
+	query = psprintf("SELECT provider, label FROM pg_seclabel s INNER JOIN pg_class c ON (s.classoid = c.oid) WHERE c.relname = 'pg_subscription' AND s.objoid = %u ORDER BY provider", s->oid);
 
 	res = PQexec(c, query);
+
+	free(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
