@@ -207,7 +207,7 @@ getProcFunctionSecurityLabels(PGconn *c, PQLFunction *f, char t)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

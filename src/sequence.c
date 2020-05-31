@@ -143,7 +143,7 @@ getSequenceAttributes(PGconn *c, PQLSequence *s)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -189,7 +189,7 @@ getSequenceSecurityLabels(PGconn *c, PQLSequence *s)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

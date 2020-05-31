@@ -160,7 +160,7 @@ getMaterializedViewAttributes(PGconn *c, PQLMaterializedView *v)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -252,7 +252,7 @@ getMaterializedViewSecurityLabels(PGconn *c, PQLMaterializedView *v)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

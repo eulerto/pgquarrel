@@ -136,7 +136,7 @@ getPublicationTables(PGconn *c, PQLPublication *p)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -180,7 +180,7 @@ getPublicationSecurityLabels(PGconn *c, PQLPublication *p)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

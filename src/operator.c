@@ -57,7 +57,7 @@ getOperators(PGconn *c, int *n)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -167,7 +167,7 @@ getOperatorClasses(PGconn *c, int *n)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -262,7 +262,7 @@ getOperatorFamilies(PGconn *c, int *n)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -337,7 +337,7 @@ getOpFuncAttributes(PGconn *c, Oid o, PQLOpAndFunc *d)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -392,7 +392,7 @@ getOpFuncAttributes(PGconn *c, Oid o, PQLOpAndFunc *d)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

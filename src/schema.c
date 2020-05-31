@@ -121,7 +121,7 @@ getSchemaSecurityLabels(PGconn *c, PQLSchema *s)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

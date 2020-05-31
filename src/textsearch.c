@@ -58,7 +58,7 @@ getTextSearchConfigs(PGconn *c, int *n)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -132,7 +132,7 @@ getTextSearchDicts(PGconn *c, int *n)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -205,7 +205,7 @@ getTextSearchParsers(PGconn *c, int *n)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -279,7 +279,7 @@ getTextSearchTemplates(PGconn *c, int *n)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

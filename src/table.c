@@ -339,7 +339,7 @@ getParentTables(PGconn *c, PQLTable *t)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -390,7 +390,7 @@ getForeignTableProperties(PGconn *c, PQLTable *t, int n)
 
 		res = PQexec(c, query);
 
-		free(query);
+		pfree(query);
 
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		{
@@ -449,7 +449,7 @@ getCheckConstraints(PGconn *c, PQLTable *t, int n)
 
 		res = PQexec(c, query);
 
-		free(query);
+		pfree(query);
 
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		{
@@ -512,7 +512,7 @@ getFKConstraints(PGconn *c, PQLTable *t, int n)
 
 		res = PQexec(c, query);
 
-		free(query);
+		pfree(query);
 
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		{
@@ -572,7 +572,7 @@ getPKConstraints(PGconn *c, PQLTable *t, int n)
 
 		res = PQexec(c, query);
 
-		free(query);
+		pfree(query);
 
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		{
@@ -653,7 +653,7 @@ getTableAttributes(PGconn *c, PQLTable *t)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -811,7 +811,7 @@ getTableAttributes(PGconn *c, PQLTable *t)
 
 		res = PQexec(c, query);
 
-		free(query);
+		pfree(query);
 
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		{
@@ -869,7 +869,7 @@ getTableSecurityLabels(PGconn *c, PQLTable *t)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -919,7 +919,7 @@ getTableSecurityLabels(PGconn *c, PQLTable *t)
 
 		res = PQexec(c, query);
 
-		free(query);
+		pfree(query);
 
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		{
@@ -1114,7 +1114,7 @@ getOwnedBySequences(PGconn *c, PQLTable *t)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

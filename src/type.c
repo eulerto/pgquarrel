@@ -160,7 +160,7 @@ getBaseTypeSecurityLabels(PGconn *c, PQLBaseType *t)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -222,7 +222,7 @@ getCompositeTypeAttributes(PGconn *c, PQLCompositeType *t)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -378,7 +378,7 @@ getCompositeTypeSecurityLabels(PGconn *c, PQLCompositeType *t)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -435,7 +435,7 @@ getEnumTypeLabels(PGconn *c, PQLEnumType *t)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -573,7 +573,7 @@ getEnumTypeSecurityLabels(PGconn *c, PQLEnumType *t)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -735,7 +735,7 @@ getRangeTypeSecurityLabels(PGconn *c, PQLRangeType *t)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

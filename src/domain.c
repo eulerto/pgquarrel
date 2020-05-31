@@ -157,7 +157,7 @@ getDomainConstraints(PGconn *c, PQLDomain *d)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -210,7 +210,7 @@ getDomainSecurityLabels(PGconn *c, PQLDomain *d)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

@@ -128,7 +128,7 @@ getSubscriptionPublications(PGconn *c, PQLSubscription *s)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -172,7 +172,7 @@ getSubscriptionSecurityLabels(PGconn *c, PQLSubscription *s)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{

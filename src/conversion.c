@@ -47,7 +47,7 @@ getConversions(PGconn *c, int *n)
 
 	res = PQexec(c, query);
 
-	free(query);
+	pfree(query);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
