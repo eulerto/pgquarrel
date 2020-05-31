@@ -51,6 +51,21 @@ BASEWD=`dirname $TESTWD`
 
 PGQUARREL="$BASEWD/pgquarrel"
 
+if [ $CLEANUP -eq 1 ]; then
+	if [ ! -f $CLUSTERPATH/test1/postmaster.pid ]; then
+		rm -rf $CLUSTERPATH/test1
+	else
+		echo "cluster 1 is running"
+		exit 1
+	fi
+	if [ ! -f $CLUSTERPATH/test2/postmaster.pid ]; then
+		rm -rf $CLUSTERPATH/test2
+	else
+		echo "cluster 2 is running"
+		exit 1
+	fi
+fi
+
 if [ "$3" = "init" ]; then
 	if [ -d $CLUSTERPATH/test1 ]; then
 		echo "cluster 1 already exists"
