@@ -5141,11 +5141,19 @@ int main(int argc, char *argv[])
 
 		logNoise("filter include schema: %s", include_schema_str);
 	}
+	else
+	{
+		include_schema_str = "";
+	}
 	if (options.exclude_schema != NULL)
 	{
 		exclude_schema_str = psprintf(" AND n.nspname !~ '%s'", options.exclude_schema);
 
 		logNoise("filter exclude schema: %s", exclude_schema_str);
+	}
+	else
+	{
+		exclude_schema_str = "";
 	}
 
 	/*
