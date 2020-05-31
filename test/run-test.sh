@@ -10,7 +10,8 @@
 GCOV="/usr/bin/gcov"
 LCOV="/usr/bin/lcov"
 GENHTML="/usr/bin/genhtml"
-VGCMD="/usr/bin/valgrind --leak-check=full --show-leak-kinds=all"
+VGCMD="/usr/bin/valgrind"
+VGOPTS="--leak-check=full --show-leak-kinds=all"
 
 PGUSER1=${PGUSER1:-"quarrel"}
 PGUSER2=${PGUSER2:-"quarrel"}
@@ -130,7 +131,7 @@ if [ $VALGRIND -eq 1 ]; then
 	if [ ! -f $VGCMD ]; then
 		echo "valgrind is not installed"
 	else
-		$VGCMD $PGQUARREL $VERBOSE -c test.ini
+		$VGCMD $VGOPTS $PGQUARREL $VERBOSE -c test.ini
 	fi
 	exit 0
 else
