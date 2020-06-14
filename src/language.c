@@ -35,12 +35,12 @@ getLanguages(PGconn *c, int *n)
 	if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
 		res = PQexec(c,
-					 "SELECT l.oid, lanname AS languagename, CASE WHEN tmplname IS NULL THEN false ELSE true END AS pltemplate, lanpltrusted AS trusted, p1.proname AS callhandler, p2.proname AS inlinehandler, p3.proname AS validator, obj_description(l.oid, 'pg_language') AS description, pg_get_userbyid(lanowner) AS lanowner, lanacl FROM pg_language l LEFT JOIN pg_pltemplate t ON (l.lanname = t.tmplname) LEFT JOIN pg_proc p1 ON (p1.oid = lanplcallfoid) LEFT JOIN pg_proc p2 ON (p2.oid = laninline) LEFT JOIN pg_proc p3 ON (p3.oid = lanvalidator) WHERE lanispl AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE l.oid = d.objid AND d.deptype = 'e') ORDER BY lanname");
+					 "SELECT l.oid, lanname AS languagename, lanpltrusted AS trusted, p1.oid AS calloid, p1.pronamespace::regnamespace AS callnsp, p1.proname AS callname, p2.oid AS inlineoid, p2.pronamespace::regnamespace AS inlinensp, p2.proname AS inlinename, p3.oid AS validatoroid, p3.pronamespace::regnamespace AS validatornsp, p3.proname AS validatorname, obj_description(l.oid, 'pg_language') AS description, pg_get_userbyid(lanowner) AS lanowner, lanacl FROM pg_language l LEFT JOIN pg_proc p1 ON (p1.oid = lanplcallfoid) LEFT JOIN pg_proc p2 ON (p2.oid = laninline) LEFT JOIN pg_proc p3 ON (p3.oid = lanvalidator) WHERE lanispl AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE l.oid = d.objid AND d.deptype = 'e') ORDER BY lanname");
 	}
 	else
 	{
 		res = PQexec(c,
-					 "SELECT l.oid, lanname AS languagename, CASE WHEN tmplname IS NULL THEN false ELSE true END AS pltemplate, lanpltrusted AS trusted, p1.proname AS callhandler, p2.proname AS inlinehandler, p3.proname AS validator, obj_description(l.oid, 'pg_language') AS description, pg_get_userbyid(lanowner) AS lanowner, lanacl FROM pg_language l LEFT JOIN pg_pltemplate t ON (l.lanname = t.tmplname) LEFT JOIN pg_proc p1 ON (p1.oid = lanplcallfoid) LEFT JOIN pg_proc p2 ON (p2.oid = laninline) LEFT JOIN pg_proc p3 ON (p3.oid = lanvalidator) WHERE lanispl ORDER BY lanname");
+					 "SELECT l.oid, lanname AS languagename, lanpltrusted AS trusted, p1.oid AS calloid, p1.pronamespace::regnamespace AS callnsp, p1.proname AS callfunc, p2.oid AS inlineoid, p2.pronamespace::regnamespace AS inlinensp, p2.proname AS inlinefunc, p3.oid AS validatoroid, p3.pronamespace::regnamespace AS validatornsp, p3.proname AS validatorfunc, obj_description(l.oid, 'pg_language') AS description, pg_get_userbyid(lanowner) AS lanowner, lanacl FROM pg_language l LEFT JOIN pg_proc p1 ON (p1.oid = lanplcallfoid) LEFT JOIN pg_proc p2 ON (p2.oid = laninline) LEFT JOIN pg_proc p3 ON (p3.oid = lanvalidator) WHERE lanispl ORDER BY lanname");
 	}
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -66,12 +66,45 @@ getLanguages(PGconn *c, int *n)
 
 		l[i].oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "oid")), NULL, 10);
 		l[i].languagename = strdup(PQgetvalue(res, i, PQfnumber(res, "languagename")));
-		l[i].pltemplate = (PQgetvalue(res, i, PQfnumber(res, "pltemplate"))[0] == 't');
 		l[i].trusted = (PQgetvalue(res, i, PQfnumber(res, "trusted"))[0] == 't');
-		l[i].callhandler = strdup(PQgetvalue(res, i, PQfnumber(res, "callhandler")));
-		l[i].inlinehandler = strdup(PQgetvalue(res, i, PQfnumber(res,
-											   "inlinehandler")));
-		l[i].validator = strdup(PQgetvalue(res, i, PQfnumber(res, "validator")));
+
+		if (PQgetisnull(res, i, PQfnumber(res, "callname")))
+		{
+			l[i].callfunc.oid = InvalidOid;
+			l[i].callfunc.schemaname = NULL;
+			l[i].callfunc.objectname = NULL;
+		}
+		else
+		{
+			l[i].callfunc.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "calloid")), NULL, 10);
+			l[i].callfunc.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "callnsp")));
+			l[i].callfunc.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "callname")));
+		}
+		if (PQgetisnull(res, i, PQfnumber(res, "inlinename")))
+		{
+			l[i].inlinefunc.oid = InvalidOid;
+			l[i].inlinefunc.schemaname = NULL;
+			l[i].inlinefunc.objectname = NULL;
+		}
+		else
+		{
+			l[i].inlinefunc.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "inlineoid")), NULL, 10);
+			l[i].inlinefunc.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "inlinensp")));
+			l[i].inlinefunc.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "inlinename")));
+		}
+		if (PQgetisnull(res, i, PQfnumber(res, "validatorname")))
+		{
+			l[i].validatorfunc.oid = InvalidOid;
+			l[i].validatorfunc.schemaname = NULL;
+			l[i].validatorfunc.objectname = NULL;
+		}
+		else
+		{
+			l[i].validatorfunc.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "validatoroid")), NULL, 10);
+			l[i].validatorfunc.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "validatornsp")));
+			l[i].validatorfunc.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "validatorname")));
+		}
+
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			l[i].comment = NULL;
 		else
@@ -181,9 +214,18 @@ freeLanguages(PQLLanguage *l, int n)
 			int	j;
 
 			free(l[i].languagename);
-			free(l[i].callhandler);
-			free(l[i].inlinehandler);
-			free(l[i].validator);
+			if (l[i].callfunc.schemaname)
+				free(l[i].callfunc.schemaname);
+			if (l[i].callfunc.objectname)
+				free(l[i].callfunc.objectname);
+			if (l[i].inlinefunc.schemaname)
+				free(l[i].inlinefunc.schemaname);
+			if (l[i].inlinefunc.objectname)
+				free(l[i].inlinefunc.objectname);
+			if (l[i].validatorfunc.schemaname)
+				free(l[i].validatorfunc.schemaname);
+			if (l[i].validatorfunc.objectname)
+				free(l[i].validatorfunc.objectname);
 			if (l[i].comment)
 				PQfreemem(l[i].comment);
 			free(l[i].owner);
@@ -220,18 +262,38 @@ void
 dumpCreateLanguage(FILE *output, PQLLanguage *l)
 {
 	char	*langname = formatObjectIdentifier(l->languagename);
+	bool	hasparams;
+	char	*n1, *n2, *n3;
+	char	*o1, *o2, *o3;
+
+	hasparams = (l->callfunc.oid != InvalidOid && l->inlinefunc.oid != InvalidOid && l->validatorfunc.oid != InvalidOid);
 
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE LANGUAGE %s", langname);
 
-	if (!l->pltemplate)
+	if (hasparams)
 	{
-		if (l->trusted)
-			fprintf(output, " TRUSTED");
+		n1 = formatObjectIdentifier(l->callfunc.schemaname);
+		o1 = formatObjectIdentifier(l->callfunc.objectname);
+		n2 = formatObjectIdentifier(l->inlinefunc.schemaname);
+		o2 = formatObjectIdentifier(l->inlinefunc.objectname);
+		n3 = formatObjectIdentifier(l->validatorfunc.schemaname);
+		o3 = formatObjectIdentifier(l->validatorfunc.objectname);
 
-		fprintf(output, " HANDLER %s", l->callhandler);
-		fprintf(output, " INLINE %s", l->inlinehandler);
-		fprintf(output, " VALIDATOR %s", l->validator);
+		fprintf(output, "CREATE %sPROCEDURAL LANGUAGE %s", l->trusted ? "TRUSTED" : "", langname);
+		fprintf(output, " HANDLER %s.%s", l->callfunc.schemaname, l->callfunc.objectname);
+		fprintf(output, " INLINE %s.%s", l->inlinefunc.schemaname, l->inlinefunc.objectname);
+		fprintf(output, " VALIDATOR %s.%s", l->validatorfunc.schemaname, l->validatorfunc.objectname);
+
+		free(n1);
+		free(o1);
+		free(n2);
+		free(o2);
+		free(n3);
+		free(o3);
+	}
+	else
+	{
+		fprintf(output, "CREATE OR REPLACE PROCEDURAL LANGUAGE %s", langname);
 	}
 
 	fprintf(output, ";");

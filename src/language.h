@@ -14,16 +14,15 @@
 
 typedef struct PQLLanguage
 {
-	Oid		oid;
-	char	*languagename;
-	bool	pltemplate;
-	bool	trusted;
-	char	*callhandler;
-	char	*inlinehandler;
-	char	*validator;
-	char	*comment;
-	char	*owner;
-	char	*acl;
+	Oid			oid;
+	char		*languagename;
+	bool		trusted;
+	PQLObject	callfunc;
+	PQLObject	inlinefunc;
+	PQLObject	validatorfunc;
+	char		*comment;
+	char		*owner;
+	char		*acl;
 
 	/* security labels */
 	PQLSecLabel	*seclabels;
