@@ -363,6 +363,10 @@ The following command-line options are provided (all are optional):
 * `view`: view comparison (default: true).
 * `include-schema`: include schemas that match pattern (default: all schemas).
 * `exclude-schema`: exclude schemas that match pattern (default: none).
+* `include-table`: include tables that match pattern (default: all schemas).
+* `exclude-table`: exclude tables that match pattern (default: none).
+* `exclude-column`: exclude columns that match pattern (default: none).
+* `exclude-table-column`: exclude table.columns that match pattern (default: none) Only for PostgreSQL 9.4+.
 
 You can use a configuration file to store the desired options. The _general_ section specifies which kind of objects will be output. The _target_ and _source_ section options specifies connection options to both servers. Have in mind that any command-line option can override the configuration file option. The configuration file contains the following structure:
 
@@ -411,6 +415,10 @@ view = true
 
 include-schema = ^(hr|finance|account|crm|sales)$
 exclude-schema = ^public$
+include-table = ^(table_a|table_b)$
+exclude-table = ^(table_c|table_d)$
+exclude-column = ^(column_c|column_d)$
+exclude-table-column = ^(table_g.column_g|table_h.column_h)$
 
 [target]
 host = 10.27.0.8

@@ -111,6 +111,10 @@ QuarrelGeneralOptions		options;	/* general options */
 /* filter by schema */
 char *include_schema_str;
 char *exclude_schema_str;
+char *include_table_str;
+char *exclude_table_str;
+char *exclude_column_str;
+char *exclude_table_column_str;
 
 PQLStatistic		qstat = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 							 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -300,8 +304,12 @@ help(void)
 	printf("      --view=BOOL               view (default: %s)\n",
 		   (opts.general.view) ? "true" : "false");
 	printf("\nFilter options:\n");
-	printf("      --include-schema=PATTERN  include schemas that match PATTERN (default: all schemas)\n");
-	printf("      --exclude-schema=PATTERN  exclude schemas that match PATTERN (default: none)\n");
+	printf("      --include-schema=PATTERN        include schemas that match PATTERN (default: all schemas)\n");
+	printf("      --exclude-schema=PATTERN        exclude schemas that match PATTERN (default: none)\n");
+	printf("      --include-table=PATTERN         include tables that match PATTERN (default: none)\n");
+	printf("      --exclude-table=PATTERN         exclude tables that match PATTERN (default: none)\n");
+	printf("      --exclude-column=PATTERN        exclude columns that match PATTERN (default: none)\n");
+	printf("      --exclude-table-column=PATTERN  exclude table.columns that match PATTERN (default: none) Only for PostgreSQL 9.4+\n");
 	printf("\nSource options:\n");
 	printf("      --source-dbname=DBNAME    database name or connection string\n");
 	printf("      --source-host=HOSTNAME    server host or socket directory\n");
@@ -373,6 +381,10 @@ loadConfig(const char *cf, QuarrelOptions *options)
 
 	options->general.include_schema = NULL;		/* general - include schemas that match pattern */
 	options->general.exclude_schema = NULL;		/* general - exclude schemas that match pattern */
+	options->general.include_table = NULL;		/* general - include tables that match pattern */
+	options->general.exclude_table = NULL;		/* general - exclude tables that match pattern */
+	options->general.exclude_column = NULL;		/* general - exclude columns that match pattern */
+	options->general.exclude_table_column = NULL; /* general - exclude table.columns that match pattern */
 
 	options->source.host = NULL;				/* source - host */
 	options->source.port = NULL;				/* source - port */
@@ -622,6 +634,22 @@ loadConfig(const char *cf, QuarrelOptions *options)
 		tmp = mini_file_get_value(config, "general", "exclude-schema");
 		if (tmp != NULL)
 			options->general.exclude_schema = strdup(tmp);
+
+		tmp = mini_file_get_value(config, "general", "include-table");
+		if (tmp != NULL)
+			options->general.include_table = strdup(tmp);
+
+		tmp = mini_file_get_value(config, "general", "exclude-table");
+		if (tmp != NULL)
+			options->general.exclude_table = strdup(tmp);
+
+		tmp = mini_file_get_value(config, "general", "exclude-column");
+		if (tmp != NULL)
+			options->general.exclude_column = strdup(tmp);
+
+		tmp = mini_file_get_value(config, "general", "exclude-table-column");
+		if (tmp != NULL)
+			options->general.exclude_table_column = strdup(tmp);
 
 		/* source options */
 		tmp = mini_file_get_value(config, "source", "host");
@@ -4671,6 +4699,10 @@ int main(int argc, char *argv[])
 		{"temp-directory", required_argument, NULL, 37},
 		{"include-schema", required_argument, NULL, 45},
 		{"exclude-schema", required_argument, NULL, 46},
+		{"include-table", required_argument, NULL, 47},
+		{"exclude-table", required_argument, NULL, 48},
+		{"exclude-column", required_argument, NULL, 49},
+		{"exclude-table-column", required_argument, NULL, 50},
 		{NULL, 0, NULL, 0}
 	};
 
@@ -4685,6 +4717,10 @@ int main(int argc, char *argv[])
 	bool		target_prompt_given = false;
 	bool		include_schema_given = false;
 	bool		exclude_schema_given = false;
+	bool		include_table_given = false;
+	bool		exclude_table_given = false;
+	bool		exclude_column_given = false;
+	bool		exclude_table_column_given = false;
 
 	/* general and connection options */
 	QuarrelOptions	opts;
@@ -4922,6 +4958,22 @@ int main(int argc, char *argv[])
 				gopts.exclude_schema = strdup(optarg);
 				exclude_schema_given = true;
 				break;
+			case 47:
+				gopts.include_table = strdup(optarg);
+				include_table_given = true;
+				break;
+			case 48:
+				gopts.exclude_table = strdup(optarg);
+				exclude_table_given = true;
+				break;
+			case 49:
+				gopts.exclude_column = strdup(optarg);
+				exclude_column_given = true;
+				break;
+			case 50:
+				gopts.exclude_table_column = strdup(optarg);
+				exclude_table_column_given = true;
+				break;
 			default:
 				fprintf(stderr, "Try \"%s --help\" for more information.\n", PGQ_NAME);
 				exit(EXIT_FAILURE);
@@ -5022,6 +5074,14 @@ int main(int argc, char *argv[])
 		options.include_schema = gopts.include_schema;
 	if (exclude_schema_given)
 		options.exclude_schema = gopts.exclude_schema;
+	if (include_table_given)
+		options.include_table = gopts.include_table;
+	if (exclude_table_given)
+		options.exclude_table = gopts.exclude_table;
+	if (exclude_column_given)
+		options.exclude_column = gopts.exclude_column;
+	if (exclude_table_column_given)
+		options.exclude_table_column = gopts.exclude_table_column;
 
 	if (sopts.dbname)
 		opts.source.dbname = sopts.dbname;
@@ -5154,6 +5214,46 @@ int main(int argc, char *argv[])
 	else
 	{
 		exclude_schema_str = "";
+	}
+	if (options.include_table != NULL)
+	{
+		include_table_str = psprintf(" AND c.relname ~ '%s'", options.include_table);
+
+		logNoise("filter include table: %s", include_table_str);
+	}
+	else
+	{
+		include_table_str = "";
+	}
+	if (options.exclude_table != NULL)
+	{
+		exclude_table_str = psprintf(" AND c.relname !~ '%s'", options.exclude_table);
+
+		logNoise("filter exclude table: %s", exclude_table_str);
+	}
+	else
+	{
+		exclude_table_str = "";
+	}
+	if (options.exclude_column != NULL)
+	{
+		exclude_column_str = psprintf(" AND a.attname !~ '%s'", options.exclude_column);
+
+		logNoise("filter exclude column: %s", exclude_column_str);
+	}
+	else
+	{
+		exclude_column_str = "";
+	}
+	if (options.exclude_table_column != NULL)
+	{
+		exclude_table_column_str = psprintf("%s", options.exclude_table_column);
+
+		logNoise("filter exclude table-column: %s", exclude_table_column_str);
+	}
+	else
+	{
+		exclude_table_column_str = "";
 	}
 
 	/*
