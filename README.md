@@ -418,7 +418,7 @@ exclude-schema = ^public$
 include-table = ^(table_a|table_b)$
 exclude-table = ^(table_c|table_d)$
 exclude-column = ^(column_c|column_d)$
-exclude-table-column = ^(table_g.column_g|table_h.column_h)$
+exclude-table-column = [{"t":"table_e","c":"column_e"}]
 
 [target]
 host = 10.27.0.8
