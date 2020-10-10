@@ -65,7 +65,7 @@ getPolicies(PGconn *c, int *n)
 		p[i].table.oid = strtoul(PQgetvalue(res, i, PQfnumber(res, "polrelid")), NULL,
 								 10);
 		p[i].table.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res,
-									   "polnspname")));
+									   "polnamespace")));
 		p[i].table.objectname = strdup(PQgetvalue(res, i, PQfnumber(res,
 									   "poltabname")));
 		p[i].cmd = PQgetvalue(res, i, PQfnumber(res, "polcmd"))[0];
