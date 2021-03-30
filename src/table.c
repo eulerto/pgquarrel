@@ -1345,10 +1345,10 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 	/* print foreign key constraints */
 	for (i = 0; i < t->nfk; i++)
 	{
-		fprintf(output, "\n\n");
-		fprintf(output, "ALTER TABLE ONLY %s.%s\n", schema, tabname);
-		fprintf(output, "\tADD CONSTRAINT %s %s", t->fk[i].conname, t->fk[i].condef);
-		fprintf(output, ";");
+		fprintf(output2, "\n\n");
+		fprintf(output2, "ALTER TABLE ONLY %s.%s\n", schema, tabname);
+		fprintf(output2, "\tADD CONSTRAINT %s %s", t->fk[i].conname, t->fk[i].condef);
+		fprintf(output2, ";");
 	}
 
 	/* XXX Should it belong to sequence.c? */
