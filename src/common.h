@@ -89,6 +89,7 @@ typedef struct QuarrelGeneralOptions
 	bool			statistics;
 	bool			subscription;
 	bool			table;
+	bool			tablepartition;
 	bool			textsearch;
 	bool			transform;
 	bool			trigger;
