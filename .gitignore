@@ -8,3 +8,4 @@ mini/Makefile
 mini/cmake_install.cmake
 mini/libmini.so
 pgquarrel
+.vscode/
