@@ -34,7 +34,14 @@ getIndexes(PGconn *c, int *n)
 
 	logNoise("index: server version: %d", PQserverVersion(c));
 
-	query = psprintf("SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, pg_get_indexdef(c.oid) AS indexdef, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) INNER JOIN pg_index i ON (i.indexrelid = c.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'i' AND c.relispartition=%s AND nspname !~ '^pg_' AND nspname <> 'information_schema' %s%s AND NOT indisprimary ORDER BY nspname, relname", options.tablepartition? "TRUE":"FALSE", include_schema_str, exclude_schema_str);
+	if (PQserverVersion(c) >= 100000 && !options.tablepartition){
+		// THIS QUERY IS OPTIMIZED ONLY FOR DISCOVERING INDEXES WHICH DOES NOT BELONG PARTITIONS 
+		query = psprintf("SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, pg_get_indexdef(c.oid) AS indexdef, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) INNER JOIN pg_index i ON (i.indexrelid = c.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) LEFT JOIN pg_class pt ON NOT c.relispartition AND i.indrelid=pt.oid WHERE c.relkind = 'i' AND NOT c.relispartition AND NOT pt.relispartition AND nspname !~ '^pg_' AND nspname <> 'information_schema' %s%s AND NOT indisprimary ORDER BY nspname, c.relname", include_schema_str, exclude_schema_str);
+	}
+	else {
+		query = psprintf("SELECT c.oid, n.nspname, c.relname, t.spcname AS tablespacename, pg_get_indexdef(c.oid) AS indexdef, array_to_string(c.reloptions, ', ') AS reloptions, obj_description(c.oid, 'pg_class') AS description FROM pg_class c INNER JOIN pg_namespace n ON (c.relnamespace = n.oid) INNER JOIN pg_index i ON (i.indexrelid = c.oid) LEFT JOIN pg_tablespace t ON (c.reltablespace = t.oid) WHERE relkind = 'i' AND nspname !~ '^pg_' AND nspname <> 'information_schema' %s%s AND NOT indisprimary ORDER BY nspname, relname", include_schema_str, exclude_schema_str);
+	}
+
 	res = PQexec(c, query);
 
 	pfree(query);
