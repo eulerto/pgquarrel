@@ -317,7 +317,7 @@ help(void)
 	printf("\n");
 	printf("  --help                        show this help, then exit\n");
 	printf("  --version                     output version information, then exit\n");
-	printf("\nReport bugs to <euler@timbira.com.br>.\n");
+	printf("\nReport bugs to <euler@eulerto.com>.\n");
 }
 
 static void
