@@ -183,8 +183,8 @@ dumpAlterStatistics(FILE *output, PQLStatistics *a, PQLStatistics *b)
 	char	*stxname2 = formatObjectIdentifier(b->obj.objectname);
 
 	/* statistics target */
-	if (a-stxtarget != NULL && b-stxtarget != NULL &&
-				 strcmp(a-stxtarget, b-stxtarget) != 0)
+	if (a->stxtarget != NULL && b->stxtarget != NULL &&
+				 strcmp(a->stxtarget, b->stxtarget) != 0)
 	{
 		fprintf(output, "\n\n");
 		fprintf(output, "ALTER STATISTICS %s.%s SET STATISTICS %s;", schema2, stxname2,
