@@ -19,7 +19,11 @@
 
 #include "common.h"
 
+#if PG_VERSION_NUM >= 140000
+#include <common/string.h>		/* simple_prompt (v14+) */
+#else
 #include <port.h>				/* simple_prompt */
+#endif
 
 #define PGQ_NAME			"pgquarrel"
 #define PGQ_VERSION			"0.7.0"

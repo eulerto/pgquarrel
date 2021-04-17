@@ -786,7 +786,12 @@ connectDatabase(QuarrelDatabaseOptions opt)
 			opt.promptpassword)
 	{
 		PQfinish(conn);
-#if PG_VERSION_NUM >= 100000
+#if PG_VERSION_NUM >= 140000
+		if (opt.istarget)
+			prompt_password = simple_prompt("Target password: ", false);
+		else
+			prompt_password = simple_prompt("Source password: ", false);
+#elif PG_VERSION_NUM >= 100000
 		prompt_password = (char *) malloc((MAX_PASSWORD_LEN + 1) * sizeof(char));
 		if (opt.istarget)
 			simple_prompt("Target password: ", prompt_password, MAX_PASSWORD_LEN + 1,
