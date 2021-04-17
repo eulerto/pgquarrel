@@ -30,14 +30,14 @@ $ git clone https://github.com/eulerto/pgquarrel.git
 UNIX based Operating Systems
 ----------------------------
 
-Before installing **pgquarrel**, you should have PostgreSQL 9.0+ installed (including the header files). If PostgreSQL is not in your search path add -DCMAKE_PREFIX_PATH=/path/to/pgsql to cmake command. If you are using [PostgreSQL yum repository](https://yum.postgresql.org), install `postgresql12-devel` and add `-DCMAKE_PREFIX_PATH=/usr/pgsql-12` to cmake command. If you are using [PostgreSQL apt repository](https://wiki.postgresql.org/wiki/Apt), install `postgresql-server-dev-12` and add `-DCMAKE_PREFIX_PATH=/usr/lib/postgresql/12` to cmake command.
+Before installing **pgquarrel**, you should have PostgreSQL 9.0+ installed (including the header files). If PostgreSQL is not in your search path add -DCMAKE_PREFIX_PATH=/path/to/pgsql to cmake command. If you are using [PostgreSQL yum repository](https://yum.postgresql.org), install `postgresql13-devel` and add `-DCMAKE_PREFIX_PATH=/usr/pgsql-13` to cmake command. If you are using [PostgreSQL apt repository](https://wiki.postgresql.org/wiki/Apt), install `postgresql-server-dev-13` and add `-DCMAKE_PREFIX_PATH=/usr/lib/postgresql/13` to cmake command.
 
-If you compile PostgreSQL by yourself and install it in `/home/euler/pg12`:
+If you compile PostgreSQL by yourself and install it in `/home/euler/pg13`:
 
 ```
 $ tar -zxf pgquarrel-0.7.0.tgz
 $ cd pgquarrel-0.7.0
-$ cmake -DCMAKE_INSTALL_PREFIX=$HOME/pgquarrel -DCMAKE_PREFIX_PATH=/home/euler/pg12 .
+$ cmake -DCMAKE_INSTALL_PREFIX=$HOME/pgquarrel -DCMAKE_PREFIX_PATH=/home/euler/pg13 .
 $ make
 $ make install
 ```
@@ -45,10 +45,10 @@ $ make install
 If you are using [PostgreSQL yum repository](https://yum.postgresql.org):
 
 ```
-$ sudo yum install postgresql12-devel
+$ sudo yum install postgresql13-devel
 $ tar -zxf pgquarrel-0.7.0.tgz
 $ cd pgquarrel-0.7.0
-$ cmake -DCMAKE_INSTALL_PREFIX=$HOME/pgquarrel -DCMAKE_PREFIX_PATH=/usr/pgsql-12 .
+$ cmake -DCMAKE_INSTALL_PREFIX=$HOME/pgquarrel -DCMAKE_PREFIX_PATH=/usr/pgsql-13 .
 $ make
 $ make install
 ```
@@ -56,10 +56,10 @@ $ make install
 If you are using [PostgreSQL apt repository](https://wiki.postgresql.org/wiki/Apt):
 
 ```
-$ sudo apt-get install postgresql-server-dev-12
+$ sudo apt-get install postgresql-server-dev-13
 $ tar -zxf pgquarrel-0.7.0.tgz
 $ cd pgquarrel-0.7.0
-$ cmake -DCMAKE_INSTALL_PREFIX=$HOME/pgquarrel -DCMAKE_PREFIX_PATH=/usr/lib/postgresql/12 .
+$ cmake -DCMAKE_INSTALL_PREFIX=$HOME/pgquarrel -DCMAKE_PREFIX_PATH=/usr/lib/postgresql/13 .
 $ make
 $ make install
 ```
