@@ -14,6 +14,7 @@
  * TODO
  *
  * ALTER VIEW ... ALTER COLUMN ... { SET | DROP } DEFAULT
+ * ALTER VIEW ... RENAME COLUMN ... TO
  * ALTER VIEW ... RENAME TO
  * ALTER VIEW ... SET SCHEMA
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
