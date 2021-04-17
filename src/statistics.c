@@ -41,7 +41,10 @@ getStatistics(PGconn *c, int *n)
 		return NULL;
 	}
 
-	query = psprintf("SELECT s.oid, n.nspname AS nspname, s.stxname AS stxname, pg_get_statisticsobjdef(s.oid) AS stxdef, obj_description(s.oid, 'pg_statistic_ext') AS description, pg_get_userbyid(s.stxowner) AS stxowner FROM pg_statistic_ext s INNER JOIN pg_namespace n ON (s.stxnamespace = n.oid) WHERE TRUE %s%s ORDER BY n.nspname, s.stxname", include_schema_str, exclude_schema_str);
+	if (PQserverVersion(c) >= 130000)
+		query = psprintf("SELECT s.oid, n.nspname AS nspname, s.stxname AS stxname, pg_get_statisticsobjdef(s.oid) AS stxdef, s.stxstattarget AS stxstattarget, obj_description(s.oid, 'pg_statistic_ext') AS description, pg_get_userbyid(s.stxowner) AS stxowner FROM pg_statistic_ext s INNER JOIN pg_namespace n ON (s.stxnamespace = n.oid) WHERE TRUE %s%s ORDER BY n.nspname, s.stxname", include_schema_str, exclude_schema_str);
+	else
+		query = psprintf("SELECT s.oid, n.nspname AS nspname, s.stxname AS stxname, pg_get_statisticsobjdef(s.oid) AS stxdef, NULL AS stxstattarget, obj_description(s.oid, 'pg_statistic_ext') AS description, pg_get_userbyid(s.stxowner) AS stxowner FROM pg_statistic_ext s INNER JOIN pg_namespace n ON (s.stxnamespace = n.oid) WHERE TRUE %s%s ORDER BY n.nspname, s.stxname", include_schema_str, exclude_schema_str);
 
 	res = PQexec(c, query);
 
@@ -72,6 +75,10 @@ getStatistics(PGconn *c, int *n)
 		s[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		s[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "stxname")));
 		s[i].stxdef = strdup(PQgetvalue(res, i, PQfnumber(res, "stxdef")));
+		if (PQgetisnull(res, i, PQfnumber(res, "stxstattarget")))
+			s[i].stxtarget = NULL;
+		else
+			s[i].stxtarget = strdup(PQgetvalue(res, i, PQfnumber(res, "stxstattarget")));
 		if (PQgetisnull(res, i, PQfnumber(res, "description")))
 			s[i].comment = NULL;
 		else
@@ -111,6 +118,8 @@ freeStatistics(PQLStatistics *s, int n)
 			free(s[i].obj.objectname);
 			free(s[i].stxdef);
 			free(s[i].owner);
+			if (s[i].stxtarget)
+				free(s[i].stxtarget);
 			if (s[i].comment)
 				PQfreemem(s[i].comment);
 		}
@@ -172,6 +181,15 @@ dumpAlterStatistics(FILE *output, PQLStatistics *a, PQLStatistics *b)
 	char	*stxname1 = formatObjectIdentifier(a->obj.objectname);
 	char	*schema2 = formatObjectIdentifier(b->obj.schemaname);
 	char	*stxname2 = formatObjectIdentifier(b->obj.objectname);
+
+	/* statistics target */
+	if (a-stxtarget != NULL && b-stxtarget != NULL &&
+				 strcmp(a-stxtarget, b-stxtarget) != 0)
+	{
+		fprintf(output, "\n\n");
+		fprintf(output, "ALTER STATISTICS %s.%s SET STATISTICS %s;", schema2, stxname2,
+				b->stxtarget);
+	}
 
 	/* comment */
 	if (options.comment)

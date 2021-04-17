@@ -15,6 +15,7 @@ typedef struct PQLStatistics
 {
 	PQLObject		obj;
 	char			*stxdef;
+	char			*stxtarget;
 	char			*comment;
 	char			*owner;
 } PQLStatistics;
