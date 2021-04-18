@@ -43,18 +43,22 @@ getBaseTypes(PGconn *c, int *n)
 
 	logNoise("base type: server version: %d", PQserverVersion(c));
 
-	if (PQserverVersion(c) >= 90200)		/* support for privileges on data types */
+	if (PQserverVersion(c) >= 140000)
 	{
-		query = psprintf("SELECT t.oid, n.nspname, t.typname, typlen AS length, typinput AS input, typoutput AS output, typreceive AS receive, typsend AS send, typmodin AS modin, typmodout AS modout, typanalyze AS analyze, (typcollation <> 0) as collatable, typdefault, typcategory AS category, typispreferred AS preferred, typdelim AS delimiter, typalign AS align, typstorage AS storage, typbyval AS byvalue, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'b' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' %s%s AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname", include_schema_str, exclude_schema_str);
+		query = psprintf("SELECT t.oid, n.nspname, t.typname, typlen AS length, typinput AS input, typoutput AS output, typreceive AS receive, typsend AS send, typmodin AS modin, typmodout AS modout, typanalyze AS analyze, typsubscript AS subscript, (typcollation <> 0) as collatable, typdefault, typcategory AS category, typispreferred AS preferred, typdelim AS delimiter, typalign AS align, typstorage AS storage, typbyval AS byvalue, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'b' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' %s%s AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname", include_schema_str, exclude_schema_str);
+	}
+	else if (PQserverVersion(c) >= 90200)		/* support for privileges on data types */
+	{
+		query = psprintf("SELECT t.oid, n.nspname, t.typname, typlen AS length, typinput AS input, typoutput AS output, typreceive AS receive, typsend AS send, typmodin AS modin, typmodout AS modout, typanalyze AS analyze, '-' AS subscript, (typcollation <> 0) as collatable, typdefault, typcategory AS category, typispreferred AS preferred, typdelim AS delimiter, typalign AS align, typstorage AS storage, typbyval AS byvalue, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'b' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' %s%s AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname", include_schema_str, exclude_schema_str);
 	}
 	else if (PQserverVersion(c) >= 90100)	/* extension support */
 	{
 		/* typcollation is new in 9.1 */
-		query = psprintf("SELECT t.oid, n.nspname, t.typname, typlen AS length, typinput AS input, typoutput AS output, typreceive AS receive, typsend AS send, typmodin AS modin, typmodout AS modout, typanalyze AS analyze, (typcollation <> 0) as collatable, typdefault, typcategory AS category, typispreferred AS preferred, typdelim AS delimiter, typalign AS align, typstorage AS storage, typbyval AS byvalue, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, NULL AS typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'b' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' %s%s AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname", include_schema_str, exclude_schema_str);
+		query = psprintf("SELECT t.oid, n.nspname, t.typname, typlen AS length, typinput AS input, typoutput AS output, typreceive AS receive, typsend AS send, typmodin AS modin, typmodout AS modout, typanalyze AS analyze, '-' AS subscript, (typcollation <> 0) as collatable, typdefault, typcategory AS category, typispreferred AS preferred, typdelim AS delimiter, typalign AS align, typstorage AS storage, typbyval AS byvalue, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, NULL AS typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'b' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' %s%s AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname", include_schema_str, exclude_schema_str);
 	}
 	else
 	{
-		query = psprintf("SELECT t.oid, n.nspname, t.typname, typlen AS length, typinput AS input, typoutput AS output, typreceive AS receive, typsend AS send, typmodin AS modin, typmodout AS modout, typanalyze AS analyze, false AS collatable, typdefault, typcategory AS category, typispreferred AS preferred, typdelim AS delimiter, typalign AS align, typstorage AS storage, typbyval AS byvalue, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, NULL AS typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'b' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' %s%s ORDER BY n.nspname, t.typname", include_schema_str, exclude_schema_str);
+		query = psprintf("SELECT t.oid, n.nspname, t.typname, typlen AS length, typinput AS input, typoutput AS output, typreceive AS receive, typsend AS send, typmodin AS modin, typmodout AS modout, typanalyze AS analyze, '-' AS subscript, false AS collatable, typdefault, typcategory AS category, typispreferred AS preferred, typdelim AS delimiter, typalign AS align, typstorage AS storage, typbyval AS byvalue, obj_description(t.oid, 'pg_type') AS description, pg_get_userbyid(t.typowner) AS typowner, NULL AS typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) WHERE t.typtype = 'b' AND (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid) AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' %s%s ORDER BY n.nspname, t.typname", include_schema_str, exclude_schema_str);
 	}
 
 	res = PQexec(c, query);
@@ -93,6 +97,7 @@ getBaseTypes(PGconn *c, int *n)
 		t[i].modin = strdup(PQgetvalue(res, i, PQfnumber(res, "modin")));
 		t[i].modout = strdup(PQgetvalue(res, i, PQfnumber(res, "modout")));
 		t[i].analyze = strdup(PQgetvalue(res, i, PQfnumber(res, "analyze")));
+		t[i].subscript = strdup(PQgetvalue(res, i, PQfnumber(res, "subscript")));
 		t[i].collatable = (PQgetvalue(res, i, PQfnumber(res, "collatable"))[0] == 't');
 		if (PQgetisnull(res, i, PQfnumber(res, "typdefault")))
 			t[i].typdefault = NULL;
@@ -809,6 +814,8 @@ freeBaseTypes(PQLBaseType *t, int n)
 			free(t[i].modin);
 			free(t[i].modout);
 			free(t[i].analyze);
+			if (t[i].subscript)
+				free(t[i].subscript);
 			if (t[i].typdefault)
 				free(t[i].typdefault);
 			free(t[i].category);
@@ -978,16 +985,18 @@ dumpCreateBaseType(FILE *output, PQLBaseType *t)
 	fprintf(output, "\n\tINPUT = %s", t->input);
 	fprintf(output, ",\n\tOUTPUT = %s", t->output);
 
-	if (t->receive != NULL)
+	if (strcmp(t->receive, "-") != 0)
 		fprintf(output, ",\n\tRECEIVE = %s", t->receive);
-	if (t->send != NULL)
+	if (strcmp(t->send, "-") != 0)
 		fprintf(output, ",\n\tSEND = %s", t->send);
-	if (t->modin != NULL)
+	if (strcmp(t->modin, "-") != 0)
 		fprintf(output, ",\n\tTYPMOD_IN = %s", t->modin);
-	if (t->modout != NULL)
+	if (strcmp(t->modout, "-") != 0)
 		fprintf(output, ",\n\tTYPMOD_OUT = %s", t->modout);
-	if (t->analyze != NULL)
+	if (strcmp(t->analyze, "-") != 0)
 		fprintf(output, ",\n\tANALYZE = %s", t->analyze);
+	if (strcmp(t->subscript, "-") != 0)
+		fprintf(output, ",\n\tSUBSCRIPT = %s", t->subscript);
 	/* XXX ignore null-terminated string (-2)? */
 	if (t->length < 0)
 		fprintf(output, ",\n\tINTERNALLENGTH = VARIABLE");

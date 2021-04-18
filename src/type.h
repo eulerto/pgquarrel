@@ -31,6 +31,7 @@ typedef struct PQLBaseType
 	char		*align;
 	char		*storage;
 	bool		byvalue;
+	char		*subscript;
 	char		*comment;
 	char		*owner;
 	char		*acl;
