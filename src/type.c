@@ -645,7 +645,10 @@ getRangeTypes(PGconn *c, int *n)
 		return NULL;
 	}
 
-	query = psprintf("SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, format_type(rngsubtype, NULL) AS subtype, m.nspname AS opcnspname, o.opcname, o.opcdefault, x.nspname AS collschemaname, CASE WHEN rngcollation = t.typcollation THEN NULL ELSE rngcollation END AS collname, rngcanonical, rngsubdiff, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) INNER JOIN pg_range r ON (r.rngsubtype = t.oid) INNER JOIN pg_opclass o ON (r.rngsubopc = o.oid) INNER JOIN pg_namespace m ON (o.opcnamespace = m.oid) LEFT JOIN (pg_collation l INNER JOIN pg_namespace x ON (l.collnamespace = x.oid)) ON (r.rngcollation = l.oid) WHERE t.typtype = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' %s%s AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname", include_schema_str, exclude_schema_str);
+	if (PQserverVersion(c) >= 140000)
+		query = psprintf("SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, format_type(rngsubtype, NULL) AS subtype, rngmultitypid AS multirange, m.nspname AS opcnspname, o.opcname, o.opcdefault, x.nspname AS collschemaname, CASE WHEN rngcollation = t.typcollation THEN NULL ELSE rngcollation END AS collname, rngcanonical, rngsubdiff, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) INNER JOIN pg_range r ON (r.rngsubtype = t.oid) INNER JOIN pg_opclass o ON (r.rngsubopc = o.oid) INNER JOIN pg_namespace m ON (o.opcnamespace = m.oid) LEFT JOIN (pg_collation l INNER JOIN pg_namespace x ON (l.collnamespace = x.oid)) ON (r.rngcollation = l.oid) WHERE t.typtype = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' %s%s AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname", include_schema_str, exclude_schema_str);
+	else
+		query = psprintf("SELECT t.oid, n.nspname, t.typname, obj_description(t.oid, 'pg_type') AS description, format_type(rngsubtype, NULL) AS subtype, '-' AS multirange, m.nspname AS opcnspname, o.opcname, o.opcdefault, x.nspname AS collschemaname, CASE WHEN rngcollation = t.typcollation THEN NULL ELSE rngcollation END AS collname, rngcanonical, rngsubdiff, pg_get_userbyid(t.typowner) AS typowner, typacl FROM pg_type t INNER JOIN pg_namespace n ON (t.typnamespace = n.oid) INNER JOIN pg_range r ON (r.rngsubtype = t.oid) INNER JOIN pg_opclass o ON (r.rngsubopc = o.oid) INNER JOIN pg_namespace m ON (o.opcnamespace = m.oid) LEFT JOIN (pg_collation l INNER JOIN pg_namespace x ON (l.collnamespace = x.oid)) ON (r.rngcollation = l.oid) WHERE t.typtype = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema' %s%s AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE t.oid = d.objid AND d.deptype = 'e') ORDER BY n.nspname, t.typname", include_schema_str, exclude_schema_str);
 
 	res = PQexec(c, query);
 
@@ -676,6 +679,7 @@ getRangeTypes(PGconn *c, int *n)
 		t[i].obj.schemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "nspname")));
 		t[i].obj.objectname = strdup(PQgetvalue(res, i, PQfnumber(res, "typname")));
 		t[i].subtype = strdup(PQgetvalue(res, i, PQfnumber(res, "subtype")));
+		t[i].multirange = strdup(PQgetvalue(res, i, PQfnumber(res, "multirange")));
 		t[i].opcschemaname = strdup(PQgetvalue(res, i, PQfnumber(res, "opcnspname")));
 		t[i].opcname = strdup(PQgetvalue(res, i, PQfnumber(res, "opcname")));
 		t[i].opcdefault = (PQgetvalue(res, i, PQfnumber(res, "opcdefault"))[0] == 't');
@@ -944,6 +948,7 @@ freeRangeTypes(PQLRangeType *t, int n)
 			free(t[i].obj.schemaname);
 			free(t[i].obj.objectname);
 			free(t[i].subtype);
+			free(t[i].multirange);
 			free(t[i].opcschemaname);
 			free(t[i].opcname);
 			if (t[i].collschemaname)
@@ -1262,6 +1267,9 @@ dumpCreateRangeType(FILE *output, PQLRangeType *t)
 
 	if (strcmp(t->diff, "-") != 0)
 		fprintf(output, ",\n\tSUBTYPE_DIFF = %s", t->diff);
+
+	if (strcmp(t->multirange, "-") != 0)
+		fprintf(output, ",\n\tMULTIRANGE_TYPE_NAME = %s", t->multirange);
 
 	fprintf(output, "\n);");
 

@@ -82,6 +82,7 @@ typedef struct PQLRangeType
 {
 	PQLObject	obj;
 	char		*subtype;
+	char		*multirange;
 	char		*opcschemaname;
 	char		*opcname;
 	bool		opcdefault;
