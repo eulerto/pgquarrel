@@ -78,6 +78,14 @@ CREATE TABLE same_table_5 (
 
 CREATE TABLE same_table_6 OF same_type_1;
 
+-- alter check
+CREATE TABLE same_table_7 (
+	a integer not null,
+	b text,
+
+    CHECK (b <> '')
+);
+
 CREATE TABLE to_table_4 OF same_type_1;
 
 -- empty table

@@ -2125,6 +2125,50 @@ dumpRemoveFK(FILE *output, PQLTable *t, int i)
 }
 
 static void
+dumpAddCheck(FILE *output, PQLTable *t, int i)
+{
+	char	*schema = formatObjectIdentifier(t->obj.schemaname);
+	char	*tabname = formatObjectIdentifier(t->obj.objectname);
+
+	fprintf(output, "\n\n");
+	fprintf(output, "ALTER TABLE ONLY %s.%s\n", schema, tabname);
+	fprintf(output, "\tADD CONSTRAINT %s %s", t->check[i].conname, t->check[i].condef);
+	fprintf(output, ";");
+
+	if (options.comment)
+	{
+		if (t->check[i].comment != NULL)
+		{
+			char	*checkname = formatObjectIdentifier(t->check[i].conname);
+
+			fprintf(output, "\n\n");
+			fprintf(output, "COMMENT ON CONSTRAINT %s ON %s.%s IS %s;", checkname, schema,
+					tabname, t->check[i].comment);
+
+			free(checkname);
+		}
+	}
+
+	free(schema);
+	free(tabname);
+}
+
+static void
+dumpRemoveCheck(FILE *output, PQLTable *t, int i)
+{
+	char	*schema = formatObjectIdentifier(t->obj.schemaname);
+	char	*tabname = formatObjectIdentifier(t->obj.objectname);
+
+	fprintf(output, "\n\n");
+	fprintf(output, "ALTER TABLE ONLY %s.%s\n", schema, tabname);
+	fprintf(output, "\tDROP CONSTRAINT %s", t->check[i].conname);
+	fprintf(output, ";");
+
+	free(schema);
+	free(tabname);
+}
+
+static void
 dumpAttachPartition(FILE *output, PQLTable *a)
 {
 	char	*schema = formatObjectIdentifier(a->obj.schemaname);
@@ -2355,6 +2399,73 @@ dumpAlterTable(FILE *output, PQLTable *a, PQLTable *b)
 						 b->fk[j].conname);
 
 				dumpAddFK(output, b, j);
+
+				j++;
+			}
+		}
+
+		/* the checks are sorted by name */
+		i = j = 0;
+		while (i < a->ncheck || j < b->ncheck)
+		{
+			/*
+			 * End of table a checks. Additional checks from table b will be
+			 * added.
+			 */
+			if (i == a->ncheck)
+			{
+				logDebug("%s \"%s\".\"%s\" check \"%s\" added",
+						 kindl, b->obj.schemaname, b->obj.objectname,
+						 b->check[j].conname);
+
+				dumpAddCheck(output, b, j);
+
+				j++;
+			}
+			/*
+			 * End of table b checks. Additional checks from table a will be
+			 * removed.
+			 */
+			else if (j == b->ncheck)
+			{
+				logDebug("%s \"%s\".\"%s\" check \"%s\" removed", kindl, a->obj.schemaname,
+						 a->obj.objectname, a->check[i].conname);
+
+				dumpRemoveCheck(output, a, i);
+				i++;
+			}
+			else if (strcmp(a->check[i].conname, b->check[j].conname) == 0)
+			{
+				/* drop and create check again if the definition does not match */
+				if (strcmp(a->check[i].condef, b->check[j].condef) != 0)
+				{
+					logDebug("%s \"%s\".\"%s\" check \"%s\" altered",
+							 kindl, b->obj.schemaname, b->obj.objectname,
+							 b->check[j].conname);
+
+					dumpRemoveCheck(output, a, i);
+					dumpAddCheck(output, b, j);
+				}
+
+				i++;
+				j++;
+			}
+			else if (strcmp(a->check[i].conname, b->check[j].conname) < 0)
+			{
+				logDebug("%s \"%s\".\"%s\" check \"%s\" removed",
+						 kindl, a->obj.schemaname, a->obj.objectname,
+						 a->check[i].conname);
+
+				dumpRemoveCheck(output, a, i);
+				i++;
+			}
+			else if (strcmp(a->check[i].conname, b->check[j].conname) > 0)
+			{
+				logDebug("%s \"%s\".\"%s\" check \"%s\" added",
+						 kindl, b->obj.schemaname, b->obj.objectname,
+						 b->check[j].conname);
+
+				dumpAddCheck(output, b, j);
 
 				j++;
 			}
