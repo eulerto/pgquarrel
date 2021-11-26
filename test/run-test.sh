@@ -42,14 +42,29 @@ if [ ! -z "$2" ]; then
 fi
 PGDIR2="pg$PGV2"
 
-PGPATH1=$HOME/$PGDIR1/bin
-PGPATH2=$HOME/$PGDIR2/bin
+PGDYNAMICVAR="PGPATH_$PGV1"
+if [ ! -z "${!PGDYNAMICVAR}" ]; then
+  PGPATH1=${!PGDYNAMICVAR}
+fi
+PGDYNAMICVAR="PGPATH_$PGV2"
+if [ ! -z "${!PGDYNAMICVAR}" ]; then
+  PGPATH2=${!PGDYNAMICVAR}
+fi
 
+PGPATH1=${PGPATH1:-$HOME/$PGDIR1/bin}
+PGPATH2=${PGPATH2:-$HOME/$PGDIR2/bin}
 
-TESTWD=`pwd`
+TESTWD="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BASEWD=`dirname $TESTWD`
 
-PGQUARREL="$BASEWD/pgquarrel"
+PGQUARREL=${PGQUARREL:-"$BASEWD/pgquarrel"}
+
+# Store the unix domain sockets and locks in our temp dir so we can
+# run unprivileged in case the default path doesn't work.
+export PGHOST=$CLUSTERPATH
+
+# The script requires we're in the same director as this file
+cd $TESTWD
 
 if [ $CLEANUP -eq 1 ]; then
 	if [ ! -f $CLUSTERPATH/test1/postmaster.pid ]; then
@@ -93,6 +108,8 @@ if [ "$3" = "init" ]; then
 
 	echo "port = $PGPORT1" >> $CLUSTERPATH/test1/postgresql.conf
 	echo "port = $PGPORT2" >> $CLUSTERPATH/test2/postgresql.conf
+	echo "unix_socket_directories = '$PGHOST'" >> $CLUSTERPATH/test1/postgresql.conf
+	echo "unix_socket_directories = '$PGHOST'" >> $CLUSTERPATH/test2/postgresql.conf
 else
 	if [ ! -d $CLUSTERPATH/test1 ]; then
 		echo "cluster 1 does not exist"
@@ -124,6 +141,11 @@ fi
 if [ ! -f $PGPATH2/pg_ctl ]; then
 	echo "$PGPATH2/pg_ctl is not found"
 	exit 0
+fi
+
+if [ ! -f "$PGQUARREL" ]; then
+  echo "$PGQUARREL is not found"
+  exit 0
 fi
 
 if [ ! -f $CLUSTERPATH/test1/postmaster.pid ]; then
