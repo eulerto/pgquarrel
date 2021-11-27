@@ -142,6 +142,7 @@ typedef struct PQLAttribute
 	int			attstattarget;
 	char		*attstorage;
 	bool		defstorage;
+	char        attidentity;
 	char		*attoptions;
 	char		*attfdwoptions;
 	char		*comment;

@@ -23,7 +23,6 @@
  * CREATE TABLE ... INHERITS
  * CREATE TABLE ... TABLESPACE
  * CREATE TABLE ... EXCLUDE
- * CREATE TABLE ... GENERATED ... AS IDENTITY
  *
  * CREATE FOREIGN TABLE ... INHERITS
  *
@@ -42,9 +41,6 @@
  * ALTER TABLE ... OF type_name
  * ALTER TABLE ... SET TABLESPACE
  * ALTER TABLE ... ALTER COLUMN ... DROP EXPRESSION
- * ALTER TABLE ... ALTER COLUMN ... ADD GENERATED
- * ALTER TABLE ... ALTER COLUMN ... SET GENERATED
- * ALTER TABLE ... ALTER COLUMN ... DROP IDENTITY
  * ALTER TABLE ... ALTER COLUMN ... SET COMPRESSION
  *
  * ALTER FOREIGN TABLE ... RENAME COLUMN ... TO
@@ -634,22 +630,29 @@ getTableAttributes(PGconn *c, PQLTable *t)
 	}
 
 	if (PQserverVersion(c) >=
+			100000) /* support for identity columns */
+	{
+		query = psprintf(
+						  "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, array_to_string(attfdwoptions, ', ') AS attfdwoptions, attacl, a.attidentity FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
+						  t->obj.oid);
+	}
+	else if (PQserverVersion(c) >=
 			90200)	/* support for foreign table attribute options */
 	{
 		query = psprintf(
-						  "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, array_to_string(attfdwoptions, ', ') AS attfdwoptions, attacl FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
+						  "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, array_to_string(attfdwoptions, ', ') AS attfdwoptions, attacl, NULL as attidentity FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
 						  t->obj.oid);
 	}
 	else if (PQserverVersion(c) >= 90100)	/* support for collation */
 	{
 		query = psprintf(
-						  "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, NULL AS attfdwoptions, attacl FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
+						  "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, CASE WHEN a.attcollation <> t.typcollation THEN c.collname ELSE NULL END AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, NULL AS attfdwoptions, attacl, NULL as attidentity FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) LEFT JOIN pg_collation c ON (a.attcollation = c.oid) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
 						  t->obj.oid);
 	}
 	else
 	{
 		query = psprintf(
-						  "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, NULL AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, NULL AS attfdwoptions, attacl FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
+						  "SELECT a.attnum, a.attname, a.attnotnull, pg_catalog.format_type(t.oid, a.atttypmod) as atttypname, pg_get_expr(d.adbin, a.attrelid) as attdefexpr, NULL AS attcollation, col_description(a.attrelid, a.attnum) AS description, a.attstattarget, a.attstorage, CASE WHEN t.typstorage <> a.attstorage THEN FALSE ELSE TRUE END AS defstorage, array_to_string(attoptions, ', ') AS attoptions, NULL AS attfdwoptions, attacl, NULL as attidentity FROM pg_attribute a LEFT JOIN pg_type t ON (a.atttypid = t.oid) LEFT JOIN pg_attrdef d ON (a.attrelid = d.adrelid AND a.attnum = d.adnum) WHERE a.attrelid = %u AND a.attnum > 0 AND attisdropped IS FALSE ORDER BY a.attname",
 						  t->obj.oid);
 	}
 
@@ -744,6 +747,13 @@ getTableAttributes(PGconn *c, PQLTable *t)
 		else
 			t->attributes[i].attcollation = strdup(PQgetvalue(res, i, PQfnumber(res,
 												   "attcollation")));
+
+		/* identity */
+		if (PQgetisnull(res, i, PQfnumber(res, "attidentity")))
+			t->attributes[i].attidentity = 0;
+		else
+			t->attributes[i].attidentity = (PQgetvalue(res, i, PQfnumber(res,
+												 "attidentity")))[0];
 
 		/* attribute options */
 		if (PQgetisnull(res, i, PQfnumber(res, "attoptions")))
@@ -1254,6 +1264,22 @@ dumpCreateTable(FILE *output, FILE *output2, PQLTable *t)
 		/* not null? */
 		if (t->attributes[i].attnotnull)
 			fprintf(output, " NOT NULL");
+
+		/* identity */
+		if (t->attributes[i].attidentity > 0) {
+			switch (t->attributes[i].attidentity) {
+				case 'a':
+					fprintf(output, " GENERATED ALWAYS AS IDENTITY");
+					break;
+
+				case 'd':
+					fprintf(output, " GENERATED BY DEFAULT AS IDENTITY");
+					break;
+
+				default:
+					logWarning("attribute identity %c is invalid", t->attributes[i].attidentity);
+			}
+		}
 	}
 
 	/* print check constraints */
@@ -1572,6 +1598,22 @@ dumpAddColumn(FILE *output, PQLTable *t, int i)
 	if (t->attributes[i].attnotnull)
 		fprintf(output, " NOT NULL");
 
+	/* identity */
+	if (t->attributes[i].attidentity > 0) {
+		switch (t->attributes[i].attidentity) {
+			case 'a':
+				fprintf(output, " GENERATED ALWAYS AS IDENTITY");
+				break;
+
+			case 'd':
+				fprintf(output, " GENERATED BY DEFAULT AS IDENTITY");
+				break;
+
+			default:
+				logWarning("attribute identity %c is invalid", t->attributes[i].attidentity);
+		}
+	}
+
 	/* attribute options */
 	if (t->attributes[i].attoptions)
 		fprintf(output, " SET (%s)", t->attributes[i].attoptions);
@@ -1702,6 +1744,36 @@ dumpAlterColumn(FILE *output, PQLTable *a, int i, PQLTable *b, int j)
 		fprintf(output, "ALTER %s ONLY %s.%s ALTER COLUMN %s DROP DEFAULT;", kind,
 				schema2,
 				tabname2, attname2);
+	}
+
+	/* identity */
+	if (a->attributes[i].attidentity != b->attributes[j].attidentity)
+	{
+		if (b->attributes[j].attidentity == 0)
+		{
+			fprintf(output, "\n\n");
+			fprintf(output, "ALTER %s ONLY %s.%s ALTER COLUMN %s DROP IDENTITY;",
+					kind, schema2, tabname2, attname2);
+		}
+		else
+		{
+			switch (b->attributes[j].attidentity) {
+				case 'a':
+					fprintf(output, "\n\n");
+					fprintf(output, "ALTER %s ONLY %s.%s ALTER COLUMN %s ADD GENERATED ALWAYS AS IDENTITY;",
+							kind, schema2, tabname2, attname2);
+					break;
+
+				case 'd':
+					fprintf(output, "\n\n");
+					fprintf(output, "ALTER %s ONLY %s.%s ALTER COLUMN %s ADD GENERATED BY DEFAULT AS IDENTITY;",
+							kind, schema2, tabname2, attname2);
+					break;
+
+				default:
+					logWarning("attribute identity %c is invalid", b->attributes[j].attidentity);
+			}
+		}
 	}
 
 	/* not null? */
