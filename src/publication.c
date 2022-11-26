@@ -14,6 +14,9 @@
  * TODO
  *
  * ALTER PUBLICATION ... RENAME TO
+ * CREATE PUBLICATION ... FOR ALL TABLES
+ * CREATE PUBLICATION ... FOR TABLES IN SCHEMA
+ *
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
  * Copyright (c) 2015-2020, Euler Taveira

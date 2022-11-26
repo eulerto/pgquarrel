@@ -15,6 +15,7 @@
  *
  * ALTER INDEX ... RENAME TO
  * ALTER INDEX ... SET TABLESPACE
+ * CREATE INDEX ... [ NULLS [ NOT ] DISTINCT ]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
  * Copyright (c) 2015-2020, Euler Taveira
