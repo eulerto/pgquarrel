@@ -9,6 +9,8 @@
 #ifndef PG_QUARREL_H
 #define PG_QUARREL_H
 
+#include "common.h"
+
 #include <errno.h>
 #include "getopt_long.h"
 #include <sys/types.h>
@@ -16,8 +18,6 @@
 #include <unistd.h>
 #include <pg_config.h>			/* PG_VERSION_NUM */
 #include <pg_config_manual.h>	/* NAMEDATALEN */
-
-#include "common.h"
 
 #if PG_VERSION_NUM >= 140000
 #include <common/string.h>		/* simple_prompt (v14+) */
