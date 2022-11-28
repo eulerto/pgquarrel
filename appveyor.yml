@@ -5,8 +5,8 @@ configuration:
 - Debug
 - Release
 services:
-- postgresql12
+- postgresql15
 before_build:
-- cmd: cmake -B./build -DCMAKE_INSTALL_PREFIX=C:\pgquarrel -DCMAKE_PREFIX_PATH="C:\Program Files\PostgreSQL\12\bin"
+- cmd: cmake -B./build -DCMAKE_INSTALL_PREFIX=C:\pgquarrel -DCMAKE_PREFIX_PATH="C:\Program Files\PostgreSQL\15\bin"
 build:
   verbosity: normal
