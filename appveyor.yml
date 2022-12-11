@@ -1,6 +1,6 @@
 version: 0.7.{build}
 image:
-- Visual Studio 2019
+- Visual Studio 2022
 configuration:
 - Debug
 - Release
