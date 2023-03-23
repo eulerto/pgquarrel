@@ -160,7 +160,7 @@ dumpCreatePolicy(FILE *output, PQLPolicy *p)
 	}
 
 	fprintf(output, "\n\n");
-	fprintf(output, "CREATE POLICY %s;", p->polname);
+	fprintf(output, "CREATE POLICY %s", p->polname);
 	fprintf(output, " ON %s.%s%s%s", schema, tabname,
 			(!p->permissive ? " AS RESTRICTIVE" : ""), cmd);
 
