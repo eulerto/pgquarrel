@@ -78,6 +78,12 @@ CREATE TABLE same_table_5 (
 
 CREATE TABLE same_table_6 OF same_type_1;
 
+-- GENERATED AS IDENTITY
+CREATE TABLE same_table_8 (
+	a integer generated always as identity primary key,
+	b text
+);
+
 CREATE TABLE to_table_4 OF same_type_1;
 
 -- empty table
