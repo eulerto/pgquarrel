@@ -1,0 +1,13 @@
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+mini/CMakeFiles/
+mini/Makefile
+mini/cmake_install.cmake
+mini/libmini.so
+pgquarrel
+.vscode/
+pg.ini
+todo.md

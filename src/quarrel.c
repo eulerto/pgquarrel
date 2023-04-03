@@ -289,6 +289,8 @@ help(void)
 		   (opts.general.subscription) ? "true" : "false");
 	printf("      --table=BOOL              table (default: %s)\n",
 		   (opts.general.table) ? "true" : "false");
+	printf("      --table-partition=BOOL	table partition (default: %s)\n",
+		   (opts.general.tablepartition) ? "true" : "false");		   
 	printf("      --text-search=BOOL        text search (default: %s)\n",
 		   (opts.general.textsearch) ? "true" : "false");
 	printf("      --transform=BOOL          transform (default: %s)\n",
@@ -365,6 +367,7 @@ loadConfig(const char *cf, QuarrelOptions *options)
 	options->general.statistics = false;		/* general - statistics */
 	options->general.subscription = false;		/* general - subscription */
 	options->general.table = true;				/* general - table */
+	options->general.tablepartition = true;		/* general - table-partition */
 	options->general.textsearch = false;		/* general - text-search */
 	options->general.transform = false;			/* general - transform */
 	options->general.trigger = true;			/* general - trigger */
@@ -591,6 +594,10 @@ loadConfig(const char *cf, QuarrelOptions *options)
 		if (mini_file_get_value(config, "general", "table") != NULL)
 			options->general.table = parseBoolean("table", mini_file_get_value(config,
 												  "general", "table"));
+
+		if (mini_file_get_value(config, "general", "table-partition") != NULL)
+			options->general.tablepartition = parseBoolean("table-partition", mini_file_get_value(config,
+												  "general", "table-partition"));												  
 
 		if (mini_file_get_value(config, "general", "text-search") != NULL)
 			options->general.textsearch = parseBoolean("text-search",
@@ -4676,6 +4683,7 @@ int main(int argc, char *argv[])
 		{"temp-directory", required_argument, NULL, 37},
 		{"include-schema", required_argument, NULL, 45},
 		{"exclude-schema", required_argument, NULL, 46},
+		{"table-partition", required_argument, NULL, 47},
 		{NULL, 0, NULL, 0}
 	};
 
@@ -4867,6 +4875,10 @@ int main(int argc, char *argv[])
 				gopts.table = parseBoolean("table", optarg);
 				gopts_given.table = true;
 				break;
+			case 47:
+				gopts.tablepartition = parseBoolean("table-partition", optarg);
+				gopts_given.tablepartition = true;
+				break;				
 			case 32:
 				gopts.textsearch = parseBoolean("text-search", optarg);
 				gopts_given.textsearch = true;
@@ -5012,6 +5024,8 @@ int main(int argc, char *argv[])
 		options.subscription = gopts.subscription;
 	if (gopts_given.table)
 		options.table = gopts.table;
+	if (gopts_given.tablepartition)
+		options.tablepartition = gopts.tablepartition;		
 	if (gopts_given.textsearch)
 		options.textsearch = gopts.textsearch;
 	if (gopts_given.transform)
