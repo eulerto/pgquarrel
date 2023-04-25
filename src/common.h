@@ -98,6 +98,10 @@ typedef struct QuarrelGeneralOptions
 	/* filter options */
 	char			*include_schema;
 	char			*exclude_schema;
+	char			*include_table;
+	char			*exclude_table;
+	char			*exclude_column;
+	char			*exclude_table_column;
 } QuarrelGeneralOptions;
 
 typedef struct QuarrelDatabaseOptions
@@ -183,6 +187,10 @@ extern QuarrelGeneralOptions options;
 
 extern char *include_schema_str;
 extern char *exclude_schema_str;
+extern char *include_table_str;
+extern char *exclude_table_str;
+extern char *exclude_column_str;
+extern char *exclude_table_column_str;
 
 typedef struct stringListCell
 {
