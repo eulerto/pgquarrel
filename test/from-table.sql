@@ -53,6 +53,14 @@ CREATE TABLE same_table_6 (
 	baz integer
 );
 
+-- alter checks
+CREATE TABLE same_table_7 (
+	a integer not null,
+	b text,
+
+    CHECK (a > 0)
+);
+
 -- reloptions
 ALTER TABLE same_table_1 SET (autovacuum_enabled = off, autovacuum_vacuum_cost_delay = 25, autovacuum_analyze_threshold = 1234);
 ALTER TABLE same_table_3 SET (autovacuum_analyze_scale_factor = 0.36, autovacuum_vacuum_scale_factor = 0.44);
